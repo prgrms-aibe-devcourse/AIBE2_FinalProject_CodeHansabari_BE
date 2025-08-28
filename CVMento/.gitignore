@@ -47,5 +47,3 @@ src/main/resources/application.yml
 
 # 백엔드 MySQL 데이터 폴더 무시
 mysql-data/
-
-docker-compose.yaml
