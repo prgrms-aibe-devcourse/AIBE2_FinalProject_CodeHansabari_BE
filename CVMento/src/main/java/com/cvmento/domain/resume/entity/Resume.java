@@ -29,26 +29,23 @@ public class Resume extends BaseTimeEntity {
     private Member member;
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ResumeSection> resumeSections = new ArrayList<>();
+    private List<ResumeSection> sections = new ArrayList<>();
 
     protected Resume() {}
 
-    public Resume(String title, String templateType, Member member) {
+    public Resume(String title, Member member) {
         this.title = title;
-        this.templateType = templateType;
         this.member = member;
+        this.templateType = "default"; // 기본값 설정
     }
 
     public void updateTitle(String title) {
         this.title = title;
     }
 
-    public void updateTemplateType(String templateType) {
-        this.templateType = templateType;
-    }
-
-    public void addResumeSection(ResumeSection resumeSection) {
-        this.resumeSections.add(resumeSection);
-        resumeSection.setResume(this);
+    // 연관관계 편의 메소드
+    public void addSection(String sectionType, String sectionTitle, String contentText) {
+        ResumeSection section = new ResumeSection(sectionType, sectionTitle, contentText, this);
+        this.sections.add(section);
     }
 }
