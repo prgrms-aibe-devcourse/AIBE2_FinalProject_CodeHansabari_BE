@@ -39,4 +39,9 @@ public class ResumeSection extends BaseTimeEntity {
     public void updateContent(String contentText) {
         this.contentText = contentText;
     }
+
+    public void setResume(Resume resume) {
+        this.resume = resume;
+    }
+
 }

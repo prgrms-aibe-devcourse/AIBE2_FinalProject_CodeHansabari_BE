@@ -1,6 +1,7 @@
 package com.cvmento.global.exception;
 
 
+import com.cvmento.global.exception.customException.CoverLetterAiException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -53,6 +54,18 @@ public class GlobalExceptionHandler {
                 "VALIDATION_ERROR",
                 "입력값이 올바르지 않습니다.",
                 fieldErrors
+        );
+    }
+
+    @ExceptionHandler(CoverLetterAiException.class)
+    public ResponseEntity<Map<String, Object>> handleCoverLetterAiException(CoverLetterAiException ex, HttpServletRequest request) {
+        log.error("CoverLetterAiException: {}", ex.getMessage(), ex);
+        return buildErrorResponse(
+                request,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "AI_SERVICE_ERROR",
+                ex.getMessage(),
+                null
         );
     }
 }

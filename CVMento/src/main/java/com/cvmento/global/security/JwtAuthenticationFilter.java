@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -109,12 +110,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 8. 정상 인증 처리
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            member,
-                            null,
-                            member.getRole().getAuthorities()
-                    );
+            UsernamePasswordAuthenticationToken authentication = createAuthentication(member, request);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -182,5 +179,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
 
         response.getWriter().write(jsonResponse);
+    }
+
+    private UsernamePasswordAuthenticationToken createAuthentication(Member member, HttpServletRequest request) {
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                member.getEmail(),
+                "",
+                member.getRole().getAuthorities()
+        );
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        member.getRole().getAuthorities()
+                );
+
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        return authentication;
     }
 }
