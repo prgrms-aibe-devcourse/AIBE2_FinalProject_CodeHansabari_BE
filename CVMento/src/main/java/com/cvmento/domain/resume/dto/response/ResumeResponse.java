@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.dto.response;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.domain.resume.entity.ResumeSection;
+import com.cvmento.domain.resume.enums.ResumeSectionType;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -50,7 +51,7 @@ public record ResumeResponse(
             // 추후 JSON 등으로 구조화된 데이터를 저장하게 되면 이 부분을 수정해야 합니다.
             SectionItemResponse item = new SectionItemResponse(null, null, null, null, section.getContentText());
             return new ResumeSectionResponse(
-                    section.getSectionType(),
+                    section.getSectionType().name(),
                     section.getSectionTitle(),
                     Collections.singletonList(item)
             );
