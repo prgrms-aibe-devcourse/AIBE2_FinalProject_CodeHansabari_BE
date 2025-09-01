@@ -1,7 +1,6 @@
 package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterSaveRequest;
-import com.cvmento.domain.coverLetter.dto.response.CoverLetterSaveResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
@@ -24,7 +23,7 @@ public class CoverLetterService {
      * 자소서 저장 (원본/AI첨삭 구분)
      */
     @Transactional
-    public CoverLetterSaveResponse saveCoverLetter(CoverLetterSaveRequest request, String userEmail) {
+    public void saveCoverLetter(CoverLetterSaveRequest request, String userEmail) {
         Member member = findMemberByEmail(userEmail);
 
         // 제목에 접두사 추가
@@ -41,8 +40,6 @@ public class CoverLetterService {
         String logType = request.isAiImproved() ? "AI첨삭" : "원본";
         log.info("{} 자소서 저장 완료 - ID: {}, 사용자: {}",
                 logType, savedCoverLetter.getCoverLetterId(), userEmail);
-
-        return CoverLetterSaveResponse.from(savedCoverLetter);
     }
 
     // ======================== 유틸리티 메서드 ========================

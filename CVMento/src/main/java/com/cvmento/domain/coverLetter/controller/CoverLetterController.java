@@ -1,7 +1,6 @@
 package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterSaveRequest;
-import com.cvmento.domain.coverLetter.dto.response.CoverLetterSaveResponse;
 import com.cvmento.domain.coverLetter.service.CoverLetterService;
 import com.cvmento.global.common.dto.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -74,18 +73,18 @@ public class CoverLetterController {
             }
     )
     @PostMapping
-    public ResponseEntity<CommonResponse<CoverLetterSaveResponse>> saveCoverLetter(
+    public ResponseEntity<CommonResponse<Void>> saveCoverLetter(
             @Valid @RequestBody CoverLetterSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
         String userEmail = userDetails.getUsername();
-        CoverLetterSaveResponse response = coverLetterService.saveCoverLetter(request, userEmail);
+        coverLetterService.saveCoverLetter(request, userEmail);
 
         String message = request.isAiImproved() ?
                 "AI 첨삭된 자소서가 저장되었습니다." :
                 "원본 자소서가 저장되었습니다.";
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CommonResponse.success(message, response));
+                .body(CommonResponse.success(message, null));
     }
 }
