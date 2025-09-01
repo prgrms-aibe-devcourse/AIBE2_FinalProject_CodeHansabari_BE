@@ -111,7 +111,82 @@ public class ResumeController {
 
     @Operation(
             summary = "사용자 이력서 수정",
-            description = "현재 로그인한 사용자의 이력서를 수정합니다."
+            description = "현재 로그인한 사용자의 이력서를 수정합니다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "수정할 이력서 내용",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = ResumeUpdateRequest.class),
+                            examples = @ExampleObject(
+                                    name = "이력서 수정 예시",
+                                    value = """
+{
+  "title": "백엔드 개발자 이력서 (업데이트)",
+  "memberInfo": {
+    "name": "홍길동",
+    "email": "hong.gildong@example.com",
+    "phoneNumber": "010-1234-5678",
+    "blogUrl": "https://honggildong.dev"
+  },
+  "sections": [
+    {
+      "sectionType": "EDUCATION",
+      "sectionTitle": "학력",
+      "items": [
+        {
+          "title": "ABC 대학교",
+          "subTitle": "컴퓨터공학과",
+          "startDate": "2018-03-01",
+          "endDate": "2022-02-28",
+          "description": "학사 졸업 (우수 졸업)"
+        }
+      ]
+    },
+    {
+      "sectionType": "WORK_EXPERIENCE",
+      "sectionTitle": "경력",
+      "items": [
+        {
+          "title": "XYZ 소프트웨어",
+          "subTitle": "백엔드 개발자",
+          "startDate": "2023-01-01",
+          "endDate": "2024-12-31",
+          "description": "Spring Boot 기반 REST API 개발, 배포 자동화, 성능 최적화"
+        }
+      ]
+    },
+    {
+      "sectionType": "PROJECT",
+      "sectionTitle": "프로젝트",
+      "items": [
+        {
+          "title": "이력서 관리 서비스",
+          "subTitle": "개인 프로젝트",
+          "startDate": "2024-03-01",
+          "endDate": "2024-06-30",
+          "description": "스프링 시큐리티/데이터 JPA 적용, AWS 배포"
+        }
+      ]
+    },
+    {
+      "sectionType": "SKILL",
+      "sectionTitle": "기술 스택",
+      "items": [
+        {
+          "title": "Backend",
+          "subTitle": "Java, Spring Boot, JPA, QueryDSL",
+          "startDate": null,
+          "endDate": null,
+          "description": "테스트 코드(JUnit5), CI/CD(GitHub Actions)"
+        }
+      ]
+    }
+  ]
+}
+"""
+                            )
+                    )
+            )
     )
     @PutMapping("/{resumeId}")
     public ResponseEntity<CommonResponse<ResumeResponse>> updateResume(
@@ -121,6 +196,7 @@ public class ResumeController {
         ResumeResponse resumeResponse = resumeService.updateResume(resumeId, request, userDetails.getUsername());
         return ResponseEntity.ok(CommonResponse.success("이력서 수정 성공", resumeResponse));
     }
+
 
     @Operation(
             summary = "이력서 삭제 (소프트 삭제)",
