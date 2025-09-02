@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/health",
                                 "/error"
                         ).permitAll()
+                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
