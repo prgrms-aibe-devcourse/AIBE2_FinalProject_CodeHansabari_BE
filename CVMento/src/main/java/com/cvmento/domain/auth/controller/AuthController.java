@@ -1,10 +1,13 @@
 package com.cvmento.domain.auth.controller;
 
+import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
 import com.cvmento.domain.auth.dto.response.AuthStatusResponse;
+import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.response.GoogleLoginGuideResponse;
 import com.cvmento.domain.auth.dto.response.TestLoginResponse;
 import com.cvmento.domain.auth.dto.response.TokenRefreshResponse;
 import com.cvmento.domain.auth.service.AuthService;
+import com.cvmento.domain.auth.service.GoogleOAuthService;
 import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
@@ -15,7 +18,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,10 +28,84 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Authentication", description = "인증 관련 API")
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleOAuthService googleOAuthService;
+
+    // === 구글 OAuth2 로그인 API ===
+
+    @GetMapping("/google/url")
+    @Operation(summary = "구글 OAuth2 URL 생성", description = "프론트엔드에서 사용할 구글 로그인 URL을 생성합니다.")
+    @ApiResponse(responseCode = "200", description = "구글 로그인 URL 생성 성공")
+    public ResponseEntity<CommonResponse<GoogleLoginUrlResponse>> getGoogleLoginUrl(
+            @RequestParam(required = false) String redirectUri) {
+
+        GoogleLoginUrlResponse response = googleOAuthService.generateGoogleLoginUrl(redirectUri);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    @PostMapping("/google/login")
+    @Operation(summary = "구글 OAuth2 로그인", description = "구글에서 받은 authorization code로 로그인을 처리합니다.")
+    @ApiResponse(responseCode = "200", description = "로그인 성공")
+    @ApiResponse(responseCode = "400", description = "잘못된 authorization code")
+    @ApiResponse(responseCode = "401", description = "인증 실패")
+    public ResponseEntity<CommonResponse<LoginResponse>> loginWithGoogle(
+            @Valid @RequestBody GoogleLoginRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        try {
+            String clientIp = getClientIpAddress(httpRequest);
+            LoginResponse loginResponse = googleOAuthService.processGoogleLogin(request, clientIp, httpResponse);
+
+            return ResponseEntity.ok(CommonResponse.success(loginResponse));
+
+        } catch (GoogleOAuthService.InvalidAuthorizationCodeException e) {
+            log.warn("Invalid authorization code: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(CommonResponse.error("INVALID_AUTH_CODE", e.getMessage()));
+
+        } catch (GoogleOAuthService.GoogleApiException e) {
+            log.error("Google API error: {}", e.getMessage());
+            return ResponseEntity.status(502)
+                    .body(CommonResponse.error("GOOGLE_API_ERROR", "구글 서버와 통신 중 오류가 발생했습니다."));
+
+        } catch (Exception e) {
+            log.error("Google login failed", e);
+            return ResponseEntity.status(500)
+                    .body(CommonResponse.error("LOGIN_ERROR", "로그인 처리 중 오류가 발생했습니다."));
+        }
+    }
+
+    @PostMapping("/google/token")
+    @Operation(summary = "구글 토큰으로 로그인", description = "프론트엔드에서 받은 구글 ID 토큰으로 로그인을 처리합니다.")
+    @ApiResponse(responseCode = "200", description = "로그인 성공")
+    @ApiResponse(responseCode = "400", description = "잘못된 ID 토큰")
+    public ResponseEntity<CommonResponse<LoginResponse>> loginWithGoogleToken(
+            @Valid @RequestBody GoogleTokenRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        try {
+            String clientIp = getClientIpAddress(httpRequest);
+            LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, clientIp, httpResponse);
+
+            return ResponseEntity.ok(CommonResponse.success(loginResponse));
+
+        } catch (GoogleOAuthService.InvalidTokenException e) {
+            log.warn("Invalid Google ID token: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(CommonResponse.error("INVALID_TOKEN", e.getMessage()));
+
+        } catch (Exception e) {
+            log.error("Google token login failed", e);
+            return ResponseEntity.status(500)
+                    .body(CommonResponse.error("LOGIN_ERROR", "로그인 처리 중 오류가 발생했습니다."));
+        }
+    }
 
     @GetMapping("/login/google")
     @Operation(summary = "구글 로그인 안내", description = "구글 OAuth2 로그인 URL을 제공합니다.")
@@ -42,19 +121,7 @@ public class AuthController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    @GetMapping("/me")
-    @Operation(summary = "현재 사용자 정보", description = "쿠키의 JWT 토큰으로 현재 로그인한 사용자 정보를 가져옵니다.")
-    @SecurityRequirement(name = "cookieAuth")
-    @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공")
-    @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
-    public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal Member member) {
-        if (member == null) {
-            return ResponseEntity.status(401)
-                    .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
-        }
-
-        return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
-    }
+    // === 토큰 관리 API ===
 
     @PostMapping("/refresh")
     @Operation(summary = "토큰 갱신", description = "Refresh Token으로 새로운 Access Token을 발급받습니다.")
@@ -97,8 +164,25 @@ public class AuthController {
         return ResponseEntity.ok(CommonResponse.success("로그아웃되었습니다."));
     }
 
+    // === 사용자 정보 API ===
+
+    @GetMapping("/me")
+    @Operation(summary = "현재 사용자 정보", description = "JWT 토큰으로 현재 로그인한 사용자 정보를 가져옵니다.")
+    @SecurityRequirement(name = "cookieAuth")
+    @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공")
+    @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal Member member) {
+        if (member == null) {
+            return ResponseEntity.status(401)
+                    .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
+        }
+
+        return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
+    }
+
     @GetMapping("/status")
     @Operation(summary = "인증 상태 확인", description = "현재 인증 상태를 확인합니다.")
+    @SecurityRequirement(name = "cookieAuth")
     public ResponseEntity<CommonResponse<AuthStatusResponse>> checkAuthStatus(@AuthenticationPrincipal Member member) {
         if (member != null && member.isActive()) {
             AuthStatusResponse statusResponse = AuthStatusResponse.builder()
@@ -157,6 +241,8 @@ public class AuthController {
         return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
     }
 
+    // === 헬퍼 메서드들 ===
+
     private ResponseEntity<CommonResponse<TestLoginResponse>> performQuickLogin(String email, String name, Role role, HttpServletResponse response) {
         Member testMember = authService.createOrUpdateTestUser(email, name, role);
         authService.generateTokensAndSetCookies(testMember, response);
@@ -168,5 +254,41 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(CommonResponse.success(loginResponse));
+    }
+
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+
+        return request.getRemoteAddr();
+    }
+
+    // === DTO 클래스들 ===
+
+    public static class GoogleLoginUrlResponse {
+        private final String loginUrl;
+        private final String state;
+
+        public GoogleLoginUrlResponse(String loginUrl, String state) {
+            this.loginUrl = loginUrl;
+            this.state = state;
+        }
+
+        public String getLoginUrl() { return loginUrl; }
+        public String getState() { return state; }
+    }
+
+    public static class GoogleTokenRequest {
+        private String idToken;
+
+        public String getIdToken() { return idToken; }
+        public void setIdToken(String idToken) { this.idToken = idToken; }
     }
 }
