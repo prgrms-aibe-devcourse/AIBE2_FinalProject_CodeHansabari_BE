@@ -1,20 +1,25 @@
 package com.cvmento.domain.coverLetter.controller;
 
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterDto;
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
+import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.service.CrawlCoverLetterService;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.exception.CrawlCoverLetterException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/crawl")
@@ -81,17 +86,132 @@ public class CrawlCoverLetterController {
         }
 
         try {
-            CrawlCoverLetterService.CrawlCoverLetterResponse response = 
+            CrawlCoverLetterResponse response = 
                 crawlCoverLetterService.crawlAndSaveCoverLetters();
 
-            if (response.isSuccess()) {
+            if (response.success()) {
                 return ResponseEntity.ok(CommonResponse.success(response));
             } else {
-                return ResponseEntity.ok(CommonResponse.error("CRAWLING_FAILED", response.getMessage()));
+                return ResponseEntity.ok(CommonResponse.error("CRAWLING_FAILED", response.message()));
             }
 
         } catch (Exception e) {
             return ResponseEntity.ok(CommonResponse.error("CRAWLING_ERROR", "크롤링 중 오류가 발생했습니다: " + e.getMessage()));
         }
+    }
+    
+    @GetMapping("/cover-letters")
+    @Operation(
+        summary = "크롤링 데이터 전체 조회", 
+        description = "크롤링된 모든 자소서 데이터를 조회합니다. (관리자 권한 필요)"
+    )
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @ApiResponse(responseCode = "403", description = "권한 없음")
+    @SecurityRequirement(name = "cookieAuth")
+    public ResponseEntity<CommonResponse<List<CrawlCoverLetterDto>>> getAllCrawlCoverLetters(@AuthenticationPrincipal Member member) {
+        // 관리자 권한 체크
+        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+            throw new AccessDeniedException("크롤링 데이터를 조회할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        List<CrawlCoverLetterDto> coverLetters = crawlCoverLetterService.getAllCrawlCoverLetters();
+        return ResponseEntity.ok(CommonResponse.success(coverLetters));
+    }
+    
+    @GetMapping("/cover-letters/{id}")
+    @Operation(
+        summary = "크롤링 데이터 개별 조회", 
+        description = "특정 ID의 크롤링된 자소서 데이터를 조회합니다. (관리자 권한 필요)"
+    )
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @ApiResponse(responseCode = "403", description = "권한 없음")
+    @ApiResponse(responseCode = "404", description = "데이터 없음")
+    @SecurityRequirement(name = "cookieAuth")
+    public ResponseEntity<CommonResponse<CrawlCoverLetterDto>> getCrawlCoverLetterById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Member member) {
+        // 관리자 권한 체크
+        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+            throw new AccessDeniedException("크롤링 데이터를 조회할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        try {
+            CrawlCoverLetterDto coverLetter = crawlCoverLetterService.getCrawlCoverLetterById(id);
+            return ResponseEntity.ok(CommonResponse.success(coverLetter));
+        } catch (CrawlCoverLetterException e) {
+            return ResponseEntity.status(e.getHttpStatus())
+                    .body(CommonResponse.error(e.getErrorCode(), e.getMessage()));
+        }
+    }
+    
+    @PutMapping("/cover-letters/{id}")
+    @Operation(
+        summary = "크롤링 데이터 수정", 
+        description = "특정 ID의 크롤링된 자소서 데이터를 수정합니다. (관리자 권한 필요)"
+    )
+    @ApiResponse(responseCode = "200", description = "수정 성공")
+    @ApiResponse(responseCode = "403", description = "권한 없음")
+    @ApiResponse(responseCode = "404", description = "데이터 없음")
+    @SecurityRequirement(name = "cookieAuth")
+    public ResponseEntity<CommonResponse<CrawlCoverLetterDto>> updateCrawlCoverLetter(
+            @PathVariable Long id,
+            @RequestBody UpdateCrawlCoverLetterRequest request,
+            @AuthenticationPrincipal Member member) {
+        // 관리자 권한 체크
+        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+            throw new AccessDeniedException("크롤링 데이터를 수정할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        try {
+            CrawlCoverLetterDto updatedCoverLetter = crawlCoverLetterService.updateCrawlCoverLetter(id, request, member);
+            return ResponseEntity.ok(CommonResponse.success(updatedCoverLetter));
+        } catch (CrawlCoverLetterException e) {
+            return ResponseEntity.status(e.getHttpStatus())
+                    .body(CommonResponse.error(e.getErrorCode(), e.getMessage()));
+        }
+    }
+    
+    @DeleteMapping("/cover-letters/{id}")
+    @Operation(
+        summary = "크롤링 데이터 개별 삭제", 
+        description = "특정 ID의 크롤링된 자소서 데이터를 삭제합니다. (관리자 권한 필요)"
+    )
+    @ApiResponse(responseCode = "200", description = "삭제 성공")
+    @ApiResponse(responseCode = "403", description = "권한 없음")
+    @ApiResponse(responseCode = "404", description = "데이터 없음")
+    @SecurityRequirement(name = "cookieAuth")
+    public ResponseEntity<CommonResponse<Void>> deleteCrawlCoverLetter(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Member member) {
+        // 관리자 권한 체크
+        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+            throw new AccessDeniedException("크롤링 데이터를 삭제할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        try {
+            crawlCoverLetterService.deleteCrawlCoverLetter(id);
+            return ResponseEntity.ok(CommonResponse.success("크롤링 데이터가 삭제되었습니다."));
+        } catch (CrawlCoverLetterException e) {
+            return ResponseEntity.status(e.getHttpStatus())
+                    .body(CommonResponse.error(e.getErrorCode(), e.getMessage()));
+        }
+    }
+    
+    @DeleteMapping("/cover-letters")
+    @Operation(
+        summary = "크롤링 데이터 전체 삭제", 
+        description = "크롤링된 모든 자소서 데이터를 삭제합니다. (관리자 권한 필요)"
+    )
+    @ApiResponse(responseCode = "200", description = "삭제 성공")
+    @ApiResponse(responseCode = "403", description = "권한 없음")
+    @SecurityRequirement(name = "cookieAuth")
+    public ResponseEntity<CommonResponse<Void>> deleteAllCrawlCoverLetters(@AuthenticationPrincipal Member member) {
+        // 관리자 권한 체크
+        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+            throw new AccessDeniedException("크롤링 데이터를 삭제할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        crawlCoverLetterService.deleteAllCrawlCoverLetters();
+        return ResponseEntity.ok(CommonResponse.success("모든 크롤링 데이터가 삭제되었습니다."));
     }
 }

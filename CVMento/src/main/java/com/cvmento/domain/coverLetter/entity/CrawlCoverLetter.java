@@ -24,4 +24,8 @@ public class CrawlCoverLetter extends BaseEntity {
     public CrawlCoverLetter(String text) {
         this.text = text;
     }
+    
+    public void updateText(String text) {
+        this.text = text;
+    }
 }
