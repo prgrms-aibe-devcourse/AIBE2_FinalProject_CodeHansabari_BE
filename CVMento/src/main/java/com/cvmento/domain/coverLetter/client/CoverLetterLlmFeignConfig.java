@@ -12,7 +12,7 @@ public class CoverLetterLlmFeignConfig {
     @Value("${llm.api.cover-letter.key}")
     private String coverLetterApiKey;
 
-    @Bean
+    @Bean(name = "coverLetterRequestInterceptor")
     public RequestInterceptor coverLetterRequestInterceptor() {
         return template -> {
             template.header("Content-Type", "application/json");
