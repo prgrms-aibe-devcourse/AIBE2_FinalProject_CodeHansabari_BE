@@ -6,6 +6,7 @@ import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
 import com.cvmento.domain.resume.entity.Resume;
+import com.cvmento.domain.resume.enums.RecordStatus;
 import com.cvmento.domain.resume.repository.ResumeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,8 @@ public class ResumeService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public ResumeResponse createResume(ResumeCreateRequest request) {
-        // TODO: 현재 로그인한 사용자 정보를 가져오도록 수정해야 함
-        Member member = memberRepository.findById(1L)
+    public ResumeResponse createResume(ResumeCreateRequest request, String userEmail) {
+        Member member = memberRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
         Resume resume = new Resume(request.title(), member);
@@ -43,26 +43,29 @@ public class ResumeService {
     }
 
     @Transactional(readOnly = true)
-    public ResumeResponse getResume(Long resumeId) {
+    public ResumeResponse getResume(Long resumeId, String userEmail) {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+        validateResumeOwner(resume, userEmail);
         return ResumeResponse.from(resume);
     }
 
     @Transactional(readOnly = true)
-    public List<ResumeResponse> getResumesByMember(Long memberId) {
-        List<Resume> resumes = resumeRepository.findByMember_MemberId(memberId);
+    public List<ResumeResponse> getResumesByMember(String userEmail) {
+        Member member = memberRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        List<Resume> resumes = resumeRepository.findByMember_MemberId(member.getMemberId());
         return resumes.stream()
                 .map(ResumeResponse::from)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public ResumeResponse updateResume(Long resumeId, ResumeUpdateRequest request) {
+    public ResumeResponse updateResume(Long resumeId, ResumeUpdateRequest request, String userEmail) {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
 
-        // TODO: Check if the resume belongs to the current user
+        validateResumeOwner(resume, userEmail);
 
         resume.updateTitle(request.title());
 
@@ -79,11 +82,20 @@ public class ResumeService {
     }
 
     @Transactional
-    public void deleteResume(Long resumeId) {
-        // TODO: Check if the resume belongs to the current user
-        if (!resumeRepository.existsById(resumeId)) {
-            throw new IllegalArgumentException("Resume not found");
+    public void deleteResume(Long resumeId, String userEmail) {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+
+        validateResumeOwner(resume, userEmail);
+
+        resume.setStatus(RecordStatus.DELETED);
+    }
+
+    private void validateResumeOwner(Resume resume, String userEmail) {
+        Member member = memberRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        if (!resume.getMember().getMemberId().equals(member.getMemberId())) {
+            throw new SecurityException("You do not have permission to access this resume.");
         }
-        resumeRepository.deleteById(resumeId);
     }
 }
