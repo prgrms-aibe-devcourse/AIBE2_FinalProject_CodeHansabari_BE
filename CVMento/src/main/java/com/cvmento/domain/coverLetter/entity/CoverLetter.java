@@ -24,6 +24,12 @@ public class CoverLetter extends BaseTimeEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "job_field", length = 100)
+    private String jobField;  // 지원분야
+
+    @Column(name = "experience_years")
+    private Integer experienceYears;  // 경력 년수
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
@@ -33,9 +39,20 @@ public class CoverLetter extends BaseTimeEntity {
 
     protected CoverLetter() {}
 
+    // 기본 생성자 (기존 호환성 유지)
     public CoverLetter(String title, String content, Member member) {
         this.title = title;
         this.content = content;
+        this.member = member;
+    }
+
+    // 확장 생성자 (경력 정보 포함)
+    public CoverLetter(String title, String content, String jobField,
+                       Integer experienceYears, Member member) {
+        this.title = title;
+        this.content = content;
+        this.jobField = jobField;
+        this.experienceYears = experienceYears;
         this.member = member;
     }
 
@@ -47,8 +64,24 @@ public class CoverLetter extends BaseTimeEntity {
         this.content = content;
     }
 
+    public void updateJobField(String jobField) {
+        this.jobField = jobField;
+    }
+
+    public void updateExperience(Integer years) {
+        this.experienceYears = years;
+    }
+
     public void addQna(CoverLetterQna qna) {
         this.qnaList.add(qna);
         qna.setCoverLetter(this);
+    }
+
+    // 총 경력을 문자열로 반환하는 헬퍼 메서드
+    public String getTotalExperienceString() {
+        if (experienceYears == null || experienceYears == 0) {
+            return "신입";
+        }
+        return experienceYears + "년";
     }
 }

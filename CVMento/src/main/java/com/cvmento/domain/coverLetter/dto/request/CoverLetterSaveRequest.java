@@ -1,6 +1,8 @@
 package com.cvmento.domain.coverLetter.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 public record CoverLetterSaveRequest(
@@ -9,8 +11,16 @@ public record CoverLetterSaveRequest(
         String title,
 
         @NotBlank(message = "내용은 필수입니다.")
-        @Size(min = 100, max = 2000, message = "내용은 50자 이상 2000자 이하로 작성해주세요.")
+        @Size(min = 50, max = 3000, message = "내용은 50자 이상 3000자 이하로 작성해주세요.")
         String content,
+
+        @NotBlank(message = "지원분야는 필수입니다.")
+        @Size(max = 100, message = "지원분야는 100자 이하로 작성해주세요.")
+        String jobField,  // 지원분야 (필수)
+
+        @NotNull(message = "경력 년수는 필수입니다.")
+        @PositiveOrZero(message = "경력 년수는 0 이상이어야 합니다.")
+        Integer experienceYears,  // 경력 년수 (필수)
 
         boolean isAiImproved  // AI 첨삭 여부
 ) {}

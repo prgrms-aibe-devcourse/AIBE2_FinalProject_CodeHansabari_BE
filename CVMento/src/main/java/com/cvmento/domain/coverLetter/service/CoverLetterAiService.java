@@ -31,27 +31,26 @@ public class CoverLetterAiService {
     private final ObjectMapper objectMapper;
 
     /**
-     * 자소서 AI 개선 메인 메서드 (커스텀 프롬프트 지원)
+     * 자소서 AI 개선 메인 메서드 (경력 정보 포함)
      */
     public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request, String userEmail) {
         try {
-            // 0. 사용 횟수가 남아있는지 검증 (추후 구현)
-            // checkUsageLimit(String userEmail);
-
             // 1. 특징 데이터 로드
             List<CoverLetterFeatureDto> featuresDtoList = loadCoverLetterFeatures();
 
-            // 2. LLM 프롬프트 생성 (커스텀 프롬프트 포함)
+            // 2. LLM 프롬프트 생성 (경력 정보 포함)
             String prompt = llmPromptService.buildImprovementPrompt(
                     request.content(),
                     featuresDtoList,
+                    request.jobField(),
+                    request.getTotalExperience(),
                     request.customPrompt()
             );
 
-            // 커스텀 프롬프트 로깅
-            if (request.customPrompt() != null && !request.customPrompt().trim().isEmpty()) {
-                log.info("사용자 커스텀 프롬프트 적용됨: {}", request.customPrompt());
-            }
+            // 경력 정보 로깅
+            log.info("자소서 AI 첨삭 요청 - 사용자: {}, 지원분야: {}, 경력: {}, 커스텀프롬프트: {}",
+                    userEmail, request.jobField(), request.getTotalExperience(),
+                    request.customPrompt() != null ? "있음" : "없음");
 
             // 3. LLM API 호출
             LlmAnalysisResponse llmResponse = llmClientService.analyze(prompt);
@@ -131,9 +130,10 @@ public class CoverLetterAiService {
 
     /** 서비스 수행 중 발생한 에러를 로깅 */
     private void logError(Exception e, CoverLetterAiRequest request) {
-        log.error("자소서 AI 개선 중 오류 발생 - content length: {}, custom prompt: {}, error: {}",
+        log.error("자소서 AI 개선 중 오류 발생 - content length: {}, jobField: {}, experience: {}, error: {}",
                 request != null ? request.content().length() : 0,
-                request != null && request.customPrompt() != null ? request.customPrompt() : "없음",
+                request != null ? request.jobField() : "없음",
+                request != null ? request.getTotalExperience() : "없음",
                 e.getMessage(), e);
     }
 
