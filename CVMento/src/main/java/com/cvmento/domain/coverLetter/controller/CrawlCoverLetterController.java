@@ -1,6 +1,6 @@
 package com.cvmento.domain.coverLetter.controller;
 
-import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterDto;
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.service.CrawlCoverLetterService;
@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -108,13 +107,13 @@ public class CrawlCoverLetterController {
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @ApiResponse(responseCode = "403", description = "권한 없음")
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<List<CrawlCoverLetterDto>>> getAllCrawlCoverLetters(@AuthenticationPrincipal Member member) {
+    public ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(@AuthenticationPrincipal Member member) {
         // 관리자 권한 체크
         if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
             throw new AccessDeniedException("크롤링 데이터를 조회할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
-        List<CrawlCoverLetterDto> coverLetters = crawlCoverLetterService.getAllCrawlCoverLetters();
+        List<CrawlCoverLetterData> coverLetters = crawlCoverLetterService.getAllCrawlCoverLetters();
         return ResponseEntity.ok(CommonResponse.success(coverLetters));
     }
     
@@ -127,7 +126,7 @@ public class CrawlCoverLetterController {
     @ApiResponse(responseCode = "403", description = "권한 없음")
     @ApiResponse(responseCode = "404", description = "데이터 없음")
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<CrawlCoverLetterDto>> getCrawlCoverLetterById(
+    public ResponseEntity<CommonResponse<CrawlCoverLetterData>> getCrawlCoverLetterById(
             @PathVariable Long id,
             @AuthenticationPrincipal Member member) {
         // 관리자 권한 체크
@@ -136,7 +135,7 @@ public class CrawlCoverLetterController {
         }
 
         try {
-            CrawlCoverLetterDto coverLetter = crawlCoverLetterService.getCrawlCoverLetterById(id);
+            CrawlCoverLetterData coverLetter = crawlCoverLetterService.getCrawlCoverLetterById(id);
             return ResponseEntity.ok(CommonResponse.success(coverLetter));
         } catch (CrawlCoverLetterException e) {
             return ResponseEntity.status(e.getHttpStatus())
@@ -153,7 +152,7 @@ public class CrawlCoverLetterController {
     @ApiResponse(responseCode = "403", description = "권한 없음")
     @ApiResponse(responseCode = "404", description = "데이터 없음")
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<CrawlCoverLetterDto>> updateCrawlCoverLetter(
+    public ResponseEntity<CommonResponse<CrawlCoverLetterData>> updateCrawlCoverLetter(
             @PathVariable Long id,
             @RequestBody UpdateCrawlCoverLetterRequest request,
             @AuthenticationPrincipal Member member) {
@@ -163,7 +162,7 @@ public class CrawlCoverLetterController {
         }
 
         try {
-            CrawlCoverLetterDto updatedCoverLetter = crawlCoverLetterService.updateCrawlCoverLetter(id, request, member);
+            CrawlCoverLetterData updatedCoverLetter = crawlCoverLetterService.updateCrawlCoverLetter(id, request, member);
             return ResponseEntity.ok(CommonResponse.success(updatedCoverLetter));
         } catch (CrawlCoverLetterException e) {
             return ResponseEntity.status(e.getHttpStatus())

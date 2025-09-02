@@ -20,9 +20,6 @@ public class ResumeSection extends BaseTimeEntity {
     @Column(name = "content_text", nullable = false, columnDefinition = "TEXT")
     private String contentText;
 
-    @Column(name = "ai_recommendation", columnDefinition = "JSON")
-    private String aiRecommendation;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resume_id", nullable = false)
     private Resume resume;
@@ -39,9 +36,6 @@ public class ResumeSection extends BaseTimeEntity {
         this.contentText = contentText;
     }
 
-    public void updateAiRecommendation(String aiRecommendation) {
-        this.aiRecommendation = aiRecommendation;
-    }
 
     public void setResume(Resume resume) {
         this.resume = resume;

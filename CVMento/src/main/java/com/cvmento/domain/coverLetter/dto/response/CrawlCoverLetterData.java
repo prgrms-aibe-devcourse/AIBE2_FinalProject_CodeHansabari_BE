@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * 크롤링된 자소서 데이터 응답 DTO
  */
-public record CrawlCoverLetterDto(
+public record CrawlCoverLetterData(
     Long coverLetterId,
     String text,
     LocalDateTime createdAt,
@@ -17,8 +17,8 @@ public record CrawlCoverLetterDto(
     /**
      * 엔티티로부터 DTO 생성
      */
-    public static CrawlCoverLetterDto from(CrawlCoverLetter entity) {
-        return new CrawlCoverLetterDto(
+    public static CrawlCoverLetterData from(CrawlCoverLetter entity) {
+        return new CrawlCoverLetterData(
             entity.getCoverLetterId(),
             entity.getText(),
             entity.getCreatedAt(),

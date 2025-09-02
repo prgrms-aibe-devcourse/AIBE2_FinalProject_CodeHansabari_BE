@@ -1,6 +1,6 @@
 package com.cvmento.domain.coverLetter.service;
 
-import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterDto;
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
@@ -254,30 +254,30 @@ public class CrawlCoverLetterService {
     /**
      * 모든 크롤링 데이터 조회
      */
-    public List<CrawlCoverLetterDto> getAllCrawlCoverLetters() {
+    public List<CrawlCoverLetterData> getAllCrawlCoverLetters() {
         List<CrawlCoverLetter> coverLetters = crawlCoverLetterRepository.findAllByOrderByCreatedAtDesc();
         return coverLetters.stream()
-                .map(CrawlCoverLetterDto::from)
+                .map(CrawlCoverLetterData::from)
                 .collect(Collectors.toList());
     }
     
     /**
      * 특정 크롤링 데이터 조회
      */
-    public CrawlCoverLetterDto getCrawlCoverLetterById(Long id) {
+    public CrawlCoverLetterData getCrawlCoverLetterById(Long id) {
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
                 .orElseThrow(() -> new CrawlCoverLetterException(
                     "CRAWL_COVER_LETTER_NOT_FOUND", 
                     "크롤링 데이터를 찾을 수 없습니다. ID: " + id, 
                     404
                 ));
-        return CrawlCoverLetterDto.from(coverLetter);
+        return CrawlCoverLetterData.from(coverLetter);
     }
     
     /**
      * 크롤링 데이터 수정
      */
-    public CrawlCoverLetterDto updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, Member member) {
+    public CrawlCoverLetterData updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, Member member) {
         // 관리자 권한 체크
         if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
             throw new AccessDeniedException("크롤링 데이터를 수정할 권한이 없습니다. 관리자 권한이 필요합니다.");
@@ -294,7 +294,7 @@ public class CrawlCoverLetterService {
         CrawlCoverLetter savedCoverLetter = crawlCoverLetterRepository.save(coverLetter);
         
         log.info("크롤링 데이터 수정 완료: ID={}, 수정자={}", id, member.getEmail());
-        return CrawlCoverLetterDto.from(savedCoverLetter);
+        return CrawlCoverLetterData.from(savedCoverLetter);
     }
     
     /**
