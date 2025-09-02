@@ -17,6 +17,9 @@ public class ResumeSection extends BaseTimeEntity {
     @Column(name = "section_type", nullable = false)
     private String sectionType;
 
+    @Column(name = "section_title")
+    private String sectionTitle;
+
     @Column(name = "content_text", nullable = false, columnDefinition = "TEXT")
     private String contentText;
 
@@ -26,8 +29,9 @@ public class ResumeSection extends BaseTimeEntity {
 
     protected ResumeSection() {}
 
-    public ResumeSection(String sectionType, String contentText, Resume resume) {
+    public ResumeSection(String sectionType, String sectionTitle, String contentText, Resume resume) {
         this.sectionType = sectionType;
+        this.sectionTitle = sectionTitle;
         this.contentText = contentText;
         this.resume = resume;
     }
@@ -36,8 +40,8 @@ public class ResumeSection extends BaseTimeEntity {
         this.contentText = contentText;
     }
 
-
     public void setResume(Resume resume) {
         this.resume = resume;
     }
+
 }
