@@ -30,36 +30,27 @@ public class CoverLetterAiService {
     private final CoverLetterLlmClientService llmClientService;
     private final ObjectMapper objectMapper;
 
-    // ==============================================
-    // 사용 횟수/토큰 임시 관리용 맵 (서버 재시작 시 초기화됨)
-    // memberId -> 남은 토큰 수
-    // 실제 운영에서는 DB 또는 Redis 사용 권장
-    // private final Map<Long, Integer> usageMap = new ConcurrentHashMap<>();
-    // ==============================================
-
     /**
-     * 서버 시작 시 모든 가입 회원에게 기본 토큰 발급
-     */
-    // @PostConstruct
-    // public void initUsageMap() {
-    //     List<Member> members = memberRepository.findAll();
-    //     members.forEach(member -> usageMap.put(member.getMemberId(), 10));
-    // }
-
-
-    /**
-     * 자소서 AI 개선 메인 메서드
+     * 자소서 AI 개선 메인 메서드 (경력 정보 포함)
      */
     public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request, String userEmail) {
         try {
-            // 0. 사용 횟수가 남아있는지 검증 (추후 구현)
-            // checkUsageLimit(String userEmail);
-
             // 1. 특징 데이터 로드
             List<CoverLetterFeatureDto> featuresDtoList = loadCoverLetterFeatures();
 
-            // 2. LLM 프롬프트 생성
-            String prompt = llmPromptService.buildImprovementPrompt(request.content(), featuresDtoList);
+            // 2. LLM 프롬프트 생성 (경력 정보 포함)
+            String prompt = llmPromptService.buildImprovementPrompt(
+                    request.content(),
+                    featuresDtoList,
+                    request.jobField(),
+                    request.getTotalExperience(),
+                    request.customPrompt()
+            );
+
+            // 경력 정보 로깅
+            log.info("자소서 AI 첨삭 요청 - 사용자: {}, 지원분야: {}, 경력: {}, 커스텀프롬프트: {}",
+                    userEmail, request.jobField(), request.getTotalExperience(),
+                    request.customPrompt() != null ? "있음" : "없음");
 
             // 3. LLM API 호출
             LlmAnalysisResponse llmResponse = llmClientService.analyze(prompt);
@@ -76,25 +67,6 @@ public class CoverLetterAiService {
         }
     }
 
-    // ==============================================
-    // 토큰 체크 예시
-    // ==============================================
-    // private void checkUsageLimit(String String userEmail) {
-    //     Integer remaining = usageMap.get(userEmail);
-    //     if (remaining == null || remaining <= 0) {
-    //         throw new CoverLetterAiException("AI 첨삭 사용 가능 횟수가 모두 소진되었습니다.");
-    //     }
-    // }
-
-    // ==============================================
-    // 주기적으로 토큰 초기화 (예: 12시간마다)
-    // 실제 운영 시 @Scheduled 또는 Redis TTL 활용
-    // ==============================================
-    // @Scheduled(fixedRate = 12 * 60 * 60 * 1000) // 12시간
-    // public void resetUsageMap() {
-    //     usageMap.replaceAll((k, v) -> 10);
-    // }
-
     /* ---------------------------- 보조 유틸리티 ---------------------------- */
 
     /** DB에서 우수 자소서 특징 데이터를 조회 */
@@ -106,7 +78,6 @@ public class CoverLetterAiService {
                 .map(f -> new CoverLetterFeatureDto(f.getFeaturesCategory().name(), f.getDescription()))
                 .toList();
     }
-
 
     /** LLM API에서 반환된 피드백 JSON을 파싱 */
     private CoverLetterFeedback parseFeedback(String feedbackJson) {
@@ -123,7 +94,6 @@ public class CoverLetterAiService {
 
     /** 파싱된 피드백 객체를 검증하고 필드 보정 */
     private CoverLetterFeedback validateAndCorrectFeedback(CoverLetterFeedback feedback) {
-        // 반환 타입을 명확히 FeedbackItem 리스트로 맞춘다.
         List<FeedbackItem> validStrengths = validateFeedbackItems(feedback.strengths());
         List<FeedbackItem> validImprovements = validateFeedbackItems(feedback.improvements());
         String validSummary = feedback.summary() != null ? feedback.summary() : "분석 완료";
@@ -131,7 +101,7 @@ public class CoverLetterAiService {
         return new CoverLetterFeedback(validStrengths, validImprovements, validSummary);
     }
 
-    /** 피드백 리스트에서 null 제거 및 유효 항목 필터링 (FeedbackItem 타입 고정) */
+    /** 피드백 리스트에서 null 제거 및 유효 항목 필터링 */
     private List<FeedbackItem> validateFeedbackItems(List<FeedbackItem> items) {
         if (items == null) return List.of();
         return items.stream()
@@ -160,8 +130,10 @@ public class CoverLetterAiService {
 
     /** 서비스 수행 중 발생한 에러를 로깅 */
     private void logError(Exception e, CoverLetterAiRequest request) {
-        log.error("자소서 AI 개선 중 오류 발생 - content length: {}, error: {}",
+        log.error("자소서 AI 개선 중 오류 발생 - content length: {}, jobField: {}, experience: {}, error: {}",
                 request != null ? request.content().length() : 0,
+                request != null ? request.jobField() : "없음",
+                request != null ? request.getTotalExperience() : "없음",
                 e.getMessage(), e);
     }
 
@@ -171,5 +143,4 @@ public class CoverLetterAiService {
         return item.description() != null && !item.description().trim().isEmpty()
                 && item.suggestion() != null && !item.suggestion().trim().isEmpty();
     }
-
 }

@@ -1,16 +1,22 @@
 package com.cvmento.domain.resume.entity;
 
 import com.cvmento.domain.member.entity.Member;
+import com.cvmento.domain.resume.enums.ResumeSectionType;
 import com.cvmento.global.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
+import com.cvmento.domain.resume.enums.RecordStatus;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Getter
 @Table(name = "resumes")
+@Where(clause = "status = 'ACTIVE'")
 public class Resume extends BaseTimeEntity {
 
     @Id
@@ -31,6 +37,10 @@ public class Resume extends BaseTimeEntity {
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ResumeSection> sections = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private RecordStatus status = RecordStatus.ACTIVE; // 상태 (활성, 비활성, 삭제)
+
     protected Resume() {}
 
     public Resume(String title, Member member) {
@@ -44,8 +54,12 @@ public class Resume extends BaseTimeEntity {
     }
 
     // 연관관계 편의 메소드
-    public void addSection(String sectionType, String sectionTitle, String contentText) {
+    public void addSection(ResumeSectionType sectionType, String sectionTitle, String contentText) {
         ResumeSection section = new ResumeSection(sectionType, sectionTitle, contentText, this);
         this.sections.add(section);
+    }
+
+    public void setStatus(RecordStatus status) {
+        this.status = status;
     }
 }

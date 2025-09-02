@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,41 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final CookieUtil cookieUtil;
     private final JwtUtil jwtUtil;
+
+    /**
+     * UserDetails에서 Member 엔티티를 추출합니다.
+     * @param userDetails Spring Security UserDetails
+     * @return Member 엔티티
+     * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
+     */
+    public Member getMemberFromUserDetails(UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new IllegalArgumentException("UserDetails가 null입니다.");
+        }
+
+        // 이메일로 Member 조회 (현재 방식 유지)
+        return memberRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userDetails.getUsername()));
+    }
+
+    /**
+     * 현재 인증된 사용자가 활성 상태인지 확인합니다.
+     * @param userDetails Spring Security UserDetails
+     * @return 사용자가 인증되고 활성 상태이면 true
+     */
+    public boolean isUserAuthenticatedAndActive(UserDetails userDetails) {
+        if (userDetails == null) {
+            return false;
+        }
+
+        try {
+            Member member = getMemberFromUserDetails(userDetails);
+            return member.isActive();
+        } catch (IllegalArgumentException e) {
+            log.debug("사용자 확인 실패: {}", e.getMessage());
+            return false;
+        }
+    }
 
     @Transactional
     public TokenDto refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {

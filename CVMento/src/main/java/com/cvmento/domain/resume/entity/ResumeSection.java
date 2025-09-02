@@ -1,12 +1,19 @@
 package com.cvmento.domain.resume.entity;
 
+import com.cvmento.domain.resume.enums.ResumeSectionType;
 import com.cvmento.global.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+
+import com.cvmento.domain.resume.enums.RecordStatus;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @Table(name = "resume_sections")
+@Where(clause = "status = 'ACTIVE'")
 public class ResumeSection extends BaseTimeEntity {
 
     @Id
@@ -14,8 +21,9 @@ public class ResumeSection extends BaseTimeEntity {
     @Column(name = "section_id")
     private Long sectionId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "section_type", nullable = false)
-    private String sectionType;
+    private ResumeSectionType sectionType;
 
     @Column(name = "section_title")
     private String sectionTitle;
@@ -27,9 +35,13 @@ public class ResumeSection extends BaseTimeEntity {
     @JoinColumn(name = "resume_id", nullable = false)
     private Resume resume;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private RecordStatus status = RecordStatus.ACTIVE; // 상태 (활성, 비활성, 삭제)
+
     protected ResumeSection() {}
 
-    public ResumeSection(String sectionType, String sectionTitle, String contentText, Resume resume) {
+    public ResumeSection(ResumeSectionType sectionType, String sectionTitle, String contentText, Resume resume) {
         this.sectionType = sectionType;
         this.sectionTitle = sectionTitle;
         this.contentText = contentText;
