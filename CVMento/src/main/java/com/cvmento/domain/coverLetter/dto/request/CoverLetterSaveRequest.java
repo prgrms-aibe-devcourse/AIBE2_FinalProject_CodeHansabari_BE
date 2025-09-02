@@ -11,7 +11,7 @@ public record CoverLetterSaveRequest(
         String title,
 
         @NotBlank(message = "내용은 필수입니다.")
-        @Size(min = 50, max = 3000, message = "내용은 50자 이상 3000자 이하로 작성해주세요.")
+        @Size(min = 100, max = 2000, message = "내용은 100자 이상 2000자 이하로 작성해주세요.")
         String content,
 
         @NotBlank(message = "지원분야는 필수입니다.")

@@ -41,6 +41,8 @@ public class CoverLetterService {
         CoverLetter coverLetter = new CoverLetter(
                 finalTitle,
                 request.content(),
+                request.jobField(),      // 지원분야
+                request.experienceYears(), // 경력 년수
                 member
         );
 

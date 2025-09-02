@@ -10,6 +10,8 @@ public record CoverLetterListResponse(
         Long coverLetterId,
         String title,
         String content,  // view 옵션에 따라 전체 내용 또는 미리보기
+        String jobField,  // 지원분야
+        String experience, // 경력 (예: "3년", "신입")
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -23,6 +25,8 @@ public record CoverLetterListResponse(
                 .coverLetterId(coverLetter.getCoverLetterId())
                 .title(coverLetter.getTitle())
                 .content(preview)
+                .jobField(coverLetter.getJobField())
+                .experience(coverLetter.getTotalExperienceString())
                 .createdAt(coverLetter.getCreatedAt())
                 .updatedAt(coverLetter.getUpdatedAt())
                 .build();
@@ -34,6 +38,8 @@ public record CoverLetterListResponse(
                 .coverLetterId(coverLetter.getCoverLetterId())
                 .title(coverLetter.getTitle())
                 .content(coverLetter.getContent())
+                .jobField(coverLetter.getJobField())
+                .experience(coverLetter.getTotalExperienceString())
                 .createdAt(coverLetter.getCreatedAt())
                 .updatedAt(coverLetter.getUpdatedAt())
                 .build();
