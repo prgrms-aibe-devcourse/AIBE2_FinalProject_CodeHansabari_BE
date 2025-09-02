@@ -1,4 +1,4 @@
-package com.cvmento.domain.coverLetter.client;
+package com.cvmento.domain.resume.client;
 
 import feign.Logger;
 import feign.RequestInterceptor;
@@ -7,21 +7,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class CoverLetterLlmFeignConfig {
+public class ResumeLlmFeignConfig {
 
-    @Value("${llm.api.cover-letter.key}")
-    private String coverLetterApiKey;
+    @Value("${llm.api.resume.key}")
+    private String llmApiKey;
 
-    @Bean(name = "coverLetterRequestInterceptor")
-    public RequestInterceptor coverLetterRequestInterceptor() {
+    @Bean
+    public RequestInterceptor requestInterceptor() {
         return template -> {
+            template.header("Authorization", "Bearer " + llmApiKey);
             template.header("Content-Type", "application/json");
-            template.header("Authorization", "Bearer " + coverLetterApiKey);
         };
     }
 
     @Bean
-    Logger.Level feignLoggerLevel() {
+    Logger.Level resumefeignLoggerLevel() {
         return Logger.Level.BASIC;
     }
+
 }

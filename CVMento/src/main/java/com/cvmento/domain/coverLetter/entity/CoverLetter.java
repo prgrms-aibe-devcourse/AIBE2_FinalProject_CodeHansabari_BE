@@ -1,5 +1,6 @@
 package com.cvmento.domain.coverLetter.entity;
 
+import com.cvmento.domain.interview.entity.CoverLetterQna;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.global.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
@@ -55,28 +56,6 @@ public class CoverLetter extends BaseTimeEntity {
         this.experienceYears = experienceYears;
         this.member = member;
     }
-
-    public void updateTitle(String title) {
-        this.title = title;
-    }
-
-    public void updateContent(String content) {
-        this.content = content;
-    }
-
-    public void updateJobField(String jobField) {
-        this.jobField = jobField;
-    }
-
-    public void updateExperience(Integer years) {
-        this.experienceYears = years;
-    }
-
-    public void addQna(CoverLetterQna qna) {
-        this.qnaList.add(qna);
-        qna.setCoverLetter(this);
-    }
-
     // 총 경력을 문자열로 반환하는 헬퍼 메서드
     public String getTotalExperienceString() {
         if (experienceYears == null || experienceYears == 0) {

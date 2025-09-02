@@ -16,13 +16,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Authentication", description = "인증 관련 API")
 public class AuthController {
 
@@ -47,13 +50,20 @@ public class AuthController {
     @SecurityRequirement(name = "cookieAuth")
     @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공")
     @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
-    public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal Member member) {
-        if (member == null) {
+    public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
             return ResponseEntity.status(401)
                     .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
         }
 
-        return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
+        try {
+            Member member = authService.getMemberFromUserDetails(userDetails);
+            return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
+        } catch (IllegalArgumentException e) {
+            log.debug("사용자 조회 실패: {}", e.getMessage());
+            return ResponseEntity.status(401)
+                    .body(CommonResponse.error("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+        }
     }
 
     @PostMapping("/refresh")
@@ -90,28 +100,46 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "로그아웃하고 모든 토큰을 무효화합니다.")
     @SecurityRequirement(name = "cookieAuth")
     @ApiResponse(responseCode = "200", description = "로그아웃 성공")
-    public ResponseEntity<CommonResponse<Void>> logout(@AuthenticationPrincipal Member member,
+    public ResponseEntity<CommonResponse<Void>> logout(@AuthenticationPrincipal UserDetails userDetails,
                                                        HttpServletRequest request,
                                                        HttpServletResponse response) {
-        authService.logout(member, request, response);
-        return ResponseEntity.ok(CommonResponse.success("로그아웃되었습니다."));
+        if (userDetails == null) {
+            return ResponseEntity.status(401)
+                    .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
+        }
+
+        try {
+            Member member = authService.getMemberFromUserDetails(userDetails);
+            authService.logout(member, request, response);
+            return ResponseEntity.ok(CommonResponse.success("로그아웃되었습니다."));
+        } catch (IllegalArgumentException e) {
+            log.debug("로그아웃 처리 중 오류: {}", e.getMessage());
+            return ResponseEntity.status(401)
+                    .body(CommonResponse.error("LOGOUT_FAILED", "로그아웃 처리에 실패했습니다."));
+        }
     }
 
     @GetMapping("/status")
     @Operation(summary = "인증 상태 확인", description = "현재 인증 상태를 확인합니다.")
-    public ResponseEntity<CommonResponse<AuthStatusResponse>> checkAuthStatus(@AuthenticationPrincipal Member member) {
-        if (member != null && member.isActive()) {
-            AuthStatusResponse statusResponse = AuthStatusResponse.builder()
-                    .authenticated(true)
-                    .member(MemberInfo.from(member))
-                    .build();
-            return ResponseEntity.ok(CommonResponse.success(statusResponse));
-        } else {
-            AuthStatusResponse statusResponse = AuthStatusResponse.builder()
-                    .authenticated(false)
-                    .build();
-            return ResponseEntity.ok(CommonResponse.success(statusResponse));
+    public ResponseEntity<CommonResponse<AuthStatusResponse>> checkAuthStatus(@AuthenticationPrincipal UserDetails userDetails) {
+        if (authService.isUserAuthenticatedAndActive(userDetails)) {
+            try {
+                Member member = authService.getMemberFromUserDetails(userDetails);
+                AuthStatusResponse statusResponse = AuthStatusResponse.builder()
+                        .authenticated(true)
+                        .member(MemberInfo.from(member))
+                        .build();
+                return ResponseEntity.ok(CommonResponse.success(statusResponse));
+            } catch (IllegalArgumentException e) {
+                log.debug("인증 상태 확인 중 오류: {}", e.getMessage());
+            }
         }
+
+        // 인증되지 않았거나 활성 사용자가 아닌 경우
+        AuthStatusResponse statusResponse = AuthStatusResponse.builder()
+                .authenticated(false)
+                .build();
+        return ResponseEntity.ok(CommonResponse.success(statusResponse));
     }
 
     // === 개발용 테스트 엔드포인트들 ===

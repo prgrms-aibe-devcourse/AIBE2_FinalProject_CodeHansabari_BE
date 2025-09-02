@@ -1,5 +1,7 @@
-package com.cvmento.domain.coverLetter.entity;
+package com.cvmento.domain.interview.entity;
 
+import com.cvmento.domain.coverLetter.entity.CoverLetter;
+import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.global.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -20,6 +22,10 @@ public class CoverLetterQna extends BaseTimeEntity {
     @Column(name = "answer", columnDefinition = "TEXT")
     private String answer;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", nullable = false)
+    private QuestionSourceType sourceType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cover_letter_id", nullable = false)
     private CoverLetter coverLetter;
@@ -29,13 +35,11 @@ public class CoverLetterQna extends BaseTimeEntity {
     public CoverLetterQna(String question, CoverLetter coverLetter) {
         this.question = question;
         this.coverLetter = coverLetter;
+        this.sourceType = QuestionSourceType.GENERATED; // 기본값으로 GENERATED 설정
     }
 
     public void updateAnswer(String answer) {
         this.answer = answer;
     }
 
-    public void setCoverLetter(CoverLetter coverLetter) {
-        this.coverLetter = coverLetter;
-    }
 }
