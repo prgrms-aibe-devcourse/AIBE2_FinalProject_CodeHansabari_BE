@@ -8,6 +8,7 @@ import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.CrawlCoverLetterException;
+import com.cvmento.domain.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +29,7 @@ import java.util.List;
 public class CrawlCoverLetterController {
 
     private final CrawlCoverLetterService crawlCoverLetterService;
+    private final AuthService authService;
 
     @PostMapping("/cover-letters")
     @Operation(
@@ -78,9 +81,14 @@ public class CrawlCoverLetterController {
         description = "서버 오류 - 크롤링 중 오류 발생"
     )
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<?>> crawlCoverLetters(@AuthenticationPrincipal Member member) {
+    public ResponseEntity<CommonResponse<?>> crawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         // 관리자 권한 체크
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+        
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
             throw new AccessDeniedException("크롤링을 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
@@ -107,9 +115,14 @@ public class CrawlCoverLetterController {
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @ApiResponse(responseCode = "403", description = "권한 없음")
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(@AuthenticationPrincipal Member member) {
+    public ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         // 관리자 권한 체크
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+        
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
             throw new AccessDeniedException("크롤링 데이터를 조회할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
@@ -128,9 +141,14 @@ public class CrawlCoverLetterController {
     @SecurityRequirement(name = "cookieAuth")
     public ResponseEntity<CommonResponse<CrawlCoverLetterData>> getCrawlCoverLetterById(
             @PathVariable Long id,
-            @AuthenticationPrincipal Member member) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         // 관리자 권한 체크
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+        
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
             throw new AccessDeniedException("크롤링 데이터를 조회할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
@@ -155,9 +173,14 @@ public class CrawlCoverLetterController {
     public ResponseEntity<CommonResponse<CrawlCoverLetterData>> updateCrawlCoverLetter(
             @PathVariable Long id,
             @RequestBody UpdateCrawlCoverLetterRequest request,
-            @AuthenticationPrincipal Member member) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         // 관리자 권한 체크
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+        
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
             throw new AccessDeniedException("크롤링 데이터를 수정할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
@@ -181,9 +204,14 @@ public class CrawlCoverLetterController {
     @SecurityRequirement(name = "cookieAuth")
     public ResponseEntity<CommonResponse<Void>> deleteCrawlCoverLetter(
             @PathVariable Long id,
-            @AuthenticationPrincipal Member member) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         // 관리자 권한 체크
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+        
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
             throw new AccessDeniedException("크롤링 데이터를 삭제할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
@@ -204,9 +232,14 @@ public class CrawlCoverLetterController {
     @ApiResponse(responseCode = "200", description = "삭제 성공")
     @ApiResponse(responseCode = "403", description = "권한 없음")
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<Void>> deleteAllCrawlCoverLetters(@AuthenticationPrincipal Member member) {
+    public ResponseEntity<CommonResponse<Void>> deleteAllCrawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         // 관리자 권한 체크
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+        
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
             throw new AccessDeniedException("크롤링 데이터를 삭제할 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
 
