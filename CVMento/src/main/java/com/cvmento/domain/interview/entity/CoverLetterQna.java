@@ -22,6 +22,9 @@ public class CoverLetterQna extends BaseTimeEntity {
     @Column(name = "answer", columnDefinition = "TEXT")
     private String answer;
 
+    @Column(name = "tip", columnDefinition = "TEXT")
+    private String tip;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false)
     private QuestionSourceType sourceType;
@@ -42,4 +45,11 @@ public class CoverLetterQna extends BaseTimeEntity {
         this.answer = answer;
     }
 
+    public void updateTip(String tip) {
+        this.tip = tip;
+    }
+    public void updateAnswerAndTip(String answer, String tip) {
+        this.answer = answer;
+        this.tip = tip;
+    }
 }
