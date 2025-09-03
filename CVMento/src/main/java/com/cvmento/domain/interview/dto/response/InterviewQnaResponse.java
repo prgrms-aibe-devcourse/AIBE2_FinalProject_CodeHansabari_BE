@@ -10,6 +10,7 @@ public record InterviewQnaResponse(
         Long qnaId,
         String question,
         String answer,
+        String tip,
         LocalDateTime createdAt
 ) {
     public static InterviewQnaResponse from(CoverLetterQna qna) {
@@ -17,6 +18,7 @@ public record InterviewQnaResponse(
                 .qnaId(qna.getCoverLetterQnaId())
                 .question(qna.getQuestion())
                 .answer(qna.getAnswer())
+                .tip(qna.getTip())
                 .createdAt(qna.getCreatedAt())
                 .build();
     }
