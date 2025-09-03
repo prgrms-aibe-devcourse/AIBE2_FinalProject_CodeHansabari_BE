@@ -191,13 +191,20 @@ public class AuthController {
     @SecurityRequirement(name = "cookieAuth")
     @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공")
     @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
-    public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal Member member) {
-        if (member == null) {
+    public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
             return ResponseEntity.status(401)
                     .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
         }
 
-        return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
+        try {
+            Member member = authService.getMemberFromUserDetails(userDetails);
+            return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
+        } catch (IllegalArgumentException e) {
+            log.debug("사용자 조회 실패: {}", e.getMessage());
+            return ResponseEntity.status(401)
+                    .body(CommonResponse.error("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+        }
     }
 
     @GetMapping("/status")
