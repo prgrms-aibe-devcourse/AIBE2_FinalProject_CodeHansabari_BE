@@ -14,6 +14,7 @@ public class CoverLetterLlmFeignConfig {
     public RequestInterceptor requestInterceptor() {
         return template -> {
             template.header("Authorization", "Bearer " + coverLetterApiKey);
+            template.header("Content-Type", "application/json");
         };
     }
 

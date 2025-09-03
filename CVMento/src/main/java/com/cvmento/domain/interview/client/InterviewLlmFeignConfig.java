@@ -15,6 +15,7 @@ public class InterviewLlmFeignConfig {
     public RequestInterceptor requestInterceptor() {
         return template -> {
             template.header("Authorization", "Bearer " + interviewApiKey);
+            template.header("Content-Type", "application/json");
         };
     }
 

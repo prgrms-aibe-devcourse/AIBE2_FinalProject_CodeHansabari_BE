@@ -72,7 +72,7 @@ public class InterviewService {
     private void saveQnaListToDatabase(List<InterviewQnaDto> qnaDataList, CoverLetter coverLetter) {
         for (InterviewQnaDto qnaData : qnaDataList) {
             CoverLetterQna qna = new CoverLetterQna(qnaData.question(), coverLetter);
-            qna.updateAnswer(qnaData.answer());
+            qna.updateAnswerAndTip(qnaData.answer(), qnaData.tip());
             coverLetterQnaRepository.save(qna);
         }
     }

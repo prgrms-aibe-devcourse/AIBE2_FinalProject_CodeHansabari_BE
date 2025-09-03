@@ -101,10 +101,11 @@ public class InterviewLlmClientService {
                         List<InterviewQnaDto> qnaList = new ArrayList<>();
 
                         for (var qnaNode : qnaArray) {
-                            if (qnaNode.has("question") && qnaNode.has("answer")) {
+                            if (qnaNode.has("question") && qnaNode.has("answer") && qnaNode.has("tip")) {
                                 String question = qnaNode.get("question").asText();
                                 String answer = qnaNode.get("answer").asText();
-                                qnaList.add(new InterviewQnaDto(question, answer));
+                                String tip = qnaNode.get("tip").asText();
+                                qnaList.add(new InterviewQnaDto(question, answer, tip));
                             }
                         }
 
