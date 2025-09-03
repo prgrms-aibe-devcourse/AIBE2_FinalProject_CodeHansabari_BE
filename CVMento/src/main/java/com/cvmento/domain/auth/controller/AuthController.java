@@ -1,6 +1,7 @@
 package com.cvmento.domain.auth.controller;
 
 import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
+import com.cvmento.domain.auth.dto.request.GoogleTokenRequest; //
 import com.cvmento.domain.auth.dto.response.AuthStatusResponse;
 import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.response.GoogleLoginGuideResponse;
@@ -82,7 +83,10 @@ public class AuthController {
     }
 
     @PostMapping("/google/token")
-    @Operation(summary = "구글 토큰으로 로그인", description = "프론트엔드에서 받은 구글 ID 토큰으로 로그인을 처리합니다.")
+    @Operation(
+            summary = "구글 ID 토큰으로 로그인",
+            description = "프론트엔드 Google Identity Services에서 받은 ID 토큰으로 로그인을 처리합니다."
+    )
     @ApiResponse(responseCode = "200", description = "로그인 성공")
     @ApiResponse(responseCode = "400", description = "잘못된 ID 토큰")
     public ResponseEntity<CommonResponse<LoginResponse>> loginWithGoogleToken(
@@ -92,8 +96,11 @@ public class AuthController {
 
         try {
             String clientIp = getClientIpAddress(httpRequest);
+            log.info("구글 토큰 로그인 시도 - IP: {}", clientIp);
+
             LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, clientIp, httpResponse);
 
+            log.info("구글 토큰 로그인 성공 - 사용자: {}", loginResponse.getMember().email());
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
         } catch (GoogleOAuthService.InvalidTokenException e) {
@@ -102,7 +109,7 @@ public class AuthController {
                     .body(CommonResponse.error("INVALID_TOKEN", e.getMessage()));
 
         } catch (Exception e) {
-            log.error("Google token login failed", e);
+            log.error("구글 토큰 로그인 실패 - IP: {}, 오류: {}", getClientIpAddress(httpRequest), e.getMessage());
             return ResponseEntity.status(500)
                     .body(CommonResponse.error("LOGIN_ERROR", "로그인 처리 중 오류가 발생했습니다."));
         }
@@ -303,10 +310,4 @@ public class AuthController {
         public String getState() { return state; }
     }
 
-    public static class GoogleTokenRequest {
-        private String idToken;
-
-        public String getIdToken() { return idToken; }
-        public void setIdToken(String idToken) { this.idToken = idToken; }
-    }
 }

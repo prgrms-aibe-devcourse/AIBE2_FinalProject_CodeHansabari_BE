@@ -1,8 +1,8 @@
 package com.cvmento.domain.auth.service;
 
 import com.cvmento.domain.auth.controller.AuthController.GoogleLoginUrlResponse;
-import com.cvmento.domain.auth.controller.AuthController.GoogleTokenRequest;
 import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
+import com.cvmento.domain.auth.dto.request.GoogleTokenRequest; // ✅ 수정된 import
 import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.dto.MemberInfo;
