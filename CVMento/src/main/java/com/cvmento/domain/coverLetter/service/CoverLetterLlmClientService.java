@@ -3,6 +3,7 @@ package com.cvmento.domain.coverLetter.service;
 import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.client.CoverLetterLlmFeignClient;
+import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class CoverLetterLlmClientService {
 
     private final CoverLetterLlmFeignClient coverLetterLlmFeignClient;
     private final ObjectMapper objectMapper;
+    private final OpenAiResponseParser openAiResponseParser;
 
     public LlmAnalysisResponse analyze(String prompt) {
         validatePrompt(prompt);
@@ -49,7 +51,7 @@ public class CoverLetterLlmClientService {
             String rawResponse = getRawResponse(request);
             log.info("=== 원본 응답 받음 ===");
 
-            LlmAnalysisResponse response = parseOpenAiResponse(rawResponse);
+            LlmAnalysisResponse response = parseResponse(rawResponse);
 
             log.info("=== 변환된 응답 ===");
             log.info("피드백 길이: {}", response.feedback() != null ? response.feedback().length() : "null");
@@ -72,48 +74,14 @@ public class CoverLetterLlmClientService {
         }
     }
 
-    private LlmAnalysisResponse parseOpenAiResponse(String rawResponse) {
-        if (rawResponse == null || rawResponse.trim().isEmpty()) {
-            log.warn("응답이 비어있습니다");
-            return new LlmAnalysisResponse("", "");
-        }
-
+    private LlmAnalysisResponse parseResponse(String rawResponse) {
         try {
-            var jsonNode = objectMapper.readTree(rawResponse);
-
-            // OpenAI /responses API의 실제 구조: output[1].content[0].text
-            if (jsonNode.has("output")) {
-                var outputArray = jsonNode.get("output");
-                if (outputArray.isArray()) {
-
-                    // output 배열에서 type이 "message"인 항목 찾기
-                    for (var outputItem : outputArray) {
-                        if (outputItem.has("type") &&
-                                "message".equals(outputItem.get("type").asText())) {
-
-                            if (outputItem.has("content")) {
-                                var contentArray = outputItem.get("content");
-                                if (contentArray.isArray() && contentArray.size() > 0) {
-                                    var firstContent = contentArray.get(0);
-                                    if (firstContent.has("text")) {
-                                        String text = firstContent.get("text").asText();
-                                        log.info("OpenAI output에서 text 추출 성공: {} chars", text.length());
-                                        return parseActualContent(text);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 구조를 찾지 못한 경우
-            log.warn("예상된 구조를 찾지 못함 - 전체 응답을 사용");
-            return new LlmAnalysisResponse("", rawResponse);
+            String textContent = openAiResponseParser.extractTextContent(rawResponse);
+            return parseActualContent(textContent);
 
         } catch (Exception e) {
-            log.error("JSON 파싱 실패: {}", e.getMessage());
-            return new LlmAnalysisResponse("", rawResponse);
+            log.error("OpenAI 응답 파싱 실패: {}", e.getMessage());
+            throw new CoverLetterAiException("LLM 응답 파싱에 실패했습니다.", e);
         }
     }
 
