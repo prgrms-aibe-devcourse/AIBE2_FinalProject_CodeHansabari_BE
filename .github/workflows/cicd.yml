@@ -47,7 +47,7 @@ jobs:
           utcOffset: "+09:00"
 
       - name: Set artifact name
-        run: echo "artifact=CVMento-0.0.1-SNAPSHOT.jar" >> $GITHUB_ENV
+        run: echo "artifact=cvmento-0.0.1-SNAPSHOT.jar" >> $GITHUB_ENV
         working-directory: CVMento
 
       - name: Deploy to Elastic Beanstalk
