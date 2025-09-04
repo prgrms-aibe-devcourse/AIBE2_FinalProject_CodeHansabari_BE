@@ -27,6 +27,18 @@ jobs:
         run: ./gradlew clean build -Dspring.profiles.active=test
         working-directory: CVMento
 
+      - name: Check if JAR was created
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Build directory contents ==="
+          ls -la build/ || echo "No build directory"
+          echo "=== Looking for JAR files ==="
+          find . -name "*.jar" || echo "No JAR files found"
+          echo "=== Gradle tasks that ran ==="
+          ./gradlew build --dry-run | grep jar
+        working-directory: CVMento
+
       - name: Get current time
         uses: josStorer/get-current-time@v2.0.2
         id: current-time
