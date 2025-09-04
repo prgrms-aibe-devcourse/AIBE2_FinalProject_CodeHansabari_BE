@@ -1,0 +1,86 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3312/cvmentodb?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: team2
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+  data:
+    redis:
+      host: localhost
+      port: 6381
+      password: team2
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 580207326262-nbjl02aprsng4sri717hbl5ri2b9jvb0.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+jwt:
+  secret: NxD@49#jKw!rMv7Up2zLt$gQpY%1fA3eTb8CkD$HzLwRmsdsgvteam2codehansabari
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
+
+cookie:
+  domain: localhost
+  secure: false
+  same-site: Lax
+
+app:
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+      - "https://localhost:3000"
+      - "http://localhost:5173"
+      - "https://localhost:5173"
+      - "http://localhost:8080"
+  frontend:
+    url: http://localhost:3000
+
+llm:
+  api:
+    url: https://api.openai.com/v1
+    cover-letter:
+      key: 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
+    interview:
+      key: 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
+    resume:
+      key: sk-proj-your-actual-resume-key
+      vision:
+        key: sk-proj-your-actual-vision-key
+
+logging:
+  level:
+    com.example: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.data.redis: DEBUG
+
+server:
+  port: 8080
