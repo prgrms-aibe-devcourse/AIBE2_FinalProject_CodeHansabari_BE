@@ -11,9 +11,66 @@ public class ResumeLlmPromptService {
 
     public String buildSuggestionPrompt(String experienceContent) {
         return buildPromptStructure() +
-               buildExperienceSection(experienceContent) +
-               buildRequestSection() +
-               buildGuidelines();
+                buildExperienceSection(experienceContent) +
+                buildRequestSection() +
+                buildGuidelines();
+    }
+
+    public String buildResumeImportPrompt() {
+        return """
+            You are an expert data extraction specialist. Analyze the provided resume image and extract its content into a structured JSON format.
+            The output MUST be a valid JSON object that strictly follows the structure of the `ResumeCreateRequest` DTO.
+
+            ## JSON Output Format:
+            The JSON must match this structure exactly. Do not add any extra fields or explanations.
+
+            ```json
+            {
+              "title": "Extracted Resume Title (e.g., 'John Doe's Resume')",
+              "memberInfo": {
+                "name": "Full Name",
+                "email": "email@example.com",
+                "phoneNumber": "010-1234-5678",
+                "blogUrl": "https://example.blog"
+              },
+              "sections": [
+                {
+                  "sectionType": "WORK_EXPERIENCE",
+                  "sectionTitle": "Work Experience",
+                  "items": [
+                    {
+                      "title": "Company Name",
+                      "subTitle": "Job Title",
+                      "startDate": "YYYY-MM-DD",
+                      "endDate": "YYYY-MM-DD",
+                      "description": "Details of responsibilities and achievements."
+                    }
+                  ]
+                },
+                {
+                  "sectionType": "EDUCATION",
+                  "sectionTitle": "Education",
+                  "items": [
+                    {
+                      "title": "University Name",
+                      "subTitle": "Degree and Major",
+                      "startDate": "YYYY-MM-DD",
+                      "endDate": "YYYY-MM-DD",
+                      "description": "GPA or other details."
+                    }
+                  ]
+                }
+              ]
+            }
+            ```
+
+            ### Important Instructions:
+            1.  **Extract All Sections**: Identify and extract all relevant sections like "Work Experience", "Education", "Projects", "Skills", "Certificates", etc.
+            2.  **Use Correct `sectionType`**: For each section, use the most appropriate `sectionType` from this list: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
+            3.  **Date Format**: All dates (`startDate`, `endDate`) must be in `YYYY-MM-DD` format. If a year and month are present but no day, use the first day of the month (e.g., '2023-05-01'). If a date is not present, use `null`. If a date is not present, use `null`.
+            4.  **Title**: Create a suitable title for the resume, like "[Name]'s Resume".
+            5.  **Valid JSON**: The final output must be ONLY the JSON object, without any surrounding text, explanations, or markdown formatting like ```json.
+            """;
     }
 
     private String buildPromptStructure() {
