@@ -84,13 +84,13 @@ llm:
   api:
     url: https://api.openai.com/v1
     cover-letter:
-      key: ${LLM_COVER_LETTER_KEY}
+      key: ${LLM_COVER_LETTER_KEY:dummy-key}
     interview:
-      key: ${LLM_INTERVIEW_KEY}
+      key: ${LLM_INTERVIEW_KEY:dummy-key}
     resume:
-      key: ${LLM_RESUME_KEY}
+      key: ${LLM_RESUME_KEY:dummy-key}
       vision:
-        key: ${LLM_RESUME_VISION_KEY}
+        key: ${LLM_RESUME_VISION_KEY:dummy-key}
 
 logging:
   level:
@@ -101,6 +101,6 @@ logging:
 springdoc:
   api-docs:
     version: openapi_3_0
- 
+
 server:
   port: 5000
