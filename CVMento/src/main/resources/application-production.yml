@@ -89,6 +89,8 @@ llm:
       key: ${LLM_INTERVIEW_KEY}
     resume:
       key: ${LLM_RESUME_KEY}
+      vision:
+        key: ${LLM_RESUME_VISION_KEY}
 
 logging:
   level:
