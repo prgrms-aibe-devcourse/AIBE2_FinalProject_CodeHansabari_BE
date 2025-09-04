@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/v3/api-docs.yaml",     // 추가
                                 "/auth/test-login",
                                 "/auth/login/google",
+                                "/auth/google/url",
                                 "/auth/refresh",
                                 "/auth/status",
                                 "/health",
