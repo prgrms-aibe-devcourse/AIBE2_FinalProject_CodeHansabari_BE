@@ -24,7 +24,7 @@ jobs:
         working-directory: CVMento
 
       - name: Build with Gradle
-        run: ./gradlew clean build
+        run: ./gradlew clean build -Dspring.profiles.active=production
         working-directory: CVMento
 
       - name: Get current time
