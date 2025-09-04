@@ -11,7 +11,7 @@ spring:
         format_sql: false
         use_sql_comments: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     database-platform: org.hibernate.dialect.MySQLDialect
   data:
     redis:
