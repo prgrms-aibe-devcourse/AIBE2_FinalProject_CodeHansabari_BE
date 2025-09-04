@@ -47,13 +47,15 @@ public class SecurityConfig {
                                 "/v3/api-docs.yaml",     // 추가
                                 "/auth/test-login",
                                 "/auth/login/google",
+                                "/auth/google/login",
                                 "/auth/refresh",
                                 "/auth/status",
                                 "/health",
                                 "/error"
                         ).permitAll()
-                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
-                        .anyRequest().authenticated()
+                                .anyRequest().hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
+//                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)
