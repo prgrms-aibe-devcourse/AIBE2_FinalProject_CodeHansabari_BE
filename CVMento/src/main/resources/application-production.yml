@@ -101,6 +101,6 @@ logging:
 springdoc:
   api-docs:
     version: openapi_3_0
-
+ 
 server:
   port: 5000
