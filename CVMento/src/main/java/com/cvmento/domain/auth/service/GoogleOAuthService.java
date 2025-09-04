@@ -74,7 +74,7 @@ public class GoogleOAuthService {
                 .queryParam("prompt", "consent")
                 .encode(StandardCharsets.UTF_8)   // ★ 중요: 마지막에 한 번만
                 .toUriString();
-        
+
         log.info("Generated Google OAuth URL with state: {}", state);
         return new GoogleLoginUrlResponse(loginUrl, state);
     }

@@ -51,7 +51,8 @@ public class SecurityConfig {
                                 "/auth/refresh",
                                 "/auth/status",
                                 "/health",
-                                "/error"
+                                "/error",
+                                "/auth/google/url"
                         ).permitAll()
                                 .anyRequest().hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
