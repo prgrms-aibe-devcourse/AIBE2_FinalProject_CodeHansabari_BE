@@ -125,8 +125,9 @@ public class CoverLetterLlmPromptService {
             ```
             
             **주의사항**:\s
-            - improvedContent에는 한줄요약을 포함하지 마세요
-            - 자소서 본문만 작성해주세요
+            - improvedContent에는 한줄요약과 설명을 포함하지 마세요
+            - 또한 [지원 동기 및 강점] 같은 섹션 제목도 포함하지 마세요
+            - 그저 자소서 본문만 작성해주세요
             
             """;
     }
@@ -151,7 +152,7 @@ public class CoverLetterLlmPromptService {
                 11. **작성 스타일**:\s
                     - STAR 방법론(S: A: R: 등)을 사용하지 마세요
                     - 자연스러운 문체로 작성해주세요
-                    - improvedContent에는 한줄요약을 절대 포함하지 마세요
+                    - improvedContent에는 한줄요약과 해당 자소서에 대한 설명을 넣지 마세요
             """;
     }
 }

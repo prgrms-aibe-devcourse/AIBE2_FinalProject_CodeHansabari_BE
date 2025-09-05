@@ -1,13 +1,7 @@
 package com.cvmento.global.exception;
 
 
-import com.cvmento.global.exception.customException.CoverLetterAiException;
-import com.cvmento.global.exception.customException.CoverLetterException;
-import com.cvmento.global.exception.customException.GoogleApiException;
-import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
-import com.cvmento.global.exception.customException.InvalidTokenException;
-import com.cvmento.global.exception.customException.InterviewException;
-import com.cvmento.global.exception.customException.MemberNotFoundException;
+import com.cvmento.global.exception.customException.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -162,4 +156,17 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
+    @ExceptionHandler(InterviewLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleInterviewLimitExceededException(InterviewLimitExceededException ex, HttpServletRequest request) {
+        log.error("InterviewLimitExceededException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.CONFLICT,
+                "INTERVIEW_LIMIT_EXCEEDED",
+                ex.getMessage(),
+                null
+        );
+    }
+
 }
