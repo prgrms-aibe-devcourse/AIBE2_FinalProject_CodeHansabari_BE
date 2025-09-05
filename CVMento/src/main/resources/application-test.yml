@@ -1,11 +1,11 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;MODE=MySQL  # MySQL 호환 모드 추가
     username: sa
     password:
     driver-class-name: org.h2.Driver
   jpa:
-    show-sql: false
+    show-sql: true  # 테스트에서 SQL 로그 보기
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
@@ -17,7 +17,7 @@ spring:
       timeout: 2000ms
   cloud:
     openfeign:
-      enabled: false  # 테스트에서 Feign 비활성화
+      enabled: false
   security:
     oauth2:
       client:

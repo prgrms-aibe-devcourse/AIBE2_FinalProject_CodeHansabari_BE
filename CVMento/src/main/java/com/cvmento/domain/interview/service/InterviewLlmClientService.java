@@ -90,9 +90,25 @@ public class InterviewLlmClientService {
 
     private InterviewLlmResponse parseActualContent(String text) {
         try {
+            // 실제 LLM 응답 내용 로깅 추가
+            log.info("=== LLM 실제 응답 내용 ===");
+            log.info("응답 길이: {} chars", text.length());
+            log.info("응답 내용: {}", text);
+            log.info("============================");
+
+            // 마크다운 코드 블록 제거 (혹시 있을 경우)
+            String cleanText = text.trim()
+                    .replaceAll("```json\\s*", "")
+                    .replaceAll("\\s*```", "")
+                    .trim();
+
+            log.info("정제된 텍스트: {}", cleanText);
+
             // text가 JSON 형식인지 확인하고 파싱
-            if (text.trim().startsWith("{")) {
-                var contentJson = objectMapper.readTree(text);
+            if (cleanText.startsWith("{")) {
+                var contentJson = objectMapper.readTree(cleanText);
+
+                log.info("JSON 파싱 성공, 최상위 필드들: {}", contentJson.fieldNames());
 
                 // qnaList 배열 추출
                 if (contentJson.has("qnaList")) {
@@ -112,6 +128,11 @@ public class InterviewLlmClientService {
                         log.info("실제 content 파싱 성공 - QnA 개수: {}", qnaList.size());
                         return new InterviewLlmResponse(qnaList);
                     }
+                } else {
+                    // qnaList가 없는 경우 다른 가능한 필드명들 확인
+                    log.error("qnaList 필드가 없습니다. 사용 가능한 필드들:");
+                    contentJson.fieldNames().forEachRemaining(fieldName ->
+                            log.error("- {}: {}", fieldName, contentJson.get(fieldName).getNodeType()));
                 }
             }
 
