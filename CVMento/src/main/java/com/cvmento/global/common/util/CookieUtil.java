@@ -41,11 +41,19 @@ public class CookieUtil {
         cookie.setHttpOnly(true);
         cookie.setSecure(secure);
         cookie.setPath("/");
-        cookie.setDomain(domain);
+
+        // Domain이 빈 문자열이 아닐 때만 설정
+        if (!domain.isEmpty()) {
+            cookie.setDomain(domain);
+        }
+
         cookie.setMaxAge((int) maxAge.getSeconds());
 
         // SameSite 속성 설정을 위해 Set-Cookie 헤더 직접 설정
-        String cookieHeader = String.format("%s=%s; Path=/; Domain=%s; Max-Age=%d; HttpOnly; SameSite=%s%s",
+        String cookieHeader = domain.isEmpty()
+                ? String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=%s%s",
+                name, value, maxAge.getSeconds(), sameSite, secure ? "; Secure" : "")
+                : String.format("%s=%s; Path=/; Domain=%s; Max-Age=%d; HttpOnly; SameSite=%s%s",
                 name, value, domain, maxAge.getSeconds(), sameSite, secure ? "; Secure" : "");
 
         response.addHeader("Set-Cookie", cookieHeader);
@@ -83,11 +91,19 @@ public class CookieUtil {
         cookie.setHttpOnly(true);
         cookie.setSecure(secure);
         cookie.setPath("/");
-        cookie.setDomain(domain);
+
+        // Domain이 빈 문자열이 아닐 때만 설정
+        if (!domain.isEmpty()) {
+            cookie.setDomain(domain);
+        }
+
         cookie.setMaxAge(0);
 
         // SameSite 속성 설정을 위해 Set-Cookie 헤더 직접 설정
-        String cookieHeader = String.format("%s=; Path=/; Domain=%s; Max-Age=0; HttpOnly; SameSite=%s%s",
+        String cookieHeader = domain.isEmpty()
+                ? String.format("%s=; Path=/; Max-Age=0; HttpOnly; SameSite=%s%s",
+                cookieName, sameSite, secure ? "; Secure" : "")
+                : String.format("%s=; Path=/; Domain=%s; Max-Age=0; HttpOnly; SameSite=%s%s",
                 cookieName, domain, sameSite, secure ? "; Secure" : "");
 
         response.addHeader("Set-Cookie", cookieHeader);

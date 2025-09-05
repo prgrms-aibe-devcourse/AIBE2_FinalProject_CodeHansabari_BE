@@ -25,6 +25,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -63,15 +64,15 @@ public class GoogleOAuthService {
         String state = UUID.randomUUID().toString();
         String redirectUri = StringUtils.hasText(customRedirectUri) ? customRedirectUri : defaultRedirectUri;
 
-        String loginUrl = UriComponentsBuilder.fromHttpUrl(GOOGLE_AUTH_URL)
+        String loginUrl = UriComponentsBuilder.fromHttpUrl(GOOGLE_AUTH_URL) // 구글 엔드포인트여야 함
                 .queryParam("client_id", googleClientId)
-                .queryParam("redirect_uri", redirectUri)
+                .queryParam("redirect_uri", redirectUri) // 프론트가 보낸 콜백 URL
                 .queryParam("scope", "openid profile email")
                 .queryParam("response_type", "code")
                 .queryParam("state", state)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .build()
+                .encode(StandardCharsets.UTF_8)   // ★ 중요: 마지막에 한 번만
                 .toUriString();
 
         log.info("Generated Google OAuth URL with state: {}", state);

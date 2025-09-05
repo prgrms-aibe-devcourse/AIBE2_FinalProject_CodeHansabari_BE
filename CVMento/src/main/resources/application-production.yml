@@ -1,0 +1,82 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: https://api.cvmento.shop/login/oauth2/code/google
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
+
+cookie:
+  domain: .cvmento.shop
+  secure: true
+  same-site: None
+
+app:
+  frontend:
+    url: https://cvmento.shop
+  cors:
+    allowed-origins:
+      - "https://cvmento.shop"
+
+llm:
+  api:
+    url: https://api.openai.com/v1
+    cover-letter:
+      key: ${LLM_COVER_LETTER_KEY}
+    interview:
+      key: ${LLM_INTERVIEW_KEY}
+    resume:
+      key: ${LLM_RESUME_KEY}
+      vision:
+        key: ${LLM_RESUME_VISION_KEY}
+
+logging:
+  level:
+    com.example: INFO
+    org.springframework.security: WARN
+    org.springframework.data.redis: WARN
+
+server:
+  port: 5000
