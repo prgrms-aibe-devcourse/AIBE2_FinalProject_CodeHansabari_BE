@@ -1,0 +1,69 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: test
+      timeout: 2000ms
+  cloud:
+    openfeign:
+      enabled: false  # 테스트에서 Feign 비활성화
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dummy-test-client-id
+            client-secret: dummy-test-client-secret
+            scope:
+              - openid
+              - profile
+              - email
+
+jwt:
+  secret: test-jwt-secret-for-testing-only-not-for-production-use
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
+
+cookie:
+  domain: localhost
+  secure: false
+  same-site: Lax
+
+app:
+  frontend:
+    url: http://localhost:3000
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+
+llm:
+  api:
+    url: https://api.openai.com/v1
+    cover-letter:
+      key: dummy-test-key-cover-letter
+    interview:
+      key: dummy-test-key-interview
+    resume:
+      key: dummy-test-key-resume
+      vision:
+        key: dummy-test-key-vision
+
+logging:
+  level:
+    com.example: INFO
+    org.springframework.security: WARN
+    org.springframework.data.redis: WARN
+
+server:
+  port: 8080

@@ -6,6 +6,7 @@ import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
 import com.cvmento.global.exception.customException.InvalidTokenException;
+import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -132,11 +133,31 @@ public class GlobalExceptionHandler {
     // 자소서 관련 예외
     @ExceptionHandler(CoverLetterException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterException(CoverLetterException ex, HttpServletRequest request) {
-        log.error("CoverLetterException: {}", ex.getMessage(), ex);
+        log.warn("CoverLetterException: {}", ex.getMessage());
+
+        // "찾을 수 없습니다" 메시지면 404, 그 외는 400
+        HttpStatus status = ex.getMessage().contains("찾을 수 없습니다") ?
+                HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+
+        String errorCode = status == HttpStatus.NOT_FOUND ?
+                "COVER_LETTER_NOT_FOUND" : "COVER_LETTER_ERROR";
+
         return buildErrorResponse(
                 request,
-                HttpStatus.BAD_REQUEST,
-                "COVER_LETTER_ERROR",
+                status,
+                errorCode,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(InterviewException.class)
+    public ResponseEntity<Map<String, Object>> handleInterviewException(InterviewException ex, HttpServletRequest request) {
+        log.error("InterviewException: {}", ex.getMessage(), ex);
+        return buildErrorResponse(
+                request,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERVIEW_SERVICE_ERROR",
                 ex.getMessage(),
                 null
         );
