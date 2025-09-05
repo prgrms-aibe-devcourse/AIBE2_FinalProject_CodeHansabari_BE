@@ -232,46 +232,46 @@ public class AuthController {
 
     // === 개발용 테스트 엔드포인트들 ===
 
-    @PostMapping("/test-login")
-    @Operation(summary = "개발용 테스트 로그인", description = "개발/테스트용 임시 로그인입니다.")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> testLogin(
-            @RequestParam(defaultValue = "test@example.com") String email,
-            @RequestParam(defaultValue = "Test User") String name,
-            HttpServletResponse response) {
-
-        Member testMember = authService.createOrUpdateTestUser(email, name, Role.USER);
-        authService.generateTokensAndSetCookies(testMember, response);
-
-        TestLoginResponse loginResponse = TestLoginResponse.of(
-                "테스트 로그인이 완료되었습니다.",
-                MemberInfo.from(testMember),
-                "쿠키가 자동으로 설정되었습니다."
-        );
-
-        return ResponseEntity.ok(CommonResponse.success(loginResponse));
-    }
-
-    @PostMapping("/quick-login/user")
-    @Operation(summary = "일반 사용자로 빠른 로그인")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsUser(HttpServletResponse response) {
-        return performQuickLogin("user@test.com", "일반 사용자", Role.USER, response);
-    }
-
-    @PostMapping("/quick-login/expert")
-    @Operation(summary = "최상위 관리자로 빠른 로그인")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsExpert(HttpServletResponse response) {
-        return performQuickLogin("root@test.com", "최상위 관리자", Role.ROOT, response);
-    }
-
-    @PostMapping("/quick-login/admin")
-    @Operation(summary = "관리자로 빠른 로그인")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsAdmin(HttpServletResponse response) {
-        return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
-    }
+//    @PostMapping("/test-login")
+//    @Operation(summary = "개발용 테스트 로그인", description = "개발/테스트용 임시 로그인입니다.")
+//    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+//    public ResponseEntity<CommonResponse<TestLoginResponse>> testLogin(
+//            @RequestParam(defaultValue = "test@example.com") String email,
+//            @RequestParam(defaultValue = "Test User") String name,
+//            HttpServletResponse response) {
+//
+//        Member testMember = authService.createOrUpdateTestUser(email, name, Role.USER);
+//        authService.generateTokensAndSetCookies(testMember, response);
+//
+//        TestLoginResponse loginResponse = TestLoginResponse.of(
+//                "테스트 로그인이 완료되었습니다.",
+//                MemberInfo.from(testMember),
+//                "쿠키가 자동으로 설정되었습니다."
+//        );
+//
+//        return ResponseEntity.ok(CommonResponse.success(loginResponse));
+//    }
+//
+//    @PostMapping("/quick-login/user")
+//    @Operation(summary = "일반 사용자로 빠른 로그인")
+//    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+//    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsUser(HttpServletResponse response) {
+//        return performQuickLogin("user@test.com", "일반 사용자", Role.USER, response);
+//    }
+//
+//    @PostMapping("/quick-login/expert")
+//    @Operation(summary = "최상위 관리자로 빠른 로그인")
+//    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+//    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsExpert(HttpServletResponse response) {
+//        return performQuickLogin("root@test.com", "최상위 관리자", Role.ROOT, response);
+//    }
+//
+//    @PostMapping("/quick-login/admin")
+//    @Operation(summary = "관리자로 빠른 로그인")
+//    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+//    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsAdmin(HttpServletResponse response) {
+//        return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
+//    }
 
     // === 헬퍼 메서드들 ===
 

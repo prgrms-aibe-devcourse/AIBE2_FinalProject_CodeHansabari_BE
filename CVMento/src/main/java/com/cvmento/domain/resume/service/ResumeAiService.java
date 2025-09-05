@@ -34,7 +34,7 @@ public class ResumeAiService {
             String prompt = llmPromptService.buildSuggestionPrompt(request.experienceContent());
 
             // 2. LLM API 호출
-            LlmAnalysisResponse llmResponse = llmClientService.analyze(prompt);
+            LlmAnalysisResponse llmResponse = llmClientService.analyzeUniversal(prompt, null, null);
 
             // 3. 제안 파싱 및 검증
             ResumeAiSuggestionResponse suggestions = parseSuggestions(llmResponse.improvedContent()); // Assuming improvedContent contains the JSON for suggestions
