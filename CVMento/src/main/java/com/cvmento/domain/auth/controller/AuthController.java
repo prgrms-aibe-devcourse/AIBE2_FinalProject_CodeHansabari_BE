@@ -1,7 +1,7 @@
 package com.cvmento.domain.auth.controller;
 
 import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
-import com.cvmento.domain.auth.dto.request.GoogleTokenRequest; //
+import com.cvmento.domain.auth.dto.request.GoogleTokenRequest;
 import com.cvmento.domain.auth.dto.response.AuthStatusResponse;
 import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.response.GoogleLoginGuideResponse;
@@ -13,6 +13,9 @@ import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.exception.customException.GoogleApiException;
+import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
+import com.cvmento.global.exception.customException.InvalidTokenException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -65,12 +68,12 @@ public class AuthController {
 
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
-        } catch (GoogleOAuthService.InvalidAuthorizationCodeException e) {
+        } catch (InvalidAuthorizationCodeException e) {
             log.warn("Invalid authorization code: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(CommonResponse.error("INVALID_AUTH_CODE", e.getMessage()));
 
-        } catch (GoogleOAuthService.GoogleApiException e) {
+        } catch (GoogleApiException e) {
             log.error("Google API error: {}", e.getMessage());
             return ResponseEntity.status(502)
                     .body(CommonResponse.error("GOOGLE_API_ERROR", "구글 서버와 통신 중 오류가 발생했습니다."));
@@ -103,7 +106,7 @@ public class AuthController {
             log.info("구글 토큰 로그인 성공 - 사용자: {}", loginResponse.getMember().email());
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
-        } catch (GoogleOAuthService.InvalidTokenException e) {
+        } catch (InvalidTokenException e) {
             log.warn("Invalid Google ID token: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(CommonResponse.error("INVALID_TOKEN", e.getMessage()));

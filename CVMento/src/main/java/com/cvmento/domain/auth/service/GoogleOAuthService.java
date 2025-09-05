@@ -2,13 +2,16 @@ package com.cvmento.domain.auth.service;
 
 import com.cvmento.domain.auth.controller.AuthController.GoogleLoginUrlResponse;
 import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
-import com.cvmento.domain.auth.dto.request.GoogleTokenRequest; // ✅ 수정된 import
+import com.cvmento.domain.auth.dto.request.GoogleTokenRequest;
 import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.common.util.CookieUtil;
+import com.cvmento.global.exception.customException.GoogleApiException;
+import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
+import com.cvmento.global.exception.customException.InvalidTokenException;
 import com.cvmento.global.security.TokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -348,28 +351,5 @@ public class GoogleOAuthService {
         public String getEmail() { return email; }
         public String getName() { return name; }
         public String getPicture() { return picture; }
-    }
-
-    // 예외 클래스들
-    public static class InvalidAuthorizationCodeException extends RuntimeException {
-        public InvalidAuthorizationCodeException(String message) {
-            super(message);
-        }
-    }
-
-    public static class InvalidTokenException extends RuntimeException {
-        public InvalidTokenException(String message) {
-            super(message);
-        }
-    }
-
-    public static class GoogleApiException extends RuntimeException {
-        public GoogleApiException(String message) {
-            super(message);
-        }
-
-        public GoogleApiException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }
