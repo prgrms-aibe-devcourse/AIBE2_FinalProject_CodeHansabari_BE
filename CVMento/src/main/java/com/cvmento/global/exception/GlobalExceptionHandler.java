@@ -3,6 +3,9 @@ package com.cvmento.global.exception;
 
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.cvmento.global.exception.customException.CoverLetterException;
+import com.cvmento.global.exception.customException.GoogleApiException;
+import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
+import com.cvmento.global.exception.customException.InvalidTokenException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,6 +60,47 @@ public class GlobalExceptionHandler {
                 "VALIDATION_ERROR",
                 "입력값이 올바르지 않습니다.",
                 fieldErrors
+        );
+    }
+
+    // ===== Google OAuth 관련 예외 핸들러들 =====
+
+    @ExceptionHandler(InvalidAuthorizationCodeException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidAuthorizationCodeException(
+            InvalidAuthorizationCodeException ex, HttpServletRequest request) {
+        log.warn("Invalid authorization code: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_AUTHORIZATION_CODE",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidTokenException(
+            InvalidTokenException ex, HttpServletRequest request) {
+        log.warn("Invalid token: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.UNAUTHORIZED,
+                "INVALID_TOKEN",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(GoogleApiException.class)
+    public ResponseEntity<Map<String, Object>> handleGoogleApiException(
+            GoogleApiException ex, HttpServletRequest request) {
+        log.error("Google API error: {}", ex.getMessage(), ex);
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_GATEWAY,
+                "GOOGLE_API_ERROR",
+                ex.getMessage(),
+                null
         );
     }
 
