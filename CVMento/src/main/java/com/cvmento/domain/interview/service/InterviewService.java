@@ -51,63 +51,42 @@ public class InterviewService {
     public InterviewQnaListResponse createInterviewQuestions(Long coverLetterId, String userEmail) {
         CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
 
-        // 현재 생성된 질문 수 확인
         long existingCount = coverLetterQnaRepository.countByCoverLetterAndSourceType(
                 coverLetter, QuestionSourceType.GENERATED);
 
-        // 최대 개수 체크
         if (existingCount >= 15) {
             throw new InterviewLimitExceededException("더 이상 질문을 생성할 수 없습니다. (최대 15개)");
         }
 
-        if (existingCount == 0) {
-            // 초기 생성 (첫 5개)
-            return generateInitialQuestions(coverLetter);
-        } else {
-            // 추가 생성 (5개 더)
-            return generateAdditionalQuestions(coverLetter);
-        }
+        String prompt = buildPromptByCount(coverLetter, existingCount);
+        return generateQuestionsWithPrompt(coverLetter, prompt, existingCount == 0 ? "초기" : "추가");
     }
 
     // ======================== 유틸리티 메서드 ========================
 
-    private InterviewQnaListResponse generateInitialQuestions(CoverLetter coverLetter) {
-        try {
-            String prompt = promptService.buildQnaGenerationPrompt(coverLetter);
-            InterviewLlmResponse llmResponse = llmClientService.generateQnaList(prompt);
-
-            List<CoverLetterQna> newQnas = saveQnaListToDatabaseAndReturn(llmResponse.qnaList(), coverLetter);
-
-            log.info("초기 질문/답변 {}개 생성 완료 - 자소서 ID: {}",
-                    llmResponse.qnaList().size(), coverLetter.getCoverLetterId());
-
-            return buildNewQnaListResponse(newQnas);
-
-        } catch (Exception e) {
-            log.error("초기 질문/답변 생성 실패 - 자소서 ID: {}", coverLetter.getCoverLetterId(), e);
-            throw new InterviewException("질문/답변 생성에 실패했습니다.", e);
+    private String buildPromptByCount(CoverLetter coverLetter, long existingCount) {
+        if (existingCount == 0) {
+            return promptService.buildQnaGenerationPrompt(coverLetter);
+        } else {
+            List<String> existingQuestions = coverLetterQnaRepository.findQuestionsByCoverLetterAndSourceType(
+                    coverLetter, QuestionSourceType.GENERATED);
+            return promptService.buildAdditionalQnaPrompt(coverLetter, existingQuestions);
         }
     }
 
-    private InterviewQnaListResponse generateAdditionalQuestions(CoverLetter coverLetter) {
+    private InterviewQnaListResponse generateQuestionsWithPrompt(CoverLetter coverLetter, String prompt, String type) {
         try {
-            // 기존 질문들 조회
-            List<String> existingQuestions = coverLetterQnaRepository.findQuestionsByCoverLetterAndSourceType(
-                    coverLetter, QuestionSourceType.GENERATED);
-
-            String prompt = promptService.buildAdditionalQnaPrompt(coverLetter, existingQuestions);
             InterviewLlmResponse llmResponse = llmClientService.generateQnaList(prompt);
-
             List<CoverLetterQna> newQnas = saveQnaListToDatabaseAndReturn(llmResponse.qnaList(), coverLetter);
 
-            log.info("추가 질문/답변 {}개 생성 완료 - 자소서 ID: {}",
-                    llmResponse.qnaList().size(), coverLetter.getCoverLetterId());
+            log.info("{} 질문/답변 {}개 생성 완료 - 자소서 ID: {}",
+                    type, llmResponse.qnaList().size(), coverLetter.getCoverLetterId());
 
             return buildNewQnaListResponse(newQnas);
 
         } catch (Exception e) {
-            log.error("추가 질문/답변 생성 실패 - 자소서 ID: {}", coverLetter.getCoverLetterId(), e);
-            throw new InterviewException("추가 질문/답변 생성에 실패했습니다.", e);
+            log.error("{} 질문/답변 생성 실패 - 자소서 ID: {}", type, coverLetter.getCoverLetterId(), e);
+            throw new InterviewException("질문/답변 생성에 실패했습니다.", e);
         }
     }
 
