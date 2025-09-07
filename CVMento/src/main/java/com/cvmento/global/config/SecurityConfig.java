@@ -52,7 +52,8 @@ public class SecurityConfig {
                                 "/auth/status",
                                 "/health",
                                 "/error",
-                                "/auth/google/url"
+                                "/auth/google/url",
+                                "/auth/quick-login/**" // 개발용
                         ).permitAll()
                                 .anyRequest().hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
