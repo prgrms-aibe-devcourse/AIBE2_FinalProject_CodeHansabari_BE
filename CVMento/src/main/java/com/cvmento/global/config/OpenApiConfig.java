@@ -20,8 +20,9 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("CVMento API")
                         .version("1.0"))
-                .servers(List.of(   // ★ Swagger 기본 서버 URL 강제 지정
-                        new Server().url("https://api.cvmento.shop")
+                .servers(List.of(
+                        new Server().url("http://localhost:8080").description("로컬 개발 서버"),
+                        new Server().url("https://api.cvmento.shop").description("운영 서버")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("cookieAuth"))
                 .components(new Components()
