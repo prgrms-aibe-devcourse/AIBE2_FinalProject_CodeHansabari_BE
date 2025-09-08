@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -95,7 +96,77 @@ public class ResumeController {
 
     @Operation(
             summary = "이력서 단건 조회",
-            description = "특정 이력서 ID로 이력서 상세 정보를 조회합니다."
+            description = "특정 이력서 ID로 이력서 상세 정보를 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "이력서 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "조회 성공",
+                                            value = """
+                                                    {
+                                                      "success": true,
+                                                      "message": "이력서 조회 성공",
+                                                      "data": {
+                                                        "resumeId": 1,
+                                                        "title": "신입 백엔드 개발자 이력서",
+                                                        "memberName": "홍길동",
+                                                        "memberEmail": "hong.gildong@example.com",
+                                                        "memberPhoneNumber": "010-1234-5678",
+                                                        "selfIntroduction": "열정적인 신입 개발자입니다.",
+                                                        "techStack": "Java,Spring,MySQL",
+                                                        "sections": [],
+                                                        "createdAt": "2025-09-05T14:30:00",
+                                                        "updatedAt": "2025-09-05T14:30:00"
+                                                      }
+                                                    }
+                                                    """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "이력서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = java.util.Map.class),
+                                    examples = @ExampleObject(
+                                            name = "이력서 없음",
+                                            value = """
+                                                    {
+                                                      "timestamp": "2025-09-05T14:30:00",
+                                                      "status": 404,
+                                                      "error": "Not Found",
+                                                      "errorCode": "RESUME_NOT_FOUND",
+                                                      "message": "이력서를 찾을 수 없습니다.",
+                                                      "errors": {}
+                                                    }
+                                                    """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "사용자를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = java.util.Map.class),
+                                    examples = @ExampleObject(
+                                            name = "사용자 없음",
+                                            value = """
+                                                    {
+                                                      "timestamp": "2025-09-05T14:30:00",
+                                                      "status": 404,
+                                                      "error": "Not Found",
+                                                      "errorCode": "MEMBER_NOT_FOUND",
+                                                      "message": "사용자를 찾을 수 없습니다.",
+                                                      "errors": {}
+                                                    }
+                                                    """
+                                    )
+                            )
+                    )
+            }
     )
     @GetMapping("/{resumeId}")
     public ResponseEntity<CommonResponse<ResumeResponse>> getResumeById(
@@ -107,7 +178,51 @@ public class ResumeController {
 
     @Operation(
             summary = "사용자 이력서 목록 조회",
-            description = "현재 로그인한 사용자의 모든 이력서 목록을 조회합니다."
+            description = "현재 로그인한 사용자의 모든 이력서 목록을 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "이력서 목록 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = {
+                                            @ExampleObject(
+                                                    name = "이력서가 있는 경우",
+                                                    value = """
+                                                            {
+                                                              "success": true,
+                                                              "message": "이력서 목록 조회 성공",
+                                                              "data": [
+                                                                {
+                                                                  "resumeId": 1,
+                                                                  "title": "신입 백엔드 개발자 이력서",
+                                                                  "memberName": "홍길동",
+                                                                  "createdAt": "2025-09-05T14:30:00"
+                                                                },
+                                                                {
+                                                                  "resumeId": 2,
+                                                                  "title": "시니어 개발자 이력서",
+                                                                  "memberName": "홍길동",
+                                                                  "createdAt": "2025-09-06T10:15:00"
+                                                                }
+                                                              ]
+                                                            }
+                                                            """
+                                            ),
+                                            @ExampleObject(
+                                                    name = "이력서가 없는 경우",
+                                                    value = """
+                                                            {
+                                                              "success": true,
+                                                              "message": "이력서 목록 조회 성공",
+                                                              "data": []
+                                                            }
+                                                            """
+                                            )
+                                    }
+                            )
+                    )
+            }
     )
     @GetMapping
     public ResponseEntity<CommonResponse<List<ResumeResponse>>> getResumesByUser(@AuthenticationPrincipal UserDetails userDetails) {

@@ -19,46 +19,82 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Base64;
 
+/**
+ * 이력서 파일 가져오기 서비스
+ * 
+ * 기능: 사용자가 업로드한 이력서 파일(PDF/이미지)을 분석하여 
+ *      사이트의 이력서 형식으로 자동 변환하는 서비스
+ * 
+ * 처리 방식:
+ * 1. Lambda 방식: AWS Lambda로 OCR 처리 → 텍스트 추출 → LLM으로 구조화
+ * 2. Direct 방식: Vision LLM에 파일을 직접 전송하여 한 번에 처리
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ResumeImportService {
 
-    private final MemberRepository memberRepository;
-    private final ResumeService resumeService;
-    private final ResumeLlmClientService llmClientService;
-    private final ResumeLlmPromptService llmPromptService;
+    // === 의존성 주입 ===
+    private final MemberRepository memberRepository;           // 사용자 정보 조회
+    private final ResumeService resumeService;                // 이력서 생성 로직
+    private final ResumeLlmClientService llmClientService;    // LLM API 통신
+    private final ResumeLlmPromptService llmPromptService;    // LLM 프롬프트 생성
 
-    private final LambdaService lambdaService;
-    private final ObjectMapper objectMapper;
+    private final LambdaService lambdaService;                // AWS Lambda OCR 서비스
+    private final ObjectMapper objectMapper;                 // JSON 파싱
 
-
-    @Value("${resume.import.strategy:direct}") // Default to 'direct'
+    /**
+     * 처리 전략 설정 (application.yml에서 설정)
+     * - "lambda": AWS Lambda OCR → LLM 텍스트 처리
+     * - "direct": Vision LLM 직접 처리 (기본값)
+     */
+    @Value("${resume.import.strategy:direct}") 
     private String importStrategy;
 
+    /**
+     * 메인 진입점: 업로드된 이력서 파일을 분석하여 새로운 이력서 생성
+     * 
+     * @param file 업로드된 이력서 파일 (PDF 또는 이미지)
+     * @param userEmail 사용자 이메일
+     * @return 생성된 이력서 응답 데이터
+     */
     @Transactional
     public ResumeResponse createResumeFromFile(MultipartFile file, String userEmail) {
-        // Common steps for both strategies
-        validateFile(file);
+        // === 1단계: 공통 전처리 작업 ===
+        validateFile(file);  // 파일 유효성 검사 (크기, 형식 등)
         log.info("File validation successful for user: {}. Strategy: {}", userEmail, importStrategy);
 
+        // 사용자 정보 조회 및 검증
         Member member = memberRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found with email: " + userEmail));
 
+        // === 2단계: 설정에 따른 처리 방식 선택 ===
         if ("lambda".equalsIgnoreCase(importStrategy)) {
+            // AWS Lambda OCR 방식으로 처리
             return createResumeViaLambda(file, userEmail);
         } else {
+            // Vision LLM 직접 처리 방식 (기본값)
             return createResumeDirectly(file, userEmail);
         }
     }
 
+    /**
+     * Lambda 방식: AWS Lambda OCR → LLM 텍스트 처리
+     * 
+     * 처리 흐름:
+     * 1. AWS Lambda로 OCR 수행 (이미지/PDF → 텍스트)
+     * 2. 추출된 텍스트를 LLM에 전달
+     * 3. LLM이 텍스트를 이력서 구조로 변환
+     * 4. 변환된 데이터로 이력서 생성
+     */
     private ResumeResponse createResumeViaLambda(MultipartFile file, String userEmail) {
         log.info("Lambda OCR 방식으로 이력서 생성 시작. 사용자: {}", userEmail);
 
         try {
-            // Lambda OCR 호출 (S3 없이 직접 호출)
+            // === 1단계: AWS Lambda OCR로 텍스트 추출 ===
             String ocrText = lambdaService.invokeLambdaOcr(file);
 
+            // OCR 결과 검증
             if (ocrText == null || ocrText.trim().isEmpty()) {
                 log.error("Lambda OCR 결과가 비어있음. 사용자: {}", userEmail);
                 throw new ResumeAiException("파일에서 텍스트를 추출하지 못했습니다.");
@@ -66,20 +102,24 @@ public class ResumeImportService {
 
             log.info("OCR 완료. 추출된 텍스트 길이: {} chars", ocrText.length());
 
-            // LLM으로 구조화
+            // === 2단계: LLM으로 텍스트 구조화 ===
+            // 추출된 텍스트를 이력서 형식으로 변환하는 프롬프트 생성
             String prompt = llmPromptService.buildResumeTextImportPrompt(ocrText);
+            
+            // LLM API 호출 (텍스트만 처리, 이미지 없음)
             ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(prompt, null, null);
 
+            // LLM 응답 검증
             String extractedJson = llmResponse.response();
             if (extractedJson == null || extractedJson.trim().isEmpty()) {
                 log.error("LLM 응답이 비어있음. 사용자: {}", userEmail);
                 throw new ResumeAiException("AI가 이력서 내용을 분석하지 못했습니다.");
             }
 
-            // JSON을 객체로 변환
+            // === 3단계: JSON을 이력서 생성 요청 객체로 변환 ===
             ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
 
-            // 이력서 생성
+            // === 4단계: 실제 이력서 생성 ===
             return resumeService.createResume(createRequest, userEmail);
 
         } catch (JsonProcessingException e) {
@@ -91,27 +131,46 @@ public class ResumeImportService {
         }
     }
 
+    /**
+     * Direct 방식: Vision LLM 직접 처리 (기본 방식)
+     * 
+     * 처리 흐름:
+     * 1. 업로드된 파일을 Base64로 인코딩
+     * 2. Vision LLM에 이미지와 프롬프트를 함께 전송
+     * 3. LLM이 이미지를 직접 분석하여 이력서 구조로 변환
+     * 4. 변환된 데이터로 이력서 생성
+     */
     private ResumeResponse createResumeDirectly(MultipartFile file, String userEmail) {
-        log.info("Starting resume creation via direct LLM for user: {}", userEmail);
+        log.info("Direct Vision LLM 방식으로 이력서 생성 시작. 사용자: {}", userEmail);
+        
         try {
-            // Step 1: Convert file to Base64
+            // === 1단계: 파일을 Base64로 변환 ===
+            // Vision LLM이 이미지를 처리할 수 있도록 Base64 인코딩
             String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
             log.info("File converted to Base64. Size: {} bytes", base64Image.length());
 
-            // Step 2: Build prompt for Vision LLM
+            // === 2단계: Vision LLM용 프롬프트 생성 ===
+            // 이미지에서 이력서 내용을 추출하라는 프롬프트
             String prompt = llmPromptService.buildResumeImportPrompt();
 
-            // Step 3: Call Vision LLM service
-            ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(prompt, base64Image, file.getContentType());
+            // === 3단계: Vision LLM API 호출 ===
+            // 프롬프트 + Base64 이미지 + 파일 타입을 함께 전송
+            ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(
+                prompt,                    // 프롬프트
+                base64Image,              // Base64 인코딩된 이미지
+                file.getContentType()     // 파일 MIME 타입 (image/png, application/pdf 등)
+            );
+            
             String extractedJson = llmResponse.response();
 
+            // LLM 응답 검증
             if (extractedJson == null || extractedJson.trim().isEmpty()) {
                 log.error("LLM returned empty content for user: {}", userEmail);
                 throw new ResumeAiException("AI가 이력서 내용을 추출하지 못했습니다. 다른 파일로 시도해주세요.");
             }
             log.info("LLM analysis complete. Received JSON content.");
 
-            // Step 4: Parse and create resume
+            // === 4단계: JSON을 이력서 생성 요청 객체로 변환 및 생성 ===
             ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
             return resumeService.createResume(createRequest, userEmail);
 
@@ -124,15 +183,29 @@ public class ResumeImportService {
         }
     }
 
+    /**
+     * 업로드된 파일의 유효성을 검증
+     * 
+     * 검증 항목:
+     * 1. 파일이 비어있지 않은지 확인
+     * 2. 지원되는 파일 형식인지 확인 (PDF, 이미지)
+     * 3. 파일 크기가 제한 내인지 확인 (5MB 이하)
+     */
     private void validateFile(MultipartFile file) {
+        // === 1. 파일 존재 여부 검증 ===
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty.");
         }
+        
+        // === 2. 파일 형식 검증 ===
         String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf") && !contentType.startsWith("image/"))) {
+        if (contentType == null || 
+            (!contentType.equals("application/pdf") && !contentType.startsWith("image/"))) {
             throw new IllegalArgumentException("Invalid file type. Only PDF, PNG, JPG files are allowed.");
         }
-        long maxSize = 5 * 1024 * 1024; // 5MB
+        
+        // === 3. 파일 크기 검증 ===
+        long maxSize = 5 * 1024 * 1024; // 5MB 제한
         if (file.getSize() > maxSize) {
             throw new IllegalArgumentException("File size exceeds the limit of 5MB.");
         }
