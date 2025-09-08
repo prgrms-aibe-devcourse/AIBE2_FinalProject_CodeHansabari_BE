@@ -7,7 +7,6 @@ import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.cvmento.global.aws.LambdaService;
-import com.cvmento.global.aws.S3Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Base64;
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,12 +28,10 @@ public class ResumeImportService {
     private final ResumeService resumeService;
     private final ResumeLlmClientService llmClientService;
     private final ResumeLlmPromptService llmPromptService;
-    private final S3Service s3Service;
+
     private final LambdaService lambdaService;
     private final ObjectMapper objectMapper;
 
-    @Value("${cloud.aws.s3.bucket}")
-    private String s3BucketName;
 
     @Value("${resume.import.strategy:direct}") // Default to 'direct'
     private String importStrategy;
