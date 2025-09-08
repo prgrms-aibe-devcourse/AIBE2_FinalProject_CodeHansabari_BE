@@ -18,45 +18,49 @@ public class ResumeLlmPromptService {
 
     public String buildResumeImportPrompt() {
         return """
-            You are an expert data extraction specialist. Analyze the provided resume image and extract its content into a structured JSON format.
-            The output MUST be a valid JSON object that strictly follows the structure of the `ResumeCreateRequest` DTO.
+            당신은 전문 데이터 추출 전문가입니다. 제공된 이력서 이미지를 분석하고 내용을 구조화된 JSON 형식으로 추출하세요.
+            출력은 `ResumeCreateRequest` DTO의 구조를 엄격하게 따르는 유효한 JSON 객체여야 합니다.
 
-            ## JSON Output Format:
-            The JSON must match this structure exactly. Do not add any extra fields or explanations.
+            ## JSON 출력 형식:
+            JSON은 이 구조와 정확히 일치해야 합니다. 추가 필드나 설명을 추가하지 마세요.
 
             ```json
             {
-              "title": "Extracted Resume Title (e.g., 'John Doe's Resume')",
+              "title": "추출된 이력서 제목 (예: '홍길동의 이력서')",
               "memberInfo": {
-                "name": "Full Name",
+                "name": "전체 이름",
                 "email": "email@example.com",
                 "phoneNumber": "010-1234-5678",
                 "blogUrl": "https://example.blog"
               },
+              "intro": {
+                "selfIntroduction": "여기에 자기소개 내용을 입력하세요.",
+                "techStack": ["Java", "Spring Boot", "AWS"]
+              },
               "sections": [
                 {
                   "sectionType": "WORK_EXPERIENCE",
-                  "sectionTitle": "Work Experience",
+                  "sectionTitle": "경력",
                   "items": [
                     {
-                      "title": "Company Name",
-                      "subTitle": "Job Title",
+                      "title": "회사명",
+                      "subTitle": "직책",
                       "startDate": "YYYY-MM-DD",
                       "endDate": "YYYY-MM-DD",
-                      "description": "Details of responsibilities and achievements."
+                      "description": "담당 업무 및 성과 상세 내용."
                     }
                   ]
                 },
                 {
                   "sectionType": "EDUCATION",
-                  "sectionTitle": "Education",
+                  "sectionTitle": "학력",
                   "items": [
                     {
-                      "title": "University Name",
-                      "subTitle": "Degree and Major",
+                      "title": "대학교명",
+                      "subTitle": "학위 및 전공",
                       "startDate": "YYYY-MM-DD",
                       "endDate": "YYYY-MM-DD",
-                      "description": "GPA or other details."
+                      "description": "학점 또는 기타 상세 내용."
                     }
                   ]
                 }
@@ -64,61 +68,65 @@ public class ResumeLlmPromptService {
             }
             ```
 
-            ### Important Instructions:
-            1.  **Extract All Sections**: Identify and extract all relevant sections like "Work Experience", "Education", "Projects", "Skills", "Certificates", etc.
-            2.  **Use Correct `sectionType`**: For each section, use the most appropriate `sectionType` from this list: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
-            3.  **Date Format**: All dates (`startDate`, `endDate`) must be in `YYYY-MM-DD` format. If a year and month are present but no day, use the first day of the month (e.g., '2023-05-01'). If a date is not present, use `null`. If a date is not present, use `null`.
-            4.  **Title**: Create a suitable title for the resume, like "[Name]'s Resume".
-            5.  **Valid JSON**: The final output must be ONLY the JSON object, without any surrounding text, explanations, or markdown formatting like ```json.
+            ### 중요 지침:
+            1.  **모든 섹션 추출**: "경력", "학력", "프로젝트", "기술", "자격증" 등 모든 관련 섹션을 식별하고 추출하세요.
+            2.  **올바른 `sectionType` 사용**: 각 섹션에 대해 다음 목록에서 가장 적절한 `sectionType`을 사용하세요: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
+            3.  **날짜 형식**: 모든 날짜(`startDate`, `endDate`)는 `YYYY-MM-DD` 형식이어야 합니다. 연도와 월은 있지만 일은 없는 경우, 해당 월의 첫째 날을 사용하세요(예: '2023-05-01'). 날짜가 없는 경우 `null`을 사용하세요.
+            4.  **제목**: "[이름]의 이력서"와 같이 이력서에 적합한 제목을 생성하세요.
+            5.  **유효한 JSON**: 최종 출력은 ```json과 같은 주변 텍스트, 설명 또는 마크다운 서식 없이 오직 JSON 객체여야 합니다.
             """;
     }
 
     public String buildResumeTextImportPrompt(String ocrText) {
         return """
-            You are an expert data extraction specialist. Analyze the provided resume text, which was extracted via OCR, and convert its content into a structured JSON format.
-            The output MUST be a valid JSON object that strictly follows the structure of the `ResumeCreateRequest` DTO.
+            당신은 전문 데이터 추출 전문가입니다. OCR로 추출된 다음 이력서 텍스트를 분석하고 내용을 구조화된 JSON 형식으로 변환하세요.
+            출력은 `ResumeCreateRequest` DTO의 구조를 엄격하게 따르는 유효한 JSON 객체여야 합니다.
 
-            ## OCR-Extracted Text to Analyze:
+            ## 분석할 OCR 추출 텍스트:
             ```text
             %s
             ```
 
-            ## JSON Output Format:
-            The JSON must match this structure exactly. Do not add any extra fields or explanations.
+            ## JSON 출력 형식:
+            JSON은 이 구조와 정확히 일치해야 합니다. 추가 필드나 설명을 추가하지 마세요.
 
             ```json
             {
-              "title": "Extracted Resume Title (e.g., 'John Doe's Resume')",
+              "title": "추출된 이력서 제목 (예: '홍길동의 이력서')",
               "memberInfo": {
-                "name": "Full Name",
+                "name": "전체 이름",
                 "email": "email@example.com",
                 "phoneNumber": "010-1234-5678",
                 "blogUrl": "https://example.blog"
               },
+              "intro": {
+                "selfIntroduction": "여기에 자기소개 내용을 입력하세요.",
+                "techStack": ["Java", "Spring Boot", "AWS"]
+              },
               "sections": [
                 {
                   "sectionType": "WORK_EXPERIENCE",
-                  "sectionTitle": "Work Experience",
+                  "sectionTitle": "경력",
                   "items": [
                     {
-                      "title": "Company Name",
-                      "subTitle": "Job Title",
+                      "title": "회사명",
+                      "subTitle": "직책",
                       "startDate": "YYYY-MM-DD",
                       "endDate": "YYYY-MM-DD",
-                      "description": "Details of responsibilities and achievements."
+                      "description": "담당 업무 및 성과 상세 내용."
                     }
                   ]
                 },
                 {
                   "sectionType": "EDUCATION",
-                  "sectionTitle": "Education",
+                  "sectionTitle": "학력",
                   "items": [
                     {
-                      "title": "University Name",
-                      "subTitle": "Degree and Major",
+                      "title": "대학교명",
+                      "subTitle": "학위 및 전공",
                       "startDate": "YYYY-MM-DD",
                       "endDate": "YYYY-MM-DD",
-                      "description": "GPA or other details."
+                      "description": "학점 또는 기타 상세 내용."
                     }
                   ]
                 }
@@ -126,12 +134,12 @@ public class ResumeLlmPromptService {
             }
             ```
 
-            ### Important Instructions:
-            1.  **Extract All Sections**: From the provided text, identify and extract all relevant sections like "Work Experience", "Education", "Projects", "Skills", "Certificates", etc.
-            2.  **Use Correct `sectionType`**: For each section, use the most appropriate `sectionType` from this list: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
-            3.  **Date Format**: All dates (`startDate`, `endDate`) must be in `YYYY-MM-DD` format. If a year and month are present but no day, use the first day of the month (e.g., '2023-05-01'). If a date is not present, use `null`.
-            4.  **Title**: Create a suitable title for the resume, like "[Name]'s Resume".
-            5.  **Valid JSON**: The final output must be ONLY the JSON object, without any surrounding text, explanations, or markdown formatting like ```json.
+            ### 중요 지침:
+            1.  **모든 섹션 추출**: 제공된 텍스트에서 "경력", "학력", "프로젝트", "기술", "자격증" 등 모든 관련 섹션을 식별하고 추출하세요.
+            2.  **올바른 `sectionType` 사용**: 각 섹션에 대해 다음 목록에서 가장 적절한 `sectionType`을 사용하세요: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
+            3.  **날짜 형식**: 모든 날짜(`startDate`, `endDate`)는 `YYYY-MM-DD` 형식이어야 합니다. 연도와 월은 있지만 일은 없는 경우, 해당 월의 첫째 날을 사용하세요(예: '2023-05-01'). 날짜가 없는 경우 `null`을 사용하세요.
+            4.  **제목**: "[이름]의 이력서"와 같이 이력서에 적합한 제목을 생성하세요.
+            5.  **유효한 JSON**: 최종 출력은 ```json과 같은 주변 텍스트, 설명 또는 마크다운 서식 없이 오직 JSON 객체여야 합니다.
             """.formatted(ocrText);
     }
 

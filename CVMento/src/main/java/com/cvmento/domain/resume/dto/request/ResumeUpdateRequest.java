@@ -18,6 +18,10 @@ public record ResumeUpdateRequest(
     @Valid
     MemberInfoRequest memberInfo,
 
+    @NotNull(message = "소개 정보는 필수입니다.") // New validation
+    @Valid // New validation
+    IntroRequest intro, // New field
+
     @Valid
     List<ResumeSectionRequest> sections
 ) {
@@ -37,6 +41,16 @@ public record ResumeUpdateRequest(
     ) {
         @Builder
         public MemberInfoRequest {}
+    }
+
+    // New record for Intro
+    public record IntroRequest(
+        @NotBlank(message = "자기소개는 필수입니다.")
+        String selfIntroduction,
+        List<String> techStack // techStack can be empty, so no @NotNull
+    ) {
+        @Builder
+        public IntroRequest {}
     }
 
     public record ResumeSectionRequest(

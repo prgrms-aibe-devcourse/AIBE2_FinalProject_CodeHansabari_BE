@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "Resume Import API", description = "이력서 파일(PDF, PNG)을 이용한 이력서 관리 API")
+@Tag(name = "이력서 파일 가져오기", description = "파일(PDF, PNG)로부터 이력서 자동 생성 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/resumes/import")

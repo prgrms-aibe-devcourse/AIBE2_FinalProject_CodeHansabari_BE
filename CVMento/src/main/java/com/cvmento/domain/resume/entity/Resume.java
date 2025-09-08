@@ -27,8 +27,15 @@ public class Resume extends BaseTimeEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "template_type")
+        @Column(name = "template_type")
     private String templateType = "default";
+
+    // New fields for intro
+    @Column(name = "self_introduction", columnDefinition = "TEXT") // Use TEXT for potentially long strings
+    private String selfIntroduction;
+
+    @Column(name = "tech_stack") // Store as comma-separated string
+    private String techStack;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
@@ -43,14 +50,22 @@ public class Resume extends BaseTimeEntity {
 
     protected Resume() {}
 
-    public Resume(String title, Member member) {
+    public Resume(String title, Member member, String selfIntroduction, String techStack) { // Updated constructor
         this.title = title;
         this.member = member;
         this.templateType = "default"; // 기본값 설정
+        this.selfIntroduction = selfIntroduction; // Set new field
+        this.techStack = techStack; // Set new field
     }
 
     public void updateTitle(String title) {
         this.title = title;
+    }
+
+    // New method to update intro fields
+    public void updateIntro(String selfIntroduction, String techStack) {
+        this.selfIntroduction = selfIntroduction;
+        this.techStack = techStack;
     }
 
     // 연관관계 편의 메소드
@@ -63,3 +78,6 @@ public class Resume extends BaseTimeEntity {
         this.status = status;
     }
 }
+
+
+    

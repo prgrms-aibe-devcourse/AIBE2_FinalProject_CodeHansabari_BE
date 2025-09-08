@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "이력서 관리", description = "이력서 CRUD API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/resumes")
@@ -43,6 +45,10 @@ public class ResumeController {
     "email": "hong.gildong@example.com",
     "phoneNumber": "010-1234-5678",
     "blogUrl": "https://honggildong.dev"
+  },
+  "intro": {
+    "selfIntroduction": "신입 백엔드 개발자 홍길동입니다. 컴퓨터공학을 전공하며 웹 개발에 관심을 가지게 되었고, 특히 서버 사이드 개발과 데이터베이스 설계에 열정을 가지고 있습니다. 사용자에게 안정적이고 효율적인 서비스를 제공하는 백엔드 시스템을 구축하는 것이 목표입니다. 새로운 기술 학습에 대한 열의가 높으며, 팀워크를 중시하는 개발자가 되고자 합니다.",
+    "techStack": ["Java", "Python", "JavaScript", "Spring Boot", "Spring MVC", "Spring Data JPA", "Express.js", "MySQL", "PostgreSQL", "Redis", "IntelliJ IDEA", "VS Code", "Git", "Docker", "Postman", "AWS EC2", "RDS", "GitHub Actions", "Nginx"]
   },
   "sections": [
     {
@@ -127,6 +133,10 @@ public class ResumeController {
     "email": "hong.gildong@example.com",
     "phoneNumber": "010-1234-5678",
     "blogUrl": "https://honggildong.dev"
+  },
+  "intro": {
+    "selfIntroduction": "신입 백엔드 개발자 홍길동입니다. 컴퓨터공학을 전공하며 웹 개발에 관심을 가지게 되었고, 특히 서버 사이드 개발과 데이터베이스 설계에 열정을 가지고 있습니다. 사용자에게 안정적이고 효율적인 서비스를 제공하는 백엔드 시스템을 구축하는 것이 목표입니다. 새로운 기술 학습에 대한 열의가 높으며, 팀워크를 중시하는 개발자가 되고자 합니다.",
+    "techStack": ["Java", "Python",  "PostgreSQL"]
   },
   "sections": [
     {

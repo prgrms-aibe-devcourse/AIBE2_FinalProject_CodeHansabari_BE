@@ -1,11 +1,11 @@
 package com.cvmento.domain.resume.service;
 
-import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
+import com.cvmento.domain.resume.dto.response.ResumeLlmResponse;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
-import com.cvmento.global.exception.customException.CoverLetterAiException;
+import com.cvmento.global.exception.customException.ResumeAiException;
 import com.cvmento.global.aws.LambdaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,19 +61,19 @@ public class ResumeImportService {
 
             if (ocrText == null || ocrText.trim().isEmpty()) {
                 log.error("Lambda OCR 결과가 비어있음. 사용자: {}", userEmail);
-                throw new CoverLetterAiException("파일에서 텍스트를 추출하지 못했습니다.");
+                throw new ResumeAiException("파일에서 텍스트를 추출하지 못했습니다.");
             }
 
             log.info("OCR 완료. 추출된 텍스트 길이: {} chars", ocrText.length());
 
             // LLM으로 구조화
             String prompt = llmPromptService.buildResumeTextImportPrompt(ocrText);
-            LlmAnalysisResponse llmResponse = llmClientService.analyzeUniversal(prompt, null, null);
+            ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(prompt, null, null);
 
-            String extractedJson = llmResponse.improvedContent();
+            String extractedJson = llmResponse.response();
             if (extractedJson == null || extractedJson.trim().isEmpty()) {
                 log.error("LLM 응답이 비어있음. 사용자: {}", userEmail);
-                throw new CoverLetterAiException("AI가 이력서 내용을 분석하지 못했습니다.");
+                throw new ResumeAiException("AI가 이력서 내용을 분석하지 못했습니다.");
             }
 
             // JSON을 객체로 변환
@@ -84,10 +84,10 @@ public class ResumeImportService {
 
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 오류. 사용자: {}, 오류: {}", userEmail, e.getMessage(), e);
-            throw new CoverLetterAiException("AI 응답을 처리하는 중 오류가 발생했습니다.", e);
+            throw new ResumeAiException("AI 응답을 처리하는 중 오류가 발생했습니다.", e);
         } catch (Exception e) {
             log.error("Lambda 이력서 생성 오류. 사용자: {}, 오류: {}", userEmail, e.getMessage(), e);
-            throw new CoverLetterAiException("이력서 생성 중 오류가 발생했습니다.", e);
+            throw new ResumeAiException("이력서 생성 중 오류가 발생했습니다.", e);
         }
     }
 
@@ -102,12 +102,12 @@ public class ResumeImportService {
             String prompt = llmPromptService.buildResumeImportPrompt();
 
             // Step 3: Call Vision LLM service
-            LlmAnalysisResponse llmResponse = llmClientService.analyzeUniversal(prompt, base64Image, file.getContentType());
-            String extractedJson = llmResponse.improvedContent();
+            ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(prompt, base64Image, file.getContentType());
+            String extractedJson = llmResponse.response();
 
             if (extractedJson == null || extractedJson.trim().isEmpty()) {
                 log.error("LLM returned empty content for user: {}", userEmail);
-                throw new CoverLetterAiException("AI가 이력서 내용을 추출하지 못했습니다. 다른 파일로 시도해주세요.");
+                throw new ResumeAiException("AI가 이력서 내용을 추출하지 못했습니다. 다른 파일로 시도해주세요.");
             }
             log.info("LLM analysis complete. Received JSON content.");
 
@@ -117,7 +117,7 @@ public class ResumeImportService {
 
         } catch (JsonProcessingException e) {
             log.error("Failed to parse JSON from LLM response for user: {}. Error: {}", userEmail, e.getMessage(), e);
-            throw new CoverLetterAiException("AI 응답을 처리하는 중 오류가 발생했습니다. 응답 형식이 올바르지 않을 수 있습니다.", e);
+            throw new ResumeAiException("AI 응답을 처리하는 중 오류가 발생했습니다. 응답 형식이 올바르지 않을 수 있습니다.", e);
         } catch (IOException e) {
             log.error("Failed to read file for user: {}", userEmail, e);
             throw new RuntimeException("파일을 읽는 중 오류가 발생했습니다.", e);

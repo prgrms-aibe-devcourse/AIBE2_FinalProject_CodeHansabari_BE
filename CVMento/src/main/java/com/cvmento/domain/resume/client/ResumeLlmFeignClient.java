@@ -1,6 +1,6 @@
 package com.cvmento.domain.resume.client;
 
-import com.cvmento.domain.coverLetter.dto.request.LlmRequest; // Reusing LlmRequest from coverLetter
+import com.cvmento.domain.resume.dto.request.ResumeLlmRequest;
 import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;

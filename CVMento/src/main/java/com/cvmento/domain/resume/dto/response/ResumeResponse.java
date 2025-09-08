@@ -6,6 +6,7 @@ import com.cvmento.domain.resume.entity.ResumeSection;
 import com.cvmento.domain.resume.enums.ResumeSectionType;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays; // New import
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ public record ResumeResponse(
     Long id,
     String title,
     MemberInfoResponse memberInfo,
+    IntroResponse intro, // New field
     List<ResumeSectionResponse> sections,
     String createdAt,
     String updatedAt
@@ -24,6 +26,7 @@ public record ResumeResponse(
                 resume.getResumeId(),
                 resume.getTitle(),
                 MemberInfoResponse.from(resume.getMember()),
+                IntroResponse.from(resume.getSelfIntroduction(), resume.getTechStack()), // Populate intro
                 resume.getSections().stream()
                         .map(ResumeSectionResponse::from)
                         .collect(Collectors.toList()),
@@ -38,6 +41,19 @@ public record ResumeResponse(
     ) {
         public static MemberInfoResponse from(Member member) {
             return new MemberInfoResponse(member.getName(), member.getEmail());
+        }
+    }
+
+    // New record for IntroResponse
+    public record IntroResponse(
+        String selfIntroduction,
+        List<String> techStack
+    ) {
+        public static IntroResponse from(String selfIntroduction, String techStack) {
+            List<String> techStackList = (techStack != null && !techStack.isEmpty()) ?
+                                         Arrays.asList(techStack.split(",")) :
+                                         Collections.emptyList();
+            return new IntroResponse(selfIntroduction, techStackList);
         }
     }
 
