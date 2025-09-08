@@ -6,16 +6,21 @@ import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
+import com.cvmento.global.aws.LambdaService;
+import com.cvmento.global.aws.S3Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,28 +31,87 @@ public class ResumeImportService {
     private final ResumeService resumeService;
     private final ResumeLlmClientService llmClientService;
     private final ResumeLlmPromptService llmPromptService;
+    private final S3Service s3Service;
+    private final LambdaService lambdaService;
     private final ObjectMapper objectMapper;
+
+    @Value("${cloud.aws.s3.bucket}")
+    private String s3BucketName;
+
+    @Value("${resume.import.strategy:direct}") // Default to 'direct'
+    private String importStrategy;
 
     @Transactional
     public ResumeResponse createResumeFromFile(MultipartFile file, String userEmail) {
-        // Step 1: Validate file (size, type, etc.)
+        // Common steps for both strategies
         validateFile(file);
-        log.info("File validation successful for user: {}", userEmail);
+        log.info("File validation successful for user: {}. Strategy: {}", userEmail, importStrategy);
 
-        // Step 2: Find member
         Member member = memberRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found with email: " + userEmail));
 
-        try {
-            // Step 3: Convert file to Base64
-            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
-            log.info("File converted to Base64 successfully. Size: {} bytes", base64Image.length());
+        if ("lambda".equalsIgnoreCase(importStrategy)) {
+            return createResumeViaLambda(file, userEmail);
+        } else {
+            return createResumeDirectly(file, userEmail);
+        }
+    }
 
-            // Step 4: Build prompt for Vision LLM
+    private ResumeResponse createResumeViaLambda(MultipartFile file, String userEmail) {
+        log.info("Starting resume creation via Lambda for user: {}", userEmail);
+        try {
+            // Step 1: Upload file to S3
+            String s3Key = "resumes/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+            String fileUrl = s3Service.uploadFile(file, s3Key);
+            log.info("File uploaded to S3. URL: {}", fileUrl);
+
+            // Step 2: Invoke Lambda for OCR
+            Map<String, String> lambdaPayload = Map.of("s3Bucket", s3BucketName, "s3Key", s3Key);
+            String payloadJson = objectMapper.writeValueAsString(lambdaPayload);
+            log.info("Invoking OCR Lambda. Payload: {}", payloadJson);
+            String ocrText = lambdaService.invokeLambda(payloadJson);
+
+            if (ocrText == null || ocrText.trim().isEmpty()) {
+                log.error("OCR Lambda returned empty text for user: {}", userEmail);
+                throw new CoverLetterAiException("파일에서 텍스트를 추출하지 못했습니다. 다른 파일로 시도해주세요.");
+            }
+            log.info("OCR extraction complete. Text length: {}", ocrText.length());
+
+            // Step 3: Build prompt and call text-based LLM
+            String prompt = llmPromptService.buildResumeTextImportPrompt(ocrText);
+            LlmAnalysisResponse llmResponse = llmClientService.analyzeUniversal(prompt, null, null);
+            String extractedJson = llmResponse.improvedContent();
+
+            if (extractedJson == null || extractedJson.trim().isEmpty()) {
+                log.error("LLM returned empty content post-OCR for user: {}", userEmail);
+                throw new CoverLetterAiException("AI가 이력서 내용을 분석하지 못했습니다.");
+            }
+            log.info("LLM analysis complete. Received JSON content.");
+
+            // Step 4: Parse and create resume
+            ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
+            return resumeService.createResume(createRequest, userEmail);
+
+        } catch (JsonProcessingException e) {
+            log.error("Failed to process JSON for user: {}. Error: {}", userEmail, e.getMessage(), e);
+            throw new CoverLetterAiException("AI 응답을 처리하는 중 오류가 발생했습니다.", e);
+        } catch (IOException e) {
+            log.error("File processing error for user: {}. Error: {}", userEmail, e.getMessage(), e);
+            throw new RuntimeException("파일 처리 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    private ResumeResponse createResumeDirectly(MultipartFile file, String userEmail) {
+        log.info("Starting resume creation via direct LLM for user: {}", userEmail);
+        try {
+            // Step 1: Convert file to Base64
+            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+            log.info("File converted to Base64. Size: {} bytes", base64Image.length());
+
+            // Step 2: Build prompt for Vision LLM
             String prompt = llmPromptService.buildResumeImportPrompt();
 
-            // Step 5: Call LLM service
-            log.info("Sending resume image to Vision LLM for analysis.");
+            // Step 3: Call Vision LLM service
             LlmAnalysisResponse llmResponse = llmClientService.analyzeUniversal(prompt, base64Image, file.getContentType());
             String extractedJson = llmResponse.improvedContent();
 
@@ -57,15 +121,12 @@ public class ResumeImportService {
             }
             log.info("LLM analysis complete. Received JSON content.");
 
-            // Step 6: Parse LLM response into a ResumeCreateRequest DTO
+            // Step 4: Parse and create resume
             ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
-            log.info("Successfully parsed LLM response into ResumeCreateRequest DTO.");
-
-            // Step 7: Create resume using the existing ResumeService logic
             return resumeService.createResume(createRequest, userEmail);
 
         } catch (JsonProcessingException e) {
-            log.error("Failed to parse JSON from LLM response for user: {}. JSON: {}", userEmail, e.getOriginalMessage(), e);
+            log.error("Failed to parse JSON from LLM response for user: {}. Error: {}", userEmail, e.getMessage(), e);
             throw new CoverLetterAiException("AI 응답을 처리하는 중 오류가 발생했습니다. 응답 형식이 올바르지 않을 수 있습니다.", e);
         } catch (IOException e) {
             log.error("Failed to read file for user: {}", userEmail, e);
@@ -81,7 +142,6 @@ public class ResumeImportService {
         if (contentType == null || (!contentType.equals("application/pdf") && !contentType.startsWith("image/"))) {
             throw new IllegalArgumentException("Invalid file type. Only PDF, PNG, JPG files are allowed.");
         }
-        // Optional: Add file size validation
         long maxSize = 5 * 1024 * 1024; // 5MB
         if (file.getSize() > maxSize) {
             throw new IllegalArgumentException("File size exceeds the limit of 5MB.");
