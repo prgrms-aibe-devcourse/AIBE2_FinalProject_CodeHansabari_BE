@@ -58,46 +58,41 @@ public class ResumeImportService {
     }
 
     private ResumeResponse createResumeViaLambda(MultipartFile file, String userEmail) {
-        log.info("Starting resume creation via Lambda for user: {}", userEmail);
-        try {
-            // Step 1: Upload file to S3
-            String s3Key = "resumes/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
-            String fileUrl = s3Service.uploadFile(file, s3Key);
-            log.info("File uploaded to S3. URL: {}", fileUrl);
+        log.info("Lambda OCR 방식으로 이력서 생성 시작. 사용자: {}", userEmail);
 
-            // Step 2: Invoke Lambda for OCR
-            Map<String, String> lambdaPayload = Map.of("s3Bucket", s3BucketName, "s3Key", s3Key);
-            String payloadJson = objectMapper.writeValueAsString(lambdaPayload);
-            log.info("Invoking OCR Lambda. Payload: {}", payloadJson);
-            String ocrText = lambdaService.invokeLambda(payloadJson);
+        try {
+            // Lambda OCR 호출 (S3 없이 직접 호출)
+            String ocrText = lambdaService.invokeLambdaOcr(file);
 
             if (ocrText == null || ocrText.trim().isEmpty()) {
-                log.error("OCR Lambda returned empty text for user: {}", userEmail);
-                throw new CoverLetterAiException("파일에서 텍스트를 추출하지 못했습니다. 다른 파일로 시도해주세요.");
+                log.error("Lambda OCR 결과가 비어있음. 사용자: {}", userEmail);
+                throw new CoverLetterAiException("파일에서 텍스트를 추출하지 못했습니다.");
             }
-            log.info("OCR extraction complete. Text length: {}", ocrText.length());
 
-            // Step 3: Build prompt and call text-based LLM
+            log.info("OCR 완료. 추출된 텍스트 길이: {} chars", ocrText.length());
+
+            // LLM으로 구조화
             String prompt = llmPromptService.buildResumeTextImportPrompt(ocrText);
             LlmAnalysisResponse llmResponse = llmClientService.analyzeUniversal(prompt, null, null);
-            String extractedJson = llmResponse.improvedContent();
 
+            String extractedJson = llmResponse.improvedContent();
             if (extractedJson == null || extractedJson.trim().isEmpty()) {
-                log.error("LLM returned empty content post-OCR for user: {}", userEmail);
+                log.error("LLM 응답이 비어있음. 사용자: {}", userEmail);
                 throw new CoverLetterAiException("AI가 이력서 내용을 분석하지 못했습니다.");
             }
-            log.info("LLM analysis complete. Received JSON content.");
 
-            // Step 4: Parse and create resume
+            // JSON을 객체로 변환
             ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
+
+            // 이력서 생성
             return resumeService.createResume(createRequest, userEmail);
 
         } catch (JsonProcessingException e) {
-            log.error("Failed to process JSON for user: {}. Error: {}", userEmail, e.getMessage(), e);
+            log.error("JSON 파싱 오류. 사용자: {}, 오류: {}", userEmail, e.getMessage(), e);
             throw new CoverLetterAiException("AI 응답을 처리하는 중 오류가 발생했습니다.", e);
-        } catch (IOException e) {
-            log.error("File processing error for user: {}. Error: {}", userEmail, e.getMessage(), e);
-            throw new RuntimeException("파일 처리 중 오류가 발생했습니다.", e);
+        } catch (Exception e) {
+            log.error("Lambda 이력서 생성 오류. 사용자: {}, 오류: {}", userEmail, e.getMessage(), e);
+            throw new CoverLetterAiException("이력서 생성 중 오류가 발생했습니다.", e);
         }
     }
 
