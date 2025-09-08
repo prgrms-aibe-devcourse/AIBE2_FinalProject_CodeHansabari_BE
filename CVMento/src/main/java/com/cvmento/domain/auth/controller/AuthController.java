@@ -5,6 +5,7 @@ import com.cvmento.domain.auth.dto.request.GoogleTokenRequest;
 import com.cvmento.domain.auth.dto.response.AuthStatusResponse;
 import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.response.GoogleLoginGuideResponse;
+import com.cvmento.domain.auth.dto.response.GoogleLoginUrlResponse;
 import com.cvmento.domain.auth.dto.response.TestLoginResponse;
 import com.cvmento.domain.auth.dto.response.TokenRefreshResponse;
 import com.cvmento.domain.auth.service.AuthService;
@@ -304,20 +305,4 @@ public class AuthController {
 
         return request.getRemoteAddr();
     }
-
-    // === DTO 클래스들 ===
-
-    public static class GoogleLoginUrlResponse {
-        private final String loginUrl;
-        private final String state;
-
-        public GoogleLoginUrlResponse(String loginUrl, String state) {
-            this.loginUrl = loginUrl;
-            this.state = state;
-        }
-
-        public String getLoginUrl() { return loginUrl; }
-        public String getState() { return state; }
-    }
-
 }
