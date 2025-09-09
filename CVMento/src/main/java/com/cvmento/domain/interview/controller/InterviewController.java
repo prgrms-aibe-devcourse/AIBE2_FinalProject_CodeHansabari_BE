@@ -86,7 +86,6 @@ public class InterviewController {
             }
     )
     @GetMapping
-    @RequireTokens(UsageType.INTERVIEW_AUTO)
     public ResponseEntity<CommonResponse<InterviewQnaListResponse>> getInterviewQuestions(
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
@@ -176,7 +175,7 @@ public class InterviewController {
             }
     )
     @PostMapping
-    @RequireTokens(UsageType.INTERVIEW_CUSTOM)
+    @RequireTokens(UsageType.INTERVIEW_AUTO)
     public ResponseEntity<CommonResponse<InterviewQnaListResponse>> createInterviewQuestions(
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
@@ -257,6 +256,7 @@ public class InterviewController {
             }
     )
     @PostMapping("/custom-answer")
+    @RequireTokens(UsageType.INTERVIEW_CUSTOM)
     public ResponseEntity<CommonResponse<CustomAnswerResponse>> createCustomAnswer(
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @Valid @RequestBody CustomQuestionRequest request,
