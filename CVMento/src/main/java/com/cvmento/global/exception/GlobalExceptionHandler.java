@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -165,6 +166,42 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT,
                 "INTERVIEW_LIMIT_EXCEEDED",
                 ex.getMessage(),
+                null
+        );
+    }
+
+    // 크롤링 관련 예외
+    @ExceptionHandler(CrawlCoverLetterException.class)
+    public ResponseEntity<Map<String, Object>> handleCrawlCoverLetterException(
+            CrawlCoverLetterException ex, HttpServletRequest request) {
+        log.error("CrawlCoverLetterException: {}", ex.getMessage(), ex);
+        
+        // 메시지에 따라 동적으로 HTTP 상태 코드 결정
+        HttpStatus status = ex.getMessage().contains("찾을 수 없습니다") ?
+                HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
+        
+        String errorCode = status == HttpStatus.NOT_FOUND ?
+                "CRAWL_COVER_LETTER_NOT_FOUND" : "CRAWLING_ERROR";
+        
+        return buildErrorResponse(
+                request,
+                status,
+                errorCode,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    // 권한 없음 예외 (@PreAuthorize 권한 검사 실패)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
+            AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.FORBIDDEN,
+                "ACCESS_DENIED",
+                "접근 권한이 없습니다. 관리자 권한이 필요합니다.",
                 null
         );
     }

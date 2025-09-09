@@ -7,7 +7,7 @@ import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
 import com.cvmento.domain.coverLetter.repository.CrawlCoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
-import com.cvmento.global.exception.CrawlCoverLetterException;
+import com.cvmento.global.exception.customException.CrawlCoverLetterException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -37,9 +37,9 @@ public class CrawlCoverLetterService {
      * Linkareer API를 호출하여 IT 직무 합격 자소서를 크롤링하고 DB에 저장
      */
     public CrawlCoverLetterResponse crawlAndSaveCoverLetters() {
+        log.info("자소서 크롤링 시작");
+        
         try {
-            log.info("자소서 크롤링 시작");
-            
             // 1. 기존 데이터 삭제 (업데이트 방식)
             crawlCoverLetterRepository.deleteAll();
             log.info("기존 크롤링 데이터 삭제 완료");
@@ -60,10 +60,14 @@ public class CrawlCoverLetterService {
                 savedCoverLetters.size()
             );
                     
+        } catch (CrawlCoverLetterException e) {
+            // 이미 CrawlCoverLetterException인 경우 그대로 던짐
+            throw e;
         } catch (Exception e) {
             log.error("자소서 크롤링 중 오류 발생", e);
-            return CrawlCoverLetterResponse.failure(
-                "크롤링 중 오류가 발생했습니다: " + e.getMessage()
+            throw new CrawlCoverLetterException(
+                "크롤링 중 오류가 발생했습니다: " + e.getMessage(),
+                e
             );
         }
     }
@@ -125,7 +129,9 @@ public class CrawlCoverLetterService {
 
         if (response.getStatusCode() != HttpStatus.OK) {
             log.error("API 호출 실패: {}", response.getStatusCode());
-            throw new RuntimeException("API 호출 실패: " + response.getStatusCode());
+            throw new CrawlCoverLetterException(
+                "Linkareer API 호출 실패: " + response.getStatusCode()
+            );
         }
 
         String responseBody = response.getBody();
@@ -143,82 +149,91 @@ public class CrawlCoverLetterService {
     /**
      * API 응답에서 content 필드 추출
      */
-    private List<String> parseContentsFromResponse(String responseBody) throws Exception {
+    private List<String> parseContentsFromResponse(String responseBody) {
         List<String> contents = new ArrayList<>();
         
         log.info("=== API 응답 파싱 시작 ===");
         log.info("응답 본문 길이: {} characters", responseBody.length());
         
-        JsonNode jsonNode = objectMapper.readTree(responseBody);
-        log.info("JSON 파싱 성공");
-        
-        JsonNode edges = jsonNode.path("data")
-                .path("coverLetters")
-                .path("edges");
-        
-        log.info("edges 경로 탐색 완료");
-        log.info("edges 타입: {}", edges.getNodeType());
-        log.info("edges가 배열인가: {}", edges.isArray());
-        
-        if (edges.isArray()) {
-            log.info("edges 배열 크기: {}", edges.size());
+        try {
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            log.info("JSON 파싱 성공");
             
-            for (int i = 0; i < edges.size(); i++) {
-                JsonNode edge = edges.get(i);
-                JsonNode node = edge.path("node");
+            JsonNode edges = jsonNode.path("data")
+                    .path("coverLetters")
+                    .path("edges");
+            
+            log.info("edges 경로 탐색 완료");
+            log.info("edges 타입: {}", edges.getNodeType());
+            log.info("edges가 배열인가: {}", edges.isArray());
+            
+            if (edges.isArray()) {
+                log.info("edges 배열 크기: {}", edges.size());
                 
-                log.info("=== {}번째 edge 분석 ===", i + 1);
-                log.info("node 존재 여부: {}", !node.isMissingNode());
-                log.info("node 타입: {}", node.getNodeType());
-                
-                if (node.has("content")) {
-                    String content = node.get("content").asText();
-                    log.info("content 필드 존재: true");
-                    log.info("content 길이: {} characters", content != null ? content.length() : 0);
+                for (int i = 0; i < edges.size(); i++) {
+                    JsonNode edge = edges.get(i);
+                    JsonNode node = edge.path("node");
                     
-                    // 텍스트 정리 전후 비교 로그 (처음 3개만)
-                    if (i < 3) {
-                        String cleanedContent = cleanText(content);
-                        log.info("=== {}번째 content 정리 전후 비교 ===", i + 1);
-                        log.info("정리 전: {}", 
-                            content != null && content.length() > 100 ? 
-                            content.substring(0, 100) + "..." : content);
-                        log.info("정리 후: {}", 
-                            cleanedContent != null && cleanedContent.length() > 100 ? 
-                            cleanedContent.substring(0, 100) + "..." : cleanedContent);
-                        log.info("정리 전 길이: {} → 정리 후 길이: {}", 
-                            content != null ? content.length() : 0, 
-                            cleanedContent != null ? cleanedContent.length() : 0);
-                    }
+                    log.info("=== {}번째 edge 분석 ===", i + 1);
+                    log.info("node 존재 여부: {}", !node.isMissingNode());
+                    log.info("node 타입: {}", node.getNodeType());
                     
-                    if (content != null && !content.trim().isEmpty()) {
-                        contents.add(content);
-                        log.info("content 추가됨 (현재 총 {}개)", contents.size());
+                    if (node.has("content")) {
+                        String content = node.get("content").asText();
+                        log.info("content 필드 존재: true");
+                        log.info("content 길이: {} characters", content != null ? content.length() : 0);
+                        
+                        // 텍스트 정리 전후 비교 로그 (처음 3개만)
+                        if (i < 3) {
+                            String cleanedContent = cleanText(content);
+                            log.info("=== {}번째 content 정리 전후 비교 ===", i + 1);
+                            log.info("정리 전: {}", 
+                                content != null && content.length() > 100 ? 
+                                content.substring(0, 100) + "..." : content);
+                            log.info("정리 후: {}", 
+                                cleanedContent != null && cleanedContent.length() > 100 ? 
+                                cleanedContent.substring(0, 100) + "..." : cleanedContent);
+                            log.info("정리 전 길이: {} → 정리 후 길이: {}", 
+                                content != null ? content.length() : 0, 
+                                cleanedContent != null ? cleanedContent.length() : 0);
+                        }
+                        
+                        if (content != null && !content.trim().isEmpty()) {
+                            contents.add(content);
+                            log.info("content 추가됨 (현재 총 {}개)", contents.size());
+                        } else {
+                            log.info("content가 null이거나 빈 문자열이어서 추가되지 않음");
+                        }
                     } else {
-                        log.info("content가 null이거나 빈 문자열이어서 추가되지 않음");
+                        log.info("content 필드가 존재하지 않음");
+                        log.info("node의 모든 필드: {}", node.fieldNames());
                     }
-                } else {
-                    log.info("content 필드가 존재하지 않음");
-                    log.info("node의 모든 필드: {}", node.fieldNames());
-                }
-                
-                // 처음 3개만 상세 로그 출력 (저장은 계속 진행)
-                if (i >= 2) {
-                    log.info("처음 3개만 상세 로그를 출력하므로 나머지는 간단히 처리");
-                    // 간단한 진행상황 로그
-                    if (i % 50 == 0) {
-                        log.info("진행상황: {} / {} 처리 완료", i + 1, edges.size());
+                    
+                    // 처음 3개만 상세 로그 출력 (저장은 계속 진행)
+                    if (i >= 2) {
+                        log.info("처음 3개만 상세 로그를 출력하므로 나머지는 간단히 처리");
+                        // 간단한 진행상황 로그
+                        if (i % 50 == 0) {
+                            log.info("진행상황: {} / {} 처리 완료", i + 1, edges.size());
+                        }
                     }
                 }
+            } else {
+                log.warn("edges가 배열이 아님. edges 내용: {}", edges);
             }
-        } else {
-            log.warn("edges가 배열이 아님. edges 내용: {}", edges);
+            
+            log.info("=== 파싱 완료 ===");
+            log.info("최종 추출된 content 개수: {}", contents.size());
+            
+            return contents;
+            
+        } catch (Exception e) {
+            log.error("API 응답 파싱 중 오류 발생", e);
+            throw new CrawlCoverLetterException(
+                "API 응답 파싱 중 오류가 발생했습니다: " + e.getMessage(),
+                e
+            );
         }
-        
-        log.info("=== 파싱 완료 ===");
-        log.info("최종 추출된 content 개수: {}", contents.size());
-        
-        return contents;
     }
     
     /**
@@ -267,9 +282,7 @@ public class CrawlCoverLetterService {
     public CrawlCoverLetterData getCrawlCoverLetterById(Long id) {
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
                 .orElseThrow(() -> new CrawlCoverLetterException(
-                    "CRAWL_COVER_LETTER_NOT_FOUND", 
-                    "크롤링 데이터를 찾을 수 없습니다. ID: " + id, 
-                    404
+                    "크롤링 데이터를 찾을 수 없습니다. ID: " + id
                 ));
         return CrawlCoverLetterData.from(coverLetter);
     }
@@ -285,9 +298,7 @@ public class CrawlCoverLetterService {
         
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
                 .orElseThrow(() -> new CrawlCoverLetterException(
-                    "CRAWL_COVER_LETTER_NOT_FOUND", 
-                    "크롤링 데이터를 찾을 수 없습니다. ID: " + id, 
-                    404
+                    "크롤링 데이터를 찾을 수 없습니다. ID: " + id
                 ));
         
         coverLetter.updateText(request.text());
@@ -303,9 +314,7 @@ public class CrawlCoverLetterService {
     public void deleteCrawlCoverLetter(Long id) {
         if (!crawlCoverLetterRepository.existsById(id)) {
             throw new CrawlCoverLetterException(
-                "CRAWL_COVER_LETTER_NOT_FOUND", 
-                "크롤링 데이터를 찾을 수 없습니다. ID: " + id, 
-                404
+                "크롤링 데이터를 찾을 수 없습니다. ID: " + id
             );
         }
         
