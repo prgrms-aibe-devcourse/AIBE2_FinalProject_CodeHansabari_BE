@@ -2,6 +2,7 @@ package com.cvmento.domain.interview.service;
 
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
+import com.cvmento.domain.interview.dto.response.CustomAnswerResponse;
 import com.cvmento.domain.interview.dto.response.InterviewLlmResponse;
 import com.cvmento.domain.interview.dto.response.InterviewQnaDto;
 import com.cvmento.domain.interview.dto.response.InterviewQnaListResponse;
@@ -10,6 +11,7 @@ import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.InterviewLimitExceededException;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
@@ -369,13 +371,161 @@ class InterviewServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("createCustomAnswer 메서드")
+    class CreateCustomAnswerTest {
+
+        @BeforeEach
+        void setUp() {
+            log.info("--- CreateCustomAnswerTest 공통 Mock 설정 ---");
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
+                    .willReturn(Optional.of(testCoverLetter));
+            log.info("CoverLetter 조회 Mock 설정 완료\n");
+        }
+
+        @Test
+        @DisplayName("커스텀 질문 답변 생성 및 저장 성공")
+        void shouldCreateCustomAnswerSuccessfully() {
+            log.info("=== 테스트 시작: 커스텀 질문 답변 생성 및 저장 성공 ===");
+
+            // given
+            String customQuestion = "면접에서 가장 중요하게 생각하는 가치는 무엇인가요?";
+            log.info("커스텀 질문: '{}'", customQuestion);
+
+            String mockPrompt = "커스텀 답변 프롬프트";
+            given(promptService.buildCustomAnswerPrompt(testCoverLetter, customQuestion))
+                    .willReturn(mockPrompt);
+            log.info("Mock 설정: 생성된 프롬프트 = '{}'", mockPrompt);
+
+            CustomAnswerResponse mockResponse = createMockCustomAnswerResponse();
+            given(llmClientService.generateCustomAnswer(mockPrompt))
+                    .willReturn(mockResponse);
+            log.info("Mock 설정: LLM 응답 answer='{}', tip='{}'",
+                    mockResponse.answer(), mockResponse.tip());
+
+            // ArgumentCaptor를 사용하여 저장되는 객체 캡처
+            ArgumentCaptor<CoverLetterQna> qnaCaptor = ArgumentCaptor.forClass(CoverLetterQna.class);
+            given(coverLetterQnaRepository.save(qnaCaptor.capture()))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            log.info("=== 메서드 실행 ===");
+            CustomAnswerResponse result = interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion);
+
+            // then
+            log.info("=== 결과 검증 ===");
+            log.info("반환된 응답: answer='{}', tip='{}'", result.answer(), result.tip());
+
+            assertThat(result.answer()).isEqualTo(mockResponse.answer());
+            log.info("✅ answer 필드 검증 통과: '{}'", result.answer());
+
+            assertThat(result.tip()).isEqualTo(mockResponse.tip());
+            log.info("✅ tip 필드 검증 통과: '{}'", result.tip());
+
+            // 저장된 객체 상세 검증
+            CoverLetterQna savedQna = qnaCaptor.getValue();
+            log.info("실제로 저장된 질문: question='{}', answer='{}', tip='{}', sourceType='{}'",
+                    savedQna.getQuestion(), savedQna.getAnswer(), savedQna.getTip(), savedQna.getSourceType());
+
+            assertThat(savedQna.getQuestion()).isEqualTo(customQuestion);
+            log.info("✅ 저장된 질문 검증 통과");
+
+            assertThat(savedQna.getAnswer()).isEqualTo(mockResponse.answer());
+            log.info("✅ 저장된 답변 검증 통과");
+
+            assertThat(savedQna.getTip()).isEqualTo(mockResponse.tip());
+            log.info("✅ 저장된 팁 검증 통과");
+
+            assertThat(savedQna.getSourceType()).isEqualTo(QuestionSourceType.CUSTOM);
+            log.info("✅ sourceType이 CUSTOM으로 저장됨 검증 통과");
+
+            // 메서드 호출 검증
+            log.info("=== 메서드 호출 검증 ===");
+            verify(promptService).buildCustomAnswerPrompt(testCoverLetter, customQuestion);
+            log.info("✅ promptService.buildCustomAnswerPrompt() 호출 확인");
+
+            verify(llmClientService).generateCustomAnswer(mockPrompt);
+            log.info("✅ llmClientService.generateCustomAnswer('{}') 호출 확인", mockPrompt);
+
+            verify(coverLetterQnaRepository).save(any(CoverLetterQna.class));
+            log.info("✅ coverLetterQnaRepository.save() 호출 확인");
+
+            log.info("=== 테스트 완료 ===\n");
+        }
+
+        @Test
+        @DisplayName("LLM이 JSON이 아닌 응답을 보낼 때")
+        void shouldThrowExceptionWhenLlmReturnsInvalidJson() {
+            log.info("=== 테스트 시작: LLM이 JSON이 아닌 응답을 보낼 때 ===");
+
+            // given
+            String customQuestion = "테스트 질문";
+            String mockPrompt = "프롬프트";
+
+            given(promptService.buildCustomAnswerPrompt(testCoverLetter, customQuestion))
+                    .willReturn(mockPrompt);
+            log.info("Mock 설정: 프롬프트 생성");
+
+            // LLM이 일반 텍스트 응답을 보내는 상황
+            given(llmClientService.generateCustomAnswer(mockPrompt))
+                    .willThrow(new InterviewException("커스텀 답변 데이터 파싱에 실패했습니다."));
+            log.info("Mock 설정: LLM이 파싱 불가능한 응답 반환");
+
+            // when & then
+            log.info("예외 발생 예상 - InterviewException");
+            assertThatThrownBy(() ->
+                    interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion))
+                    .isInstanceOf(InterviewException.class)
+                    .hasMessage("커스텀 질문 답변 생성에 실패했습니다.");
+            log.info("✅ 예상된 JSON 파싱 예외 발생 확인");
+
+            verify(coverLetterQnaRepository, never()).save(any());
+            log.info("✅ 저장 메서드가 호출되지 않음을 확인 (파싱 실패로 인해)");
+
+            log.info("=== 테스트 완료 ===\n");
+        }
+
+        @Test
+        @DisplayName("LLM 응답에 answer 필드가 없을 때")
+        void shouldThrowExceptionWhenAnswerFieldMissing() {
+            log.info("=== 테스트 시작: LLM 응답에 answer 필드가 없을 때 ===");
+
+            // given
+            String customQuestion = "테스트 질문";
+            String mockPrompt = "프롬프트";
+
+            given(promptService.buildCustomAnswerPrompt(testCoverLetter, customQuestion))
+                    .willReturn(mockPrompt);
+            log.info("Mock 설정: 프롬프트 생성");
+
+            // LLM이 answer 필드가 누락된 응답을 보내는 상황
+            given(llmClientService.generateCustomAnswer(mockPrompt))
+                    .willThrow(new InterviewException("커스텀 답변 데이터 파싱에 실패했습니다."));
+            log.info("Mock 설정: LLM이 answer 필드 누락된 응답 반환");
+
+            // when & then
+            log.info("예외 발생 예상 - InterviewException");
+            assertThatThrownBy(() ->
+                    interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion))
+                    .isInstanceOf(InterviewException.class)
+                    .hasMessage("커스텀 질문 답변 생성에 실패했습니다.");
+            log.info("✅ 예상된 필드 누락 예외 발생 확인");
+
+            verify(coverLetterQnaRepository, never()).save(any());
+            log.info("✅ 저장 메서드가 호출되지 않음을 확인 (필드 누락으로 인해)");
+
+            log.info("=== 테스트 완료 ===\n");
+        }
+
+    }
+
     // ================ 테스트 헬퍼 메서드들 ================
 
     private List<CoverLetterQna> createMockQnaList(int count) {
         log.debug("가짜 질문 목록 생성 시작: {}개", count);
         List<CoverLetterQna> qnaList = new ArrayList<>();
         for (int i = 1; i <= count; i++) {
-            CoverLetterQna qna = new CoverLetterQna("질문 " + i, testCoverLetter);
+            CoverLetterQna qna = new CoverLetterQna("질문 " + i, testCoverLetter, QuestionSourceType.GENERATED);
             qna.updateAnswerAndTip("답변 " + i, "팁 " + i);
             qnaList.add(qna);
             log.debug("가짜 질문 {}번 생성: question='질문 {}', answer='답변 {}', tip='팁 {}'", i, i, i, i);
@@ -406,5 +556,13 @@ class InterviewServiceTest {
         field.setAccessible(true);
         field.set(target, value);
         log.debug("리플렉션으로 필드 설정: {}.{} = {}", target.getClass().getSimpleName(), fieldName, value);
+    }
+
+    private CustomAnswerResponse createMockCustomAnswerResponse() {
+        log.debug("가짜 커스텀 답변 응답 생성");
+        return new CustomAnswerResponse(
+                "저는 팀워크와 지속적인 학습을 가장 중요하게 생각합니다. 자소서에서 언급한 팀 프로젝트 경험을 통해...",
+                "구체적인 경험 사례와 함께 개인의 가치관을 명확히 표현하세요."
+        );
     }
 }

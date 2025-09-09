@@ -1,5 +1,7 @@
 package com.cvmento.domain.interview.controller;
 
+import com.cvmento.domain.interview.dto.request.CustomQuestionRequest;
+import com.cvmento.domain.interview.dto.response.CustomAnswerResponse;
 import com.cvmento.domain.interview.dto.response.InterviewQnaListResponse;
 import com.cvmento.domain.interview.dto.response.InterviewQnaResponse;
 import com.cvmento.domain.interview.service.InterviewService;
@@ -359,6 +361,121 @@ class InterviewControllerTest {
         }
     }
 
+    @Nested
+    @DisplayName("createCustomAnswer 메서드")
+    class CreateCustomAnswerTest {
+
+        @Test
+        @DisplayName("정상적인 커스텀 답변 생성")
+        void shouldCreateCustomAnswerSuccessfully() {
+            log.info("=== 테스트 시작: 정상적인 커스텀 답변 생성 ===");
+
+            // given
+            CustomQuestionRequest request = createMockCustomQuestionRequest();
+            CustomAnswerResponse mockResponse = createMockCustomAnswerResponse();
+            log.info("Mock 요청 생성: question='{}'", request.question());
+            log.info("Mock 응답 생성: answer='{}', tip='{}'", mockResponse.answer(), mockResponse.tip());
+
+            given(interviewService.createCustomAnswer(coverLetterId, userEmail, request.question()))
+                    .willReturn(mockResponse);
+            log.info("Mock 설정: interviewService.createCustomAnswer({}, {}, '{}') -> mockResponse 반환",
+                    coverLetterId, userEmail, request.question());
+
+            // when
+            log.info("=== 컨트롤러 메서드 실행 ===");
+            ResponseEntity<CommonResponse<CustomAnswerResponse>> result =
+                    interviewController.createCustomAnswer(coverLetterId, request, mockUserDetails);
+            log.info("컨트롤러 응답: statusCode={}, hasBody={}",
+                    result.getStatusCode(), result.getBody() != null);
+
+            // then
+            log.info("=== 결과 검증 ===");
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            assertThat(result.getBody()).isNotNull();
+            log.info("✅ 응답 바디 null 아님 검증 통과");
+
+            assertThat(result.getBody().isSuccess()).isTrue();
+            log.info("✅ success 필드 검증 통과: {}", result.getBody().isSuccess());
+
+            assertThat(result.getBody().getMessage()).isEqualTo("커스텀 질문 답변 생성 성공");
+            log.info("✅ 메시지 검증 통과: '{}'", result.getBody().getMessage());
+
+            assertThat(result.getBody().getData().answer()).isEqualTo(mockResponse.answer());
+            log.info("✅ answer 필드 검증 통과: '{}'", result.getBody().getData().answer());
+
+            assertThat(result.getBody().getData().tip()).isEqualTo(mockResponse.tip());
+            log.info("✅ tip 필드 검증 통과: '{}'", result.getBody().getData().tip());
+
+            verify(interviewService).createCustomAnswer(coverLetterId, userEmail, request.question());
+            log.info("✅ 서비스 메서드 호출 검증 통과");
+            log.info("=== 테스트 완료 ===\n");
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 사용자일 때 예외 발생")
+        void shouldThrowExceptionWhenMemberNotFound() {
+            log.info("=== 테스트 시작: 존재하지 않는 사용자일 때 예외 발생 ===");
+
+            // given
+            CustomQuestionRequest request = createMockCustomQuestionRequest();
+            given(interviewService.createCustomAnswer(coverLetterId, userEmail, request.question()))
+                    .willThrow(new MemberNotFoundException("사용자를 찾을 수 없습니다."));
+            log.info("Mock 설정: MemberNotFoundException 발생하도록 설정");
+
+            // when & then
+            log.info("예외 발생 예상 - MemberNotFoundException");
+            assertThatThrownBy(() ->
+                    interviewController.createCustomAnswer(coverLetterId, request, mockUserDetails))
+                    .isInstanceOf(MemberNotFoundException.class)
+                    .hasMessage("사용자를 찾을 수 없습니다.");
+            log.info("✅ 예상된 예외 발생 확인");
+            log.info("=== 테스트 완료 ===\n");
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 자소서일 때 예외 발생")
+        void shouldThrowExceptionWhenCoverLetterNotFound() {
+            log.info("=== 테스트 시작: 존재하지 않는 자소서일 때 예외 발생 ===");
+
+            // given
+            CustomQuestionRequest request = createMockCustomQuestionRequest();
+            given(interviewService.createCustomAnswer(coverLetterId, userEmail, request.question()))
+                    .willThrow(new CoverLetterException("자소서를 찾을 수 없습니다."));
+            log.info("Mock 설정: CoverLetterException 발생하도록 설정");
+
+            // when & then
+            log.info("예외 발생 예상 - CoverLetterException");
+            assertThatThrownBy(() ->
+                    interviewController.createCustomAnswer(coverLetterId, request, mockUserDetails))
+                    .isInstanceOf(CoverLetterException.class)
+                    .hasMessage("자소서를 찾을 수 없습니다.");
+            log.info("✅ 예상된 예외 발생 확인");
+            log.info("=== 테스트 완료 ===\n");
+        }
+
+        @Test
+        @DisplayName("LLM 서비스 오류시 예외 발생")
+        void shouldThrowExceptionWhenServiceError() {
+            log.info("=== 테스트 시작: LLM 서비스 오류시 예외 발생 ===");
+
+            // given
+            CustomQuestionRequest request = createMockCustomQuestionRequest();
+            given(interviewService.createCustomAnswer(coverLetterId, userEmail, request.question()))
+                    .willThrow(new InterviewException("커스텀 질문 답변 생성에 실패했습니다."));
+            log.info("Mock 설정: InterviewException 발생하도록 설정");
+
+            // when & then
+            log.info("예외 발생 예상 - InterviewException");
+            assertThatThrownBy(() ->
+                    interviewController.createCustomAnswer(coverLetterId, request, mockUserDetails))
+                    .isInstanceOf(InterviewException.class)
+                    .hasMessage("커스텀 질문 답변 생성에 실패했습니다.");
+            log.info("✅ 예상된 서비스 예외 발생 확인");
+            log.info("=== 테스트 완료 ===\n");
+        }
+    }
+
     // ================ 테스트 헬퍼 메서드들 ================
 
     private List<InterviewQnaResponse> createMockQnaResponseList(int count) {
@@ -382,5 +499,18 @@ class InterviewControllerTest {
 
         log.debug("가짜 질문 응답 목록 생성 완료: 총 {}개", qnaList.size());
         return qnaList;
+    }
+
+    private CustomQuestionRequest createMockCustomQuestionRequest() {
+        log.debug("가짜 커스텀 질문 요청 생성");
+        return new CustomQuestionRequest("면접에서 가장 중요하게 생각하는 가치는 무엇인가요?");
+    }
+
+    private CustomAnswerResponse createMockCustomAnswerResponse() {
+        log.debug("가짜 커스텀 답변 응답 생성");
+        return new CustomAnswerResponse(
+                "저는 팀워크와 지속적인 학습을 가장 중요하게 생각합니다. 자소서에서 언급한 팀 프로젝트 경험을 통해...",
+                "구체적인 경험 사례와 함께 개인의 가치관을 명확히 표현하세요."
+        );
     }
 }

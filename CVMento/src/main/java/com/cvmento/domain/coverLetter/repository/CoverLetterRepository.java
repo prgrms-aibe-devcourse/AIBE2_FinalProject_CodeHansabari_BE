@@ -5,6 +5,8 @@ import com.cvmento.domain.member.entity.Member;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,4 +18,8 @@ public interface CoverLetterRepository extends JpaRepository<CoverLetter, Long> 
     // 페이징 지원 메서드들
     Page<CoverLetter> findByMemberOrderByUpdatedAtDesc(Member member, Pageable pageable);
     Optional<CoverLetter> findByCoverLetterIdAndMember(Long coverLetterId, Member member);
+
+    @Query("SELECT c FROM CoverLetter c WHERE c.coverLetterId = :coverLetterId AND c.member.email = :userEmail")
+    Optional<CoverLetter> findByCoverLetterIdAndMemberEmail(@Param("coverLetterId") Long coverLetterId,
+                                                            @Param("userEmail") String userEmail);
 }
