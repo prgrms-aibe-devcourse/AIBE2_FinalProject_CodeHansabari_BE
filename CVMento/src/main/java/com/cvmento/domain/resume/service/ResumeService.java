@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
+import com.cvmento.domain.resume.dto.response.ResumeThumbnailResponse;
 import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.domain.resume.enums.ResumeStatus;
 import com.cvmento.domain.resume.repository.ResumeRepository;
@@ -13,8 +14,13 @@ import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -83,6 +89,17 @@ public class ResumeService {
                 resumeId, resume.getTitle(), userEmail);
     }
 
+    /**
+     * 이력서 목록 조회 (썸네일, 페이징)
+     */
+    public Page<ResumeThumbnailResponse> getResumeList(String userEmail, Pageable pageable) {
+        Page<Resume> resumePage = resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
+                userEmail, ResumeStatus.ACTIVE, pageable);
+
+        return resumePage.map(this::convertToThumbnailResponse);
+    }
+
+
     // ======================== Private 메서드 ========================
 
     private Resume createAndSaveResume(ResumeSaveRequest request, Member member) {
@@ -136,5 +153,77 @@ public class ResumeService {
     private Member findMemberByEmail(String email) {
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    private ResumeThumbnailResponse convertToThumbnailResponse(Resume resume) {
+        List<String> completedSections = getCompletedSections(resume);
+
+        return ResumeThumbnailResponse.of(
+                resume.getId(),
+                resume.getTitle(),
+                resume.getUpdatedAt(),
+                completedSections
+        );
+    }
+    private List<String> getCompletedSections(Resume resume) {
+        List<String> sections = new ArrayList<>();
+
+        if (hasEducations(resume)) {
+            sections.add("educations");
+        }
+
+        if (hasTechStacks(resume)) {
+            sections.add("techStacks");
+        }
+
+        if (hasCustomLinks(resume)) {
+            sections.add("customLinks");
+        }
+
+        if (hasCareers(resume)) {
+            sections.add("careers");
+        }
+
+        if (hasProjects(resume)) {
+            sections.add("projects");
+        }
+
+        if (hasTrainings(resume)) {
+            sections.add("trainings");
+        }
+
+        if (hasAdditionalInfos(resume)) {
+            sections.add("additionalInfos");
+        }
+
+        return sections;
+    }
+
+    private boolean hasEducations(Resume resume) {
+        return resume.getEducations() != null && !resume.getEducations().isEmpty();
+    }
+
+    private boolean hasTechStacks(Resume resume) {
+        return resume.getResumeTechStacks() != null && !resume.getResumeTechStacks().isEmpty();
+    }
+
+    private boolean hasCustomLinks(Resume resume) {
+        return resume.getCustomLinks() != null && !resume.getCustomLinks().isEmpty();
+    }
+
+    private boolean hasCareers(Resume resume) {
+        return resume.getCareers() != null && !resume.getCareers().isEmpty();
+    }
+
+    private boolean hasProjects(Resume resume) {
+        return resume.getProjects() != null && !resume.getProjects().isEmpty();
+    }
+
+    private boolean hasTrainings(Resume resume) {
+        return resume.getTrainings() != null && !resume.getTrainings().isEmpty();
+    }
+
+    private boolean hasAdditionalInfos(Resume resume) {
+        return resume.getAdditionalInfos() != null && !resume.getAdditionalInfos().isEmpty();
     }
 }

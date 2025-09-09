@@ -2,6 +2,7 @@ package com.cvmento.domain.resume.controller;
 
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
+import com.cvmento.domain.resume.dto.response.ResumeThumbnailResponse;
 import com.cvmento.domain.resume.service.ResumeService;
 import com.cvmento.global.common.dto.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -273,7 +277,57 @@ public class ResumeController {
     }
 
     /**
-     * 이력서 목록 조회
+     * 이력서 목록 조회 (썸네일, 페이징)
      */
+    @Operation(
+            summary = "이력서 목록 조회",
+            description = "사용자의 활성 상태 이력서 목록을 페이징하여 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "이력서 목록 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "이력서 목록 조회 성공",
+                                            value = """
+                                                {
+                                                  "success": true,
+                                                  "message": "이력서 목록을 성공적으로 조회했습니다.",
+                                                  "data": {
+                                                    "content": [
+                                                      {
+                                                        "resumeId": 1,
+                                                        "title": "네이버 백엔드 개발자 지원용 이력서",
+                                                        "updatedAt": "2024-03-15 10:30:25",
+                                                        "completedSections": ["educations", "techStacks", "careers", "projects"]
+                                                      }
+                                                    ],
+                                                    "totalPages": 1,
+                                                    "totalElements": 1,
+                                                    "size": 10,
+                                                    "number": 0
+                                                  }
+                                                }
+                                                """
+                                    )
+                            )
+                    )
+            }
+    )
+    @GetMapping
+    public ResponseEntity<CommonResponse<Page<ResumeThumbnailResponse>>> getResumeList(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10")
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        String userEmail = userDetails.getUsername();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ResumeThumbnailResponse> resumePage = resumeService.getResumeList(userEmail, pageable);
+
+        return ResponseEntity.ok(CommonResponse.success("이력서 목록을 성공적으로 조회했습니다.", resumePage));
+    }
 
 }
