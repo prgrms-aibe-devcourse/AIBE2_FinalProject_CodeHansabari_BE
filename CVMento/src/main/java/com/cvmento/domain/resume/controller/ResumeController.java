@@ -229,4 +229,46 @@ public class ResumeController {
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 수정되었습니다.", null));
     }
+
+    /**
+     * 이력서 삭제
+     */
+    @Operation(
+            summary = "이력서 삭제",
+            description = "이력서를 소프트 삭제합니다. 실제 데이터는 삭제되지 않고 상태만 DELETED로 변경됩니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "이력서 삭제 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "이력서 삭제 성공 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"이력서가 성공적으로 삭제되었습니다.\",\n" +
+                                                    "  \"data\": null\n" +
+                                                    "}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "이력서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @DeleteMapping("/{resumeId}")
+    public ResponseEntity<CommonResponse<Void>> deleteResume(
+            @Parameter(description = "이력서 ID", example = "1") @PathVariable Long resumeId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String userEmail = userDetails.getUsername();
+        resumeService.deleteResume(resumeId, userEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 삭제되었습니다.", null));
+    }
 }

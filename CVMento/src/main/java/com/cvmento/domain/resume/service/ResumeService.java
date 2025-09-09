@@ -1,13 +1,16 @@
+// ResumeService.java (예외 처리 수정)
 package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.entity.Resume;
+import com.cvmento.domain.resume.enums.ResumeStatus;
 import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.domain.resume.repository.ResumeRepositoryImpl;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
+import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,7 +51,7 @@ public class ResumeService {
         Member member = findMemberByEmail(userEmail);
 
         // 1. 기존 이력서 조회 및 권한 확인
-        Resume existingResume = findResumeByIdAndMember(resumeId, member);
+        Resume existingResume = findActiveResumeByIdAndMember(resumeId, member);
 
         // 2. 기존 이력서의 모든 하위 데이터 삭제
         resumeRepositoryImpl.deleteAllResumeDetails(existingResume);
@@ -61,6 +64,23 @@ public class ResumeService {
 
         log.info("이력서 전체 정보 수정 완료 - ID: {}, 제목: {}, 사용자: {}",
                 resumeId, request.title(), userEmail);
+    }
+
+    /**
+     * 이력서 소프트 삭제
+     */
+    @Transactional
+    public void deleteResume(Long resumeId, String userEmail) {
+        Member member = findMemberByEmail(userEmail);
+
+        // 1. 이력서 조회 및 권한 확인
+        Resume resume = findActiveResumeByIdAndMember(resumeId, member);
+
+        // 2. 상태를 DELETED로 변경
+        resume.updateStatus(ResumeStatus.DELETED);
+
+        log.info("이력서 소프트 삭제 완료 - ID: {}, 제목: {}, 사용자: {}",
+                resumeId, resume.getTitle(), userEmail);
     }
 
     // ======================== Private 메서드 ========================
@@ -78,7 +98,6 @@ public class ResumeService {
                 member
         );
 
-        // 선택적 정보 업데이트
         updateOptionalInfo(resume, request.introduction(), request.githubUrl(),
                 request.blogUrl(), request.notionUrl());
 
@@ -86,13 +105,11 @@ public class ResumeService {
     }
 
     private void updateResumeBasicInfo(Resume resume, ResumeUpdateRequest request) {
-        // 기본 정보 업데이트
         resume.updateTitle(request.title());
         resume.updateType(request.type());
         resume.updateBasicInfo(request.name(), request.email(), request.birthYear(), request.phone());
         resume.updateFieldAndCareerType(request.fieldName(), request.careerType());
 
-        // 선택적 정보 업데이트
         updateOptionalInfo(resume, request.introduction(), request.githubUrl(),
                 request.blogUrl(), request.notionUrl());
     }
@@ -102,15 +119,18 @@ public class ResumeService {
         if (introduction != null && !introduction.trim().isEmpty()) {
             resume.updateIntroduction(introduction);
         } else {
-            resume.updateIntroduction(null); // 기존 소개 삭제
+            resume.updateIntroduction(null);
         }
 
         resume.updateUrls(githubUrl, blogUrl, notionUrl);
     }
 
-    private Resume findResumeByIdAndMember(Long resumeId, Member member) {
-        return resumeRepository.findByIdAndMember(resumeId, member)
-                .orElseThrow(() -> new IllegalArgumentException("이력서를 찾을 수 없거나 접근 권한이 없습니다."));
+    /**
+     * 활성 상태 이력서만 조회 - 커스텀 예외 사용
+     */
+    private Resume findActiveResumeByIdAndMember(Long resumeId, Member member) {
+        return resumeRepository.findByIdAndMemberAndStatus(resumeId, member, ResumeStatus.ACTIVE)
+                .orElseThrow(() -> new ResumeNotFoundException("이력서를 찾을 수 없거나 접근 권한이 없습니다."));
     }
 
     private Member findMemberByEmail(String email) {
