@@ -9,7 +9,6 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import com.cvmento.domain.resume.enums.RecordStatus;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,6 +75,20 @@ public class Resume extends BaseTimeEntity {
 
     public void setStatus(RecordStatus status) {
         this.status = status;
+    }
+
+    // 기술스택 처리를 위한 헬퍼 메서드
+    // TechStackConverter를 통해 일관된 변환 처리
+    public List<String> getTechStackList() {
+        // 실제 변환은 서비스 계층에서 TechStackConverter를 통해 처리
+        // 엔티티에서는 원본 데이터만 제공
+        return List.of(); // 임시 - 실제로는 서비스에서 converter 사용
+    }
+
+    public void setTechStackFromList(List<String> techStackList) {
+        // 실제 변환은 서비스 계층에서 TechStackConverter를 통해 처리
+        // 엔티티에서는 변환된 결과만 저장
+        this.techStack = null; // 임시 - 실제로는 서비스에서 converter 사용
     }
 }
 

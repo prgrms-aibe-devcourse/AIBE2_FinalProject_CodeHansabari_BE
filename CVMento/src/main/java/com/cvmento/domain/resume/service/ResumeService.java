@@ -6,14 +6,19 @@ import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
 import com.cvmento.domain.resume.entity.Resume;
+import com.cvmento.domain.resume.entity.ResumeSection;
 import com.cvmento.domain.resume.enums.RecordStatus;
 import com.cvmento.domain.resume.repository.ResumeRepository;
+import com.cvmento.domain.resume.util.TechStackConverter;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -22,26 +27,46 @@ public class ResumeService {
 
     private final ResumeRepository resumeRepository;
     private final MemberRepository memberRepository;
+    private final TechStackConverter techStackConverter;
 
     @Transactional
     public ResumeResponse createResume(ResumeCreateRequest request, String userEmail) {
         Member member = findMemberByEmail(userEmail);
 
+        // memberInfo에서 자기소개와 기술스택 추출
+        String selfIntroduction = request.memberInfo().introduction();
+        List<String> techStack = request.memberInfo().techStack() != null 
+            ? request.memberInfo().techStack() 
+            : Collections.emptyList();
+        
+        // 기술스택을 JSON으로 변환
+        String techStackJson = techStackConverter.toJson(techStack);
+        
         Resume resume = new Resume(
             request.title(),
             member,
-            request.intro().selfIntroduction(),
-            String.join(",", request.intro().techStack())
+            selfIntroduction,
+            techStackJson
         );
 
         request.sections().forEach(sectionDto -> {
+            // 기존 방식 유지 (하위 호환성)
             String combinedContent = sectionDto.items().stream()
                     .map(item -> String.format("Title: %s, SubTitle: %s, Period: %s - %s, Description: %s",
                             item.title(), item.subTitle(), item.startDate(), item.endDate(), item.description()))
                     .reduce((a, b) -> a + "\n---\n" + b)
                     .orElse("");
 
-            resume.addSection(sectionDto.sectionType(), sectionDto.sectionTitle(), combinedContent);
+            ResumeSection section = new ResumeSection(sectionDto.sectionType(), sectionDto.sectionTitle(), combinedContent, resume);
+            
+            // 새로운 구조화된 items 저장
+            sectionDto.items().forEach(itemDto -> {
+                LocalDate startDate = parseDate(itemDto.startDate());
+                LocalDate endDate = parseDate(itemDto.endDate());
+                section.addItem(itemDto.title(), itemDto.subTitle(), startDate, endDate, itemDto.description());
+            });
+            
+            resume.getSections().add(section);
         });
 
         Resume savedResume = resumeRepository.save(resume);
@@ -68,7 +93,14 @@ public class ResumeService {
         Resume resume = findResumeByIdAndUser(resumeId, userEmail);
 
         resume.updateTitle(request.title());
-        resume.updateIntro(request.intro().selfIntroduction(), String.join(",", request.intro().techStack()));
+        
+        // 기술스택을 JSON으로 변환
+        String techStackJson = techStackConverter.toJson(request.memberInfo().techStack());
+        
+        resume.updateIntro(
+            request.memberInfo().introduction(), 
+            techStackJson != null ? techStackJson : ""
+        );
 
         resume.getSections().clear();
         request.sections().forEach(sectionDto -> {
@@ -104,5 +136,17 @@ public class ResumeService {
         }
         
         return resume;
+    }
+
+    // 날짜 문자열을 LocalDate로 변환하는 헬퍼 메서드
+    private LocalDate parseDate(String dateString) {
+        if (dateString == null || dateString.trim().isEmpty() || "null".equals(dateString)) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        } catch (Exception e) {
+            return null; // 파싱 실패 시 null 반환
+        }
     }
 }

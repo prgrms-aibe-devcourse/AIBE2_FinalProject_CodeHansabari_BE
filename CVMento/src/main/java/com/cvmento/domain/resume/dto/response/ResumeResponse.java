@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.dto.response;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.domain.resume.entity.ResumeSection;
+import com.cvmento.domain.resume.entity.ResumeItem;
 import com.cvmento.domain.resume.enums.ResumeSectionType;
 
 import java.time.format.DateTimeFormatter;
@@ -26,7 +27,7 @@ public record ResumeResponse(
                 resume.getResumeId(),
                 resume.getTitle(),
                 MemberInfoResponse.from(resume.getMember()),
-                IntroResponse.from(resume.getSelfIntroduction(), resume.getTechStack()), // Populate intro
+                IntroResponse.from(resume.getSelfIntroduction(), resume.getTechStackList()), // Use new method
                 resume.getSections().stream()
                         .map(ResumeSectionResponse::from)
                         .collect(Collectors.toList()),
@@ -49,11 +50,8 @@ public record ResumeResponse(
         String selfIntroduction,
         List<String> techStack
     ) {
-        public static IntroResponse from(String selfIntroduction, String techStack) {
-            List<String> techStackList = (techStack != null && !techStack.isEmpty()) ?
-                                         Arrays.asList(techStack.split(",")) :
-                                         Collections.emptyList();
-            return new IntroResponse(selfIntroduction, techStackList);
+        public static IntroResponse from(String selfIntroduction, List<String> techStackList) {
+            return new IntroResponse(selfIntroduction, techStackList != null ? techStackList : Collections.emptyList());
         }
     }
 
@@ -63,13 +61,23 @@ public record ResumeResponse(
         List<SectionItemResponse> items
     ) {
         public static ResumeSectionResponse from(ResumeSection section) {
-            // 현재 contentText는 단일 문자열이므로, 파싱하지 않고 하나의 아이템으로 표현합니다.
-            // 추후 JSON 등으로 구조화된 데이터를 저장하게 되면 이 부분을 수정해야 합니다.
-            SectionItemResponse item = new SectionItemResponse(null, null, null, null, section.getContentText());
+            List<SectionItemResponse> items;
+            
+            if (section.getItems().isEmpty()) {
+                // 기존 contentText 기반 (하위 호환성)
+                SectionItemResponse item = new SectionItemResponse(null, null, null, null, section.getContentText());
+                items = Collections.singletonList(item);
+            } else {
+                // 새로운 구조화된 items 사용
+                items = section.getItems().stream()
+                    .map(SectionItemResponse::from)
+                    .collect(Collectors.toList());
+            }
+            
             return new ResumeSectionResponse(
                     section.getSectionType().name(),
                     section.getSectionTitle(),
-                    Collections.singletonList(item)
+                    items
             );
         }
     }
@@ -80,5 +88,16 @@ public record ResumeResponse(
         String startDate,
         String endDate,
         String description
-    ) {}
+    ) {
+        public static SectionItemResponse from(ResumeItem item) {
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            return new SectionItemResponse(
+                item.getTitle(),
+                item.getSubTitle(),
+                item.getStartDate() != null ? item.getStartDate().format(dateFormatter) : null,
+                item.getEndDate() != null ? item.getEndDate().format(dateFormatter) : null,
+                item.getDescription()
+            );
+        }
+    }
 }

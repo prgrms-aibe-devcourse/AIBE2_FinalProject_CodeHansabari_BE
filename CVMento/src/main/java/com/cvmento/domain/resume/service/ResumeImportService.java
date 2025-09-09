@@ -5,6 +5,7 @@ import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
+import com.cvmento.domain.resume.exception.ResumeFileException;
 import com.cvmento.global.exception.customException.ResumeAiException;
 import com.cvmento.global.aws.LambdaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -143,6 +144,11 @@ public class ResumeImportService {
     private ResumeResponse createResumeDirectly(MultipartFile file, String userEmail) {
         log.info("Direct Vision LLM 방식으로 이력서 생성 시작. 사용자: {}", userEmail);
         
+        // PDF와 이미지 모두 처리
+        log.info("Direct Vision LLM 방식으로 {} 파일 처리 중", file.getContentType());
+        
+        String extractedJson = null; // 변수를 try 블록 바깥에 선언
+        
         try {
             // === 1단계: 파일을 Base64로 변환 ===
             // Vision LLM이 이미지를 처리할 수 있도록 Base64 인코딩
@@ -161,7 +167,7 @@ public class ResumeImportService {
                 file.getContentType()     // 파일 MIME 타입 (image/png, application/pdf 등)
             );
             
-            String extractedJson = llmResponse.response();
+            extractedJson = llmResponse.response();
 
             // LLM 응답 검증
             if (extractedJson == null || extractedJson.trim().isEmpty()) {
@@ -169,13 +175,21 @@ public class ResumeImportService {
                 throw new ResumeAiException("AI가 이력서 내용을 추출하지 못했습니다. 다른 파일로 시도해주세요.");
             }
             log.info("LLM analysis complete. Received JSON content.");
+            log.debug("LLM 응답 JSON: {}", extractedJson); // JSON 내용 로깅
 
             // === 4단계: JSON을 이력서 생성 요청 객체로 변환 및 생성 ===
             ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
+            
+            // 변환된 객체 검증 로깅
+            log.debug("Parsed ResumeCreateRequest - title: {}, memberInfo: {}, sections count: {}", 
+                createRequest.title(), 
+                createRequest.memberInfo() != null ? "present" : "null", 
+                createRequest.sections() != null ? createRequest.sections().size() : "null");
             return resumeService.createResume(createRequest, userEmail);
 
         } catch (JsonProcessingException e) {
             log.error("Failed to parse JSON from LLM response for user: {}. Error: {}", userEmail, e.getMessage(), e);
+            log.error("Problematic JSON content: {}", extractedJson); // 문제가 된 JSON 로깅
             throw new ResumeAiException("AI 응답을 처리하는 중 오류가 발생했습니다. 응답 형식이 올바르지 않을 수 있습니다.", e);
         } catch (IOException e) {
             log.error("Failed to read file for user: {}", userEmail, e);
@@ -194,20 +208,20 @@ public class ResumeImportService {
     private void validateFile(MultipartFile file) {
         // === 1. 파일 존재 여부 검증 ===
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("Uploaded file is empty.");
+            throw new ResumeFileException("업로드된 파일이 비어있습니다.");
         }
         
         // === 2. 파일 형식 검증 ===
         String contentType = file.getContentType();
         if (contentType == null || 
             (!contentType.equals("application/pdf") && !contentType.startsWith("image/"))) {
-            throw new IllegalArgumentException("Invalid file type. Only PDF, PNG, JPG files are allowed.");
+            throw new ResumeFileException("지원하지 않는 파일 형식입니다. PDF, PNG, JPG 파일만 업로드 가능합니다.");
         }
         
         // === 3. 파일 크기 검증 ===
         long maxSize = 5 * 1024 * 1024; // 5MB 제한
         if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException("File size exceeds the limit of 5MB.");
+            throw new ResumeFileException("파일 크기가 5MB를 초과합니다.");
         }
     }
 }

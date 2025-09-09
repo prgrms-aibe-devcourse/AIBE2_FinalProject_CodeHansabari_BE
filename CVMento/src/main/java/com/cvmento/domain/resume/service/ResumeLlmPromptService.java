@@ -9,6 +9,9 @@ import java.util.List;
 @Service
 public class ResumeLlmPromptService {
 
+    /**
+     * AI 제안용 프롬프트 생성
+     */
     public String buildSuggestionPrompt(String experienceContent) {
         return buildPromptStructure() +
                 buildExperienceSection(experienceContent) +
@@ -16,54 +19,55 @@ public class ResumeLlmPromptService {
                 buildGuidelines();
     }
 
+    /**
+     * 이미지 기반 이력서 import 프롬프트 - 새로운 필드 구조 반영
+     */
     public String buildResumeImportPrompt() {
         return """
             당신은 전문 데이터 추출 전문가입니다. 제공된 이력서 이미지를 분석하고 내용을 구조화된 JSON 형식으로 추출하세요.
-            출력은 `ResumeCreateRequest` DTO의 구조를 엄격하게 따르는 유효한 JSON 객체여야 합니다.
-            
-            ⚠️ **중요**: 각 item의 title, subTitle, startDate, endDate, description은 반드시 별도로 추출하세요. 
-            절대로 "Title: 회사명, SubTitle: 직책, Period: 날짜" 같은 형식으로 description에 모든 정보를 몰아넣지 마세요.
+            출력은 ResumeCreateRequest DTO의 구조를 엄격하게 따르는 유효한 JSON 객체여야 합니다.
 
             ## JSON 출력 형식:
-            JSON은 이 구조와 정확히 일치해야 합니다. 추가 필드나 설명을 추가하지 마세요.
-
+            
             ```json
             {
-              "title": "추출된 이력서 제목 (예: '홍길동의 이력서')",
+              "title": "홍길동의 이력서",
               "memberInfo": {
-                "name": "전체 이름",
-                "email": "email@example.com",
+                "name": "홍길동",
+                "age": "27",
+                "careerType": "신입",
+                "email": "hong@example.com",
                 "phoneNumber": "010-1234-5678",
-                "blogUrl": "https://example.blog"
-              },
-              "intro": {
-                "selfIntroduction": "여기에 자기소개 내용을 입력하세요.",
-                "techStack": ["Java", "Spring Boot", "AWS"]
+                "blogUrl": "https://blog.honggildong.dev",
+                "githubUrl": "https://github.com/honggildong",
+                "notionUrl": "https://www.notion.so/honggildong",
+                "introduction": "안녕하세요! 신입 백엔드 개발자 홍길동입니다. 컴퓨터공학을 전공하며 웹 개발에 관심을 가지게 되었고, 특히 서버 사이드 개발과 데이터베이스 설계에 열정을 가지고 있습니다.",
+                "techStack": ["Java", "Spring Boot", "MySQL", "Docker"]
               },
               "sections": [
-                {
-                  "sectionType": "WORK_EXPERIENCE",
-                  "sectionTitle": "경력",
-                  "items": [
-                    {
-                      "title": "네이버",
-                      "subTitle": "백엔드 개발자",
-                      "startDate": "2022-03-01",
-                      "endDate": "2024-02-28",
-                      "description": "Spring Boot 기반 REST API 개발 및 데이터베이스 최적화를 담당했습니다. 시스템 성능을 20% 개선하고 CI/CD 파이프라인을 구축했습니다."
-                    }
-                  ]
-                },
                 {
                   "sectionType": "EDUCATION",
                   "sectionTitle": "학력",
                   "items": [
                     {
-                      "title": "서울대학교",
-                      "subTitle": "컴퓨터공학과 학사",
+                      "title": "ABC대학교",
+                      "subTitle": "컴퓨터공학과",
                       "startDate": "2018-03-01",
                       "endDate": "2022-02-28",
-                      "description": "전체 학점 4.2/4.5, 졸업논문: 딥러닝 기반 자연어 처리 연구"
+                      "description": "학사 졸업, 전체 학점 4.2/4.5"
+                    }
+                  ]
+                },
+                {
+                  "sectionType": "WORK_EXPERIENCE",
+                  "sectionTitle": "경력",
+                  "items": [
+                    {
+                      "title": "XYZ소프트웨어",
+                      "subTitle": "백엔드 개발 인턴",
+                      "startDate": "2023-01-01",
+                      "endDate": "2023-12-31",
+                      "description": "Spring Boot를 이용한 RESTful API 개발 및 배포 참여"
                     }
                   ]
                 }
@@ -72,49 +76,25 @@ public class ResumeLlmPromptService {
             ```
 
             ### 중요 지침:
-            1.  **모든 섹션 추출**: "경력", "학력", "프로젝트", "기술", "자격증" 등 모든 관련 섹션을 식별하고 추출하세요.
-            2.  **올바른 `sectionType` 사용**: 각 섹션에 대해 다음 목록에서 가장 적절한 `sectionType`을 사용하세요: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
-            3.  **개별 필드 분리 (중요!)**: 각 item의 필드는 반드시 개별적으로 분리하여 추출하세요:
-               - `title`: 기관명, 회사명, 프로젝트명만 (예: "ABC대학교", "삼성전자", "쇼핑몰 프로젝트"). 정보가 없으면 "-"
-               - `subTitle`: 세부사항만 (예: "컴퓨터공학과", "소프트웨어 엔지니어", "React 웹 애플리케이션"). 정보가 없으면 "-"  
-               - `startDate`/`endDate`: 날짜만 (YYYY-MM-DD 형식). 정보가 없으면 null
-               - `description`: 구체적인 설명, 성과, 업무 내용만. 정보가 없으면 "-"
-               - **절대 금지**: 모든 정보를 description에 몰아넣기. 각 필드는 고유한 정보만 포함해야 함
-            4.  **날짜 형식**: 모든 날짜(`startDate`, `endDate`)는 `YYYY-MM-DD` 형식이어야 합니다. 연도와 월은 있지만 일은 없는 경우, 해당 월의 첫째 날을 사용하세요(예: '2023-05-01'). 날짜가 없는 경우 `null`을 사용하세요.
-            5.  **제목**: "[이름]의 이력서"와 같이 이력서에 적합한 제목을 생성하세요.
-            6.  **유효한 JSON**: 최종 출력은 ```json과 같은 주변 텍스트, 설명 또는 마크다운 서식 없이 오직 JSON 객체여야 합니다.
-            
-            ## ❌ 잘못된 예시 (절대 금지):
-            ```json
-            {
-              "title": null,
-              "subTitle": null, 
-              "startDate": null,
-              "endDate": null,
-              "description": "Title: ABC대학교, SubTitle: 컴퓨터공학과, Period: 2018-03 - 2022-02, Description: 학사졸업"
-            }
-            ```
-            
-            ## ✅ 올바른 예시 (반드시 이렇게):
-            ```json
-            {
-              "title": "ABC대학교",
-              "subTitle": "컴퓨터공학과", 
-              "startDate": "2018-03-01",
-              "endDate": "2022-02-28",
-              "description": "학사 졸업"
-            }
-            ```
+            1. **memberInfo 필드**: 모든 개인정보는 memberInfo 안에 포함
+               - name, age, careerType, email, phoneNumber, blogUrl, githubUrl, notionUrl, introduction, techStack
+            2. **careerType**: "신입", "경력", "인턴" 등으로 분류
+            3. **introduction**: 자기소개 내용 (기존의 selfIntroduction)
+            4. **techStack**: 기술 스택을 배열로 추출
+            5. **섹션 타입**: EDUCATION, WORK_EXPERIENCE, PROJECT, SKILL, CERTIFICATE, LANGUAGE, AWARD 중 선택
+            6. **날짜 형식**: YYYY-MM-DD 형식, 정보가 없으면 null
+            7. **필드 분리**: title(기관명), subTitle(직책/전공), description(상세 내용)은 각각 분리
+            8. **유효한 JSON**: 마크다운이나 추가 설명 없이 순수 JSON만 출력
             """;
     }
 
+    /**
+     * OCR 텍스트 기반 이력서 import 프롬프트 - 새로운 필드 구조 반영
+     */
     public String buildResumeTextImportPrompt(String ocrText) {
         return """
             당신은 전문 데이터 추출 전문가입니다. OCR로 추출된 다음 이력서 텍스트를 분석하고 내용을 구조화된 JSON 형식으로 변환하세요.
-            출력은 `ResumeCreateRequest` DTO의 구조를 엄격하게 따르는 유효한 JSON 객체여야 합니다.
-            
-            ⚠️ **중요**: 각 item의 title, subTitle, startDate, endDate, description은 반드시 별도로 추출하세요. 
-            절대로 "Title: 회사명, SubTitle: 직책, Period: 날짜" 같은 형식으로 description에 모든 정보를 몰아넣지 마세요.
+            출력은 ResumeCreateRequest DTO의 구조를 엄격하게 따르는 유효한 JSON 객체여야 합니다.
 
             ## 분석할 OCR 추출 텍스트:
             ```text
@@ -122,45 +102,33 @@ public class ResumeLlmPromptService {
             ```
 
             ## JSON 출력 형식:
-            JSON은 이 구조와 정확히 일치해야 합니다. 추가 필드나 설명을 추가하지 마세요.
-
+            
             ```json
             {
-              "title": "추출된 이력서 제목 (예: '홍길동의 이력서')",
+              "title": "홍길동의 이력서",
               "memberInfo": {
-                "name": "전체 이름",
-                "email": "email@example.com",
+                "name": "홍길동",
+                "age": "27",
+                "careerType": "신입",
+                "email": "hong@example.com",
                 "phoneNumber": "010-1234-5678",
-                "blogUrl": "https://example.blog"
-              },
-              "intro": {
-                "selfIntroduction": "여기에 자기소개 내용을 입력하세요.",
-                "techStack": ["Java", "Spring Boot", "AWS"]
+                "blogUrl": "https://blog.honggildong.dev",
+                "githubUrl": "https://github.com/honggildong",
+                "notionUrl": "https://www.notion.so/honggildong",
+                "introduction": "안녕하세요! 신입 백엔드 개발자 홍길동입니다. 컴퓨터공학을 전공하며 웹 개발에 관심을 가지게 되었고, 특히 서버 사이드 개발과 데이터베이스 설계에 열정을 가지고 있습니다.",
+                "techStack": ["Java", "Spring Boot", "MySQL", "Docker"]
               },
               "sections": [
-                {
-                  "sectionType": "WORK_EXPERIENCE",
-                  "sectionTitle": "경력",
-                  "items": [
-                    {
-                      "title": "네이버",
-                      "subTitle": "백엔드 개발자",
-                      "startDate": "2022-03-01",
-                      "endDate": "2024-02-28",
-                      "description": "Spring Boot 기반 REST API 개발 및 데이터베이스 최적화를 담당했습니다. 시스템 성능을 20% 개선하고 CI/CD 파이프라인을 구축했습니다."
-                    }
-                  ]
-                },
                 {
                   "sectionType": "EDUCATION",
                   "sectionTitle": "학력",
                   "items": [
                     {
-                      "title": "서울대학교",
-                      "subTitle": "컴퓨터공학과 학사",
+                      "title": "ABC대학교",
+                      "subTitle": "컴퓨터공학과",
                       "startDate": "2018-03-01",
                       "endDate": "2022-02-28",
-                      "description": "전체 학점 4.2/4.5, 졸업논문: 딥러닝 기반 자연어 처리 연구"
+                      "description": "학사 졸업, 전체 학점 4.2/4.5"
                     }
                   ]
                 }
@@ -169,41 +137,25 @@ public class ResumeLlmPromptService {
             ```
 
             ### 중요 지침:
-            1.  **모든 섹션 추출**: 제공된 텍스트에서 "경력", "학력", "프로젝트", "기술", "자격증" 등 모든 관련 섹션을 식별하고 추출하세요.
-            2.  **올바른 `sectionType` 사용**: 각 섹션에 대해 다음 목록에서 가장 적절한 `sectionType`을 사용하세요: `EDUCATION`, `WORK_EXPERIENCE`, `PROJECT`, `SKILL`, `CERTIFICATE`, `LANGUAGE`, `AWARD`.
-            3.  **개별 필드 분리 (중요!)**: 각 item의 필드는 반드시 개별적으로 분리하여 추출하세요:
-               - `title`: 기관명, 회사명, 프로젝트명만 (예: "ABC대학교", "삼성전자", "쇼핑몰 프로젝트"). 정보가 없으면 "-"
-               - `subTitle`: 세부사항만 (예: "컴퓨터공학과", "소프트웨어 엔지니어", "React 웹 애플리케이션"). 정보가 없으면 "-"  
-               - `startDate`/`endDate`: 날짜만 (YYYY-MM-DD 형식). 정보가 없으면 null
-               - `description`: 구체적인 설명, 성과, 업무 내용만. 정보가 없으면 "-"
-               - **절대 금지**: 모든 정보를 description에 몰아넣기. 각 필드는 고유한 정보만 포함해야 함
-            4.  **날짜 형식**: 모든 날짜(`startDate`, `endDate`)는 `YYYY-MM-DD` 형식이어야 합니다. 연도와 월은 있지만 일은 없는 경우, 해당 월의 첫째 날을 사용하세요(예: '2023-05-01'). 날짜가 없는 경우 `null`을 사용하세요.
-            5.  **제목**: "[이름]의 이력서"와 같이 이력서에 적합한 제목을 생성하세요.
-            6.  **유효한 JSON**: 최종 출력은 ```json과 같은 주변 텍스트, 설명 또는 마크다운 서식 없이 오직 JSON 객체여야 합니다.
-            
-            ## ❌ 잘못된 예시 (절대 금지):
-            ```json
-            {
-              "title": null,
-              "subTitle": null, 
-              "startDate": null,
-              "endDate": null,
-              "description": "Title: ABC대학교, SubTitle: 컴퓨터공학과, Period: 2018-03 - 2022-02, Description: 학사졸업"
-            }
-            ```
-            
-            ## ✅ 올바른 예시 (반드시 이렇게):
-            ```json
-            {
-              "title": "ABC대학교",
-              "subTitle": "컴퓨터공학과", 
-              "startDate": "2018-03-01",
-              "endDate": "2022-02-28",
-              "description": "학사 졸업"
-            }
-            ```
+            1. **memberInfo 통합**: 모든 개인정보는 memberInfo 안에 포함
+               - name, age, careerType, email, phoneNumber, blogUrl, githubUrl, notionUrl, introduction, techStack
+            2. **필드 추출 규칙**:
+               - name: 이름 추출
+               - age: 나이 또는 생년월일에서 추정
+               - careerType: "신입", "경력", "인턴" 등 경력 수준
+               - email: 이메일 주소
+               - phoneNumber: 전화번호
+               - blogUrl, githubUrl, notionUrl: 각각의 URL 추출
+               - introduction: 자기소개 내용
+               - techStack: 기술 스택을 배열로 추출
+            3. **섹션 타입**: EDUCATION, WORK_EXPERIENCE, PROJECT, SKILL, CERTIFICATE, LANGUAGE, AWARD 중 선택
+            4. **날짜 형식**: YYYY-MM-DD 형식, 정보가 없으면 null
+            5. **필드 분리**: title(기관명), subTitle(직책/전공), description(상세 내용)은 각각 분리
+            6. **유효한 JSON**: 마크다운이나 추가 설명 없이 순수 JSON만 출력
             """.formatted(ocrText);
     }
+
+    // ================ Private Helper Methods ================
 
     private String buildPromptStructure() {
         return """
