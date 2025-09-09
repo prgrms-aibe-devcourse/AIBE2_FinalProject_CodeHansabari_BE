@@ -131,8 +131,8 @@ class UsageTokenServiceRedisIntegrationTest {
             log.info("초기 토큰 설정 완료: {}개", UsageType.MAX_TOKENS);
 
             // when
-            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.ESSAY_REVIEW);
-            log.info("토큰 소모 실행: ESSAY_REVIEW (5토큰)");
+            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.COVERLETTER_REVIEW);
+            log.info("토큰 소모 실행: COVERLETTER_REVIEW (5토큰)");
 
             // then
             Integer remainingTokens = (Integer) redisTemplate.opsForValue().get(tokenKey);
@@ -234,7 +234,7 @@ class UsageTokenServiceRedisIntegrationTest {
             log.info("2명 사용자 토큰 초기화 완료");
 
             // when
-            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.ESSAY_REVIEW); // 5토큰
+            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.COVERLETTER_REVIEW); // 5토큰
             usageTokenService.tryConsumeTokens(user2.getMemberId(), UsageType.INTERVIEW_AUTO); // 3토큰
 
             // then
@@ -272,7 +272,7 @@ class UsageTokenServiceRedisIntegrationTest {
             usageTokenService.initializeUserTokens(user2.getMemberId());
 
             usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.INTERVIEW_AUTO); // 3토큰 소모 -> 37
-            usageTokenService.tryConsumeTokens(user2.getMemberId(), UsageType.ESSAY_REVIEW); // 5토큰 소모 -> 35
+            usageTokenService.tryConsumeTokens(user2.getMemberId(), UsageType.COVERLETTER_REVIEW); // 5토큰 소모 -> 35
 
             log.info("초기 설정 완료: user1=37토큰, user2=35토큰");
 
@@ -331,7 +331,7 @@ class UsageTokenServiceRedisIntegrationTest {
 
             // given
             String tokenKey = UsageType.getTokenKey(testMember.getMemberId());
-            UsageType usageType = UsageType.ESSAY_REVIEW; // 5토큰 필요
+            UsageType usageType = UsageType.COVERLETTER_REVIEW; // 5토큰 필요
             redisTemplate.opsForValue().set(tokenKey, usageType.getCost()); // 정확히 5토큰 설정
             log.info("토큰을 정확히 {}개로 설정", usageType.getCost());
 
@@ -364,7 +364,7 @@ class UsageTokenServiceRedisIntegrationTest {
             log.info("1단계 - 신규 가입: {}토큰 초기화", step1.remainingTokens());
 
             // 2. 여러 기능 사용
-            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.ESSAY_REVIEW); // 5토큰
+            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.COVERLETTER_REVIEW); // 5토큰
             usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.INTERVIEW_AUTO); // 3토큰
             usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.INTERVIEW_CUSTOM); // 1토큰
 
@@ -379,7 +379,7 @@ class UsageTokenServiceRedisIntegrationTest {
             log.info("3단계 - 토큰 충전: 31 + 10 = 41 -> {}토큰 (최대값 제한)", step3.remainingTokens());
 
             // 4. 다시 사용
-            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.ESSAY_REVIEW); // 5토큰
+            usageTokenService.tryConsumeTokens(testMember.getMemberId(), UsageType.COVERLETTER_REVIEW); // 5토큰
             TokenUsageInfo step4 = usageTokenService.getTokenUsage(TEST_EMAIL);
             assertThat(step4.remainingTokens()).isEqualTo(35);
             log.info("4단계 - 추가 사용: 40 -> {}토큰 (5토큰 소모)", step4.remainingTokens());

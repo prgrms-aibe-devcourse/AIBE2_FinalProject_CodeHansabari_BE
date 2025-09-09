@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  */
 @Getter
 public enum UsageType {
-    ESSAY_REVIEW("AI 자소서 첨삭", 5),           // 5토큰 소모
+    COVERLETTER_REVIEW("AI 자소서 첨삭", 5),           // 5토큰 소모
     INTERVIEW_AUTO("모의 면접 자동질문생성", 3),    // 3토큰 소모
     INTERVIEW_CUSTOM("커스텀 프롬프트 면접 답변생성", 1);       // 1토큰 소모
 

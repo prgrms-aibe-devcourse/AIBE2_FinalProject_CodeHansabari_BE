@@ -5,6 +5,8 @@ import com.cvmento.domain.coverLetter.dto.response.CoverLetterAiResponse;
 import com.cvmento.domain.coverLetter.service.CoverLetterAiService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
+import com.cvmento.global.usage.annotation.RequireTokens;
+import com.cvmento.global.usage.enums.UsageType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -104,6 +106,7 @@ public class CoverLetterAiController {
             }
     )
     @PostMapping("/ai-improve")
+    @RequireTokens(UsageType.COVERLETTER_REVIEW)
     public ResponseEntity<CommonResponse<CoverLetterAiResponse>> improveCoverLetter(
             @Valid @RequestBody CoverLetterAiRequest request,
             @AuthenticationPrincipal UserDetails userDetails

@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*;
  * 3. 토큰 사용량 조회 - 이메일 기반 Member 조회 후 토큰 정보 반환
  * 4. 토큰 초기화 - 사용자별 최대값 설정
  * 5. 전체 사용자 충전 - 배치 충전 로직, 최대값 제한
- * 6. 다양한 UsageType별 소모량 - ESSAY_REVIEW(5), INTERVIEW_AUTO(3), INTERVIEW_CUSTOM(1)
+ * 6. 다양한 UsageType별 소모량 - COVERLETTER_REVIEW(5), INTERVIEW_AUTO(3), INTERVIEW_CUSTOM(1)
  * 7. 예외 상황 - 토큰 부족 시 UsageLimitExceededException, Redis 연결 실패 시 예외 전파
  *
  * 특징:
@@ -101,7 +101,7 @@ class UsageTokenServiceTest {
             // when & then
             log.info("메서드 실행: tryConsumeTokens");
             assertThatNoException()
-                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW));
+                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW));
 
             verify(valueOperations).decrement(tokenKey, 5);
             log.info("✅ 토큰 차감 확인: decrement({}, 5) 호출됨", tokenKey);
@@ -121,7 +121,7 @@ class UsageTokenServiceTest {
             // when & then
             log.info("메서드 실행: tryConsumeTokens (예외 예상)");
             assertThatThrownBy(() ->
-                    usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW))
+                    usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW))
                     .isInstanceOf(UsageLimitExceededException.class);
 
             verify(valueOperations, never()).decrement(any(), anyInt());
@@ -144,7 +144,7 @@ class UsageTokenServiceTest {
             // when & then
             log.info("메서드 실행: tryConsumeTokens (자동 초기화 예상)");
             assertThatNoException()
-                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW));
+                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW));
 
             verify(valueOperations).set(tokenKey, UsageType.MAX_TOKENS); // 초기화 확인
             verify(valueOperations).decrement(tokenKey, 5); // 소모 확인
@@ -167,7 +167,7 @@ class UsageTokenServiceTest {
             // when & then
             log.info("메서드 실행: tryConsumeTokens");
             assertThatNoException()
-                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW));
+                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW));
 
             verify(valueOperations).decrement(tokenKey, 5);
             log.info("✅ 정확한 토큰 소모 확인: 5토큰 -> 0토큰");
@@ -320,19 +320,19 @@ class UsageTokenServiceTest {
 
         @Test
         @DisplayName("자소서 첨삭(5토큰) 소모 테스트")
-        void consumeTokens_essayReview() {
+        void consumeTokens_coverLetterReview() {
             log.info("=== 테스트 시작: 자소서 첨삭(5토큰) 소모 ===");
 
             // given
             String tokenKey = UsageType.getTokenKey(TEST_MEMBER_ID);
             when(valueOperations.get(tokenKey)).thenReturn(10);
             when(valueOperations.decrement(tokenKey, 5)).thenReturn(5L);
-            log.info("Mock 설정: ESSAY_REVIEW, 현재 토큰=10, 소모=5");
+            log.info("Mock 설정: COVERLETTER_REVIEW, 현재 토큰=10, 소모=5");
 
             // when & then
-            log.info("메서드 실행: tryConsumeTokens(ESSAY_REVIEW)");
+            log.info("메서드 실행: tryConsumeTokens(COVERLETTER_REVIEW)");
             assertThatNoException()
-                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW));
+                    .isThrownBy(() -> usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW));
 
             verify(valueOperations).decrement(tokenKey, 5);
             log.info("✅ 자소서 첨삭 토큰 소모 확인: 5토큰 차감");
@@ -399,7 +399,7 @@ class UsageTokenServiceTest {
             // when & then
             log.info("메서드 실행: tryConsumeTokens (예외 정보 검증)");
             assertThatThrownBy(() ->
-                    usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW)) // 5토큰 필요
+                    usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW)) // 5토큰 필요
                     .isInstanceOf(UsageLimitExceededException.class)
                     .satisfies(ex -> {
                         log.info("발생한 예외: {}, 메시지: {}",
@@ -422,7 +422,7 @@ class UsageTokenServiceTest {
             // when & then
             log.info("메서드 실행: tryConsumeTokens (Redis 예외 전파 검증)");
             assertThatThrownBy(() ->
-                    usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.ESSAY_REVIEW))
+                    usageTokenService.tryConsumeTokens(TEST_MEMBER_ID, UsageType.COVERLETTER_REVIEW))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("Redis connection failed");
             log.info("✅ Redis 연결 실패 예외 전파 확인");
