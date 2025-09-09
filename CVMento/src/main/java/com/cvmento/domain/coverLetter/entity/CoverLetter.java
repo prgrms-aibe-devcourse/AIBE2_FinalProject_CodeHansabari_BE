@@ -63,4 +63,12 @@ public class CoverLetter extends BaseTimeEntity {
         }
         return experienceYears + "년";
     }
+
+    // 자소서 정보 업데이트 메서드
+    public void updateCoverLetter(String title, String content, String jobField, Integer experienceYears) {
+        this.title = title;
+        this.content = content;
+        this.jobField = jobField;
+        this.experienceYears = experienceYears;
+    }
 }

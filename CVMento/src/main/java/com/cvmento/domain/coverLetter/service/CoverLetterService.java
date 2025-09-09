@@ -1,6 +1,7 @@
 package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterSaveRequest;
+import com.cvmento.domain.coverLetter.dto.request.CoverLetterUpdateRequest;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterDetailResponse;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterListResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
@@ -51,6 +52,28 @@ public class CoverLetterService {
         String logType = request.isAiImproved() ? "AI첨삭" : "원본";
         log.info("{} 자소서 저장 완료 - ID: {}, 사용자: {}",
                 logType, savedCoverLetter.getCoverLetterId(), userEmail);
+    }
+
+    /**
+     * 자소서 수정
+     */
+    @Transactional
+    public void updateCoverLetter(Long coverLetterId, CoverLetterUpdateRequest request, String userEmail) {
+        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+
+        // [수정본] 접두사 추가
+        String finalTitle = "[수정본] " + request.title();
+
+        // 엔티티 업데이트
+        coverLetter.updateCoverLetter(
+                finalTitle,
+                request.content(),
+                request.jobField(),
+                request.experienceYears()
+        );
+        coverLetterRepository.save(coverLetter);
+
+        log.info("자소서 수정 완료 - ID: {}, 사용자: {}", coverLetterId, userEmail);
     }
 
     /**
