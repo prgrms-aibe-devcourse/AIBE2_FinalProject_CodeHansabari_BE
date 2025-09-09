@@ -2,8 +2,6 @@ package com.cvmento.domain.resume.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,22 +10,18 @@ import java.util.List;
 public record CareerSaveRequest(
 
         @Schema(description = "시작일", example = "2022-01-01")
-        @NotNull(message = "시작일은 필수입니다.")
         LocalDate startDate,
 
         @Schema(description = "종료일", example = "2023-12-31")
-        @NotNull(message = "종료일은 필수입니다.")
         LocalDate endDate,
 
         @Schema(description = "회사명", example = "네이버")
-        @NotBlank(message = "회사명은 필수입니다.")
         String companyName,
 
         @Schema(description = "회사 소개", example = "대한민국 최대 IT 기업")
         String companyDescription,
 
         @Schema(description = "부서명/직책", example = "개발팀/주니어 개발자")
-        @NotBlank(message = "부서명/직책은 필수입니다.")
         String departmentPosition,
 
         @Schema(description = "주요 업무 및 성과", example = "REST API 개발 및 성능 최적화")

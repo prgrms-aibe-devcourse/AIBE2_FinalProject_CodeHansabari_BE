@@ -15,7 +15,6 @@ import static com.cvmento.domain.resume.entity.QCustomLink.customLink;
 import static com.cvmento.domain.resume.entity.QEducation.education;
 import static com.cvmento.domain.resume.entity.QProject.project;
 import static com.cvmento.domain.resume.entity.QProjectTechStack.projectTechStack;
-import static com.cvmento.domain.resume.entity.QResume.resume;
 import static com.cvmento.domain.resume.entity.QResumeTechStack.resumeTechStack;
 import static com.cvmento.domain.resume.entity.QTraining.training;
 import static com.cvmento.domain.resume.entity.QTrainingTechStack.trainingTechStack;
@@ -32,7 +31,6 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
 
     @Override
     public void saveResumeDetails(ResumeSaveRequest request, Resume resume) {
-        // 각 영역별로 배치 저장
         saveEducations(request.educations(), resume);
         saveResumeTechStacks(request.techStacks(), resume);
         saveCustomLinks(request.customLinks(), resume);
@@ -41,7 +39,6 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
         saveTrainings(request.trainings(), resume);
         saveAdditionalInfos(request.additionalInfos(), resume);
 
-        // 변경사항 flush
         entityManager.flush();
         entityManager.clear();
 
@@ -75,20 +72,32 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private void saveEducations(List<EducationSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<Education> educations = requests.stream()
+        List<EducationSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidEducation)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<Education> educations = validRequests.stream()
                 .map(req -> Education.createEducation(
                         resume, req.schoolName(), req.major(), req.degreeLevel(),
                         req.personalGpa(), req.totalGpa(), req.graduationDate()))
                 .toList();
 
         educations.forEach(entityManager::persist);
-        log.debug("학력 정보 {} 건 저장", educations.size());
+        log.debug("학력 정보 {} 건 저장 (검증된 {} 건 중)", educations.size(), validRequests.size());
     }
 
     private void saveResumeTechStacks(List<ResumeTechStackSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<ResumeTechStack> resumeTechStacks = requests.stream()
+        List<ResumeTechStackSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidResumeTechStack)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<ResumeTechStack> resumeTechStacks = validRequests.stream()
                 .map(req -> {
                     TechStack techStack = findTechStackById(req.techStackId());
                     return ResumeTechStack.createResumeTechStack(resume, techStack, req.proficiencyLevel());
@@ -102,7 +111,13 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private void saveCustomLinks(List<CustomLinkSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<CustomLink> customLinks = requests.stream()
+        List<CustomLinkSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidCustomLink)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<CustomLink> customLinks = validRequests.stream()
                 .map(req -> CustomLink.createCustomLink(resume, req.name(), req.url()))
                 .toList();
 
@@ -113,24 +128,35 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private void saveCareers(List<CareerSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        for (CareerSaveRequest req : requests) {
+        List<CareerSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidCareer)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        for (CareerSaveRequest req : validRequests) {
             Career career = Career.createCareer(
                     resume, req.startDate(), req.endDate(), req.companyName(),
                     req.companyDescription(), req.departmentPosition(), req.mainTasks());
 
             entityManager.persist(career);
-            entityManager.flush(); // Career ID 생성을 위해
+            entityManager.flush();
 
-            // 경력 기술스택 저장
             saveCareerTechStacks(req.techStacks(), career);
         }
-        log.debug("경력 정보 {} 건 저장", requests.size());
+        log.debug("경력 정보 {} 건 저장", validRequests.size());
     }
 
     private void saveCareerTechStacks(List<CareerTechStackSaveRequest> requests, Career career) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<CareerTechStack> careerTechStacks = requests.stream()
+        List<CareerTechStackSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidCareerTechStack)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<CareerTechStack> careerTechStacks = validRequests.stream()
                 .map(req -> {
                     TechStack techStack = findTechStackById(req.techStackId());
                     return CareerTechStack.createCareerTechStack(career, techStack);
@@ -143,25 +169,36 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private void saveProjects(List<ProjectSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        for (ProjectSaveRequest req : requests) {
+        List<ProjectSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidProject)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        for (ProjectSaveRequest req : validRequests) {
             Project project = Project.createProject(
                     resume, null, req.startDate(), req.endDate(), req.name(),
                     req.description(), req.detailedDescription(), req.repositoryUrl(),
                     req.deployUrl(), req.projectType());
 
             entityManager.persist(project);
-            entityManager.flush(); // Project ID 생성을 위해
+            entityManager.flush();
 
-            // 프로젝트 기술스택 저장
             saveProjectTechStacks(req.techStacks(), project);
         }
-        log.debug("프로젝트 정보 {} 건 저장", requests.size());
+        log.debug("프로젝트 정보 {} 건 저장", validRequests.size());
     }
 
     private void saveProjectTechStacks(List<ProjectTechStackSaveRequest> requests, Project project) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<ProjectTechStack> projectTechStacks = requests.stream()
+        List<ProjectTechStackSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidProjectTechStack)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<ProjectTechStack> projectTechStacks = validRequests.stream()
                 .map(req -> {
                     TechStack techStack = findTechStackById(req.techStackId());
                     return ProjectTechStack.createProjectTechStack(project, techStack, req.usageType());
@@ -174,24 +211,35 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private void saveTrainings(List<TrainingSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        for (TrainingSaveRequest req : requests) {
+        List<TrainingSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidTraining)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        for (TrainingSaveRequest req : validRequests) {
             Training training = Training.createTraining(
                     resume, req.startDate(), req.endDate(), req.courseName(),
                     req.institutionName(), req.detailedContent());
 
             entityManager.persist(training);
-            entityManager.flush(); // Training ID 생성을 위해
+            entityManager.flush();
 
-            // 교육 기술스택 저장
             saveTrainingTechStacks(req.techStacks(), training);
         }
-        log.debug("교육이력 {} 건 저장", requests.size());
+        log.debug("교육이력 {} 건 저장", validRequests.size());
     }
 
     private void saveTrainingTechStacks(List<TrainingTechStackSaveRequest> requests, Training training) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<TrainingTechStack> trainingTechStacks = requests.stream()
+        List<TrainingTechStackSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidTrainingTechStack)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<TrainingTechStack> trainingTechStacks = validRequests.stream()
                 .map(req -> {
                     TechStack techStack = findTechStackById(req.techStackId());
                     return TrainingTechStack.createTrainingTechStack(training, techStack);
@@ -204,7 +252,13 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private void saveAdditionalInfos(List<AdditionalInfoSaveRequest> requests, Resume resume) {
         if (requests == null || requests.isEmpty()) return;
 
-        List<AdditionalInfo> additionalInfos = requests.stream()
+        List<AdditionalInfoSaveRequest> validRequests = requests.stream()
+                .filter(this::isValidAdditionalInfo)
+                .toList();
+
+        if (validRequests.isEmpty()) return;
+
+        List<AdditionalInfo> additionalInfos = validRequests.stream()
                 .map(req -> AdditionalInfo.createAdditionalInfo(
                         resume, req.startDate(), req.endDate(), req.category(),
                         req.activityName(), req.relatedOrganization(), req.detailedContent(),
@@ -219,6 +273,68 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
 
     private TechStack findTechStackById(Long techStackId) {
         return entityManager.find(TechStack.class, techStackId);
+    }
+
+    // ======================== 검증 메서드들 ========================
+
+    private boolean isValidEducation(EducationSaveRequest request) {
+        return request != null &&
+                request.schoolName() != null && !request.schoolName().trim().isEmpty() &&
+                request.degreeLevel() != null &&
+                request.graduationDate() != null;
+    }
+
+    private boolean isValidResumeTechStack(ResumeTechStackSaveRequest request) {
+        return request != null && request.techStackId() != null;
+    }
+
+    private boolean isValidCustomLink(CustomLinkSaveRequest request) {
+        return request != null &&
+                request.name() != null && !request.name().trim().isEmpty() &&
+                request.url() != null && !request.url().trim().isEmpty();
+    }
+
+    private boolean isValidCareer(CareerSaveRequest request) {
+        return request != null &&
+                request.startDate() != null &&
+                request.endDate() != null &&
+                request.companyName() != null && !request.companyName().trim().isEmpty() &&
+                request.departmentPosition() != null && !request.departmentPosition().trim().isEmpty();
+    }
+
+    private boolean isValidCareerTechStack(CareerTechStackSaveRequest request) {
+        return request != null && request.techStackId() != null;
+    }
+
+    private boolean isValidProject(ProjectSaveRequest request) {
+        return request != null &&
+                request.startDate() != null &&
+                request.endDate() != null &&
+                request.name() != null && !request.name().trim().isEmpty();
+    }
+
+    private boolean isValidProjectTechStack(ProjectTechStackSaveRequest request) {
+        return request != null && request.techStackId() != null;
+    }
+
+    private boolean isValidTraining(TrainingSaveRequest request) {
+        return request != null &&
+                request.startDate() != null &&
+                request.endDate() != null &&
+                request.courseName() != null && !request.courseName().trim().isEmpty() &&
+                request.institutionName() != null && !request.institutionName().trim().isEmpty();
+    }
+
+    private boolean isValidTrainingTechStack(TrainingTechStackSaveRequest request) {
+        return request != null && request.techStackId() != null;
+    }
+
+    private boolean isValidAdditionalInfo(AdditionalInfoSaveRequest request) {
+        return request != null &&
+                request.startDate() != null &&
+                request.category() != null &&
+                request.activityName() != null && !request.activityName().trim().isEmpty() &&
+                request.relatedOrganization() != null && !request.relatedOrganization().trim().isEmpty();
     }
 
     // ======================== 개별 삭제 메서드들 ========================

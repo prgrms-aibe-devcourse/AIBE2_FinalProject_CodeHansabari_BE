@@ -271,4 +271,9 @@ public class ResumeController {
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 삭제되었습니다.", null));
     }
+
+    /**
+     * 이력서 목록 조회
+     */
+
 }
