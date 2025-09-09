@@ -8,9 +8,9 @@ import java.time.LocalDateTime;
  */
 @Getter
 public enum UsageType {
-    ESSAY_REVIEW("자소서 첨삭", 5),           // 5토큰 소모
-    INTERVIEW_AUTO("자소서 기반 면접", 10),    // 10토큰 소모
-    INTERVIEW_CUSTOM("커스텀 면접", 3);       // 3토큰 소모
+    ESSAY_REVIEW("AI 자소서 첨삭", 5),           // 5토큰 소모
+    INTERVIEW_AUTO("모의 면접 자동질문생성", 3),    // 3토큰 소모
+    INTERVIEW_CUSTOM("커스텀 프롬프트 면접 답변생성", 1);       // 1토큰 소모
 
     // ===== 인스턴스 필드 =====
     private final String description;
@@ -23,9 +23,9 @@ public enum UsageType {
     }
 
     // ===== 통합 토큰 설정 상수 =====
-    public static final int MAX_TOKENS = 20;                    // 최대 20개
+    public static final int MAX_TOKENS = 40;                    // 최대 40개
     public static final int REFILL_INTERVAL_HOURS = 2;          // 2시간마다
-    public static final int REFILL_AMOUNT = 5;                  // 5개씩 충전
+    public static final int REFILL_AMOUNT = 10;                  // 10개씩 충전
 
     // ===== Redis 키 생성 메서드 =====
     /**

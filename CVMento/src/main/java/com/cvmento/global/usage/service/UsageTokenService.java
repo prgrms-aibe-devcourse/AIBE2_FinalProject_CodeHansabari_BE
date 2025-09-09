@@ -2,6 +2,7 @@ package com.cvmento.global.usage.service;
 
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.usage.dto.TokenUsageInfo;
 import com.cvmento.global.usage.enums.UsageType;
 import com.cvmento.global.exception.customException.UsageLimitExceededException;
@@ -68,7 +69,7 @@ public class UsageTokenService {
     public TokenUsageInfo getTokenUsage(String userEmail) {
         // 이메일로 Member 조회
         Member member = memberRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userEmail));
+                .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다: " + userEmail));
 
         // 사용자 토큰 키 생성
         String tokenKey = UsageType.getTokenKey(member.getMemberId());
