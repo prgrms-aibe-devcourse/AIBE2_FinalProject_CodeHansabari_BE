@@ -52,7 +52,7 @@ public class UsageTokenService {
             // 현재 3개, 필요 5개 → 부족!
             LocalDateTime nextRefillTime = UsageType.getNextRefillTime();
             // 다음 충전 시간: "2025-09-08T16:00:00"
-            throw new UsageLimitExceededException(usageType, 3, 5, nextRefillTime);
+            throw new UsageLimitExceededException(usageType, currentTokens, requiredTokens, nextRefillTime);
             // 예외 발생 → GlobalExceptionHandler가 429 에러 응답
         }
 
