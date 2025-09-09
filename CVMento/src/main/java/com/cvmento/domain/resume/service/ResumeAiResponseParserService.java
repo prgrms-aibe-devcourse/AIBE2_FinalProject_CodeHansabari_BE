@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -40,70 +41,70 @@ public class ResumeAiResponseParserService {
      * LLM 이력서 제안 응답을 ResumeAiSuggestionResponse로 변환
      */
     public ResumeAiSuggestionResponse parseResumeSuggestionResponse(
-            String llmResponse, 
-            UserExperienceRequest request, 
+            String llmResponse,
+            UserExperienceRequest request,
             Member member) {
-        
+
         try {
             log.debug("LLM 응답 파싱 시작. 응답 길이: {} 문자", llmResponse.length());
-            
+
             // 1단계: 기본 응답 검증
             if (!validationService.isValidLlmResponse(llmResponse)) {
                 throw new ResumeAiException("유효하지 않은 LLM 응답입니다.");
             }
-            
+
             // 2단계: OpenAI 응답에서 실제 텍스트 컨텐츠 추출 (인터뷰 AI와 동일한 방식)
             String textContent = openAiResponseParser.extractTextContent(llmResponse);
             log.debug("OpenAI에서 추출된 텍스트: {}", textContent.substring(0, Math.min(300, textContent.length())));
-            
-            // 3단계: 코드 블록 제거 등 정제
-            String cleanedJson = cleanJsonContent(textContent);
+
+            // 3단계: 코드 블록/래핑 제거 및 정제(JSON 추출)
+            String cleanedJson = extractJsonFromResponse(textContent);
             log.debug("정제된 JSON: {}", cleanedJson.substring(0, Math.min(300, cleanedJson.length())));
-            
+
             // 4단계: 응답 내용 검증 (디버깅을 위해 임시로 완화)
             if (!validationService.isValidResumeSuggestionContent(cleanedJson)) {
-                log.warn("응답 검증 실패 - 하지만 파싱을 시도합니다. cleanedJson 첫 500자: {}", 
-                    cleanedJson.substring(0, Math.min(500, cleanedJson.length())));
+                log.warn("응답 검증 실패 - 하지만 파싱을 시도합니다. cleanedJson 첫 500자: {}",
+                        cleanedJson.substring(0, Math.min(500, cleanedJson.length())));
             }
-            
+
             // 4단계: 보안 검증
             if (validationService.containsSensitiveInfo(cleanedJson)) {
                 log.warn("민감한 정보가 포함된 응답이 감지되었습니다.");
                 throw new ResumeAiException("응답에 부적절한 내용이 포함되어 있습니다.");
             }
-            
+
             // 5단계: 응답 품질 점수 계산
             int qualityScore = validationService.calculateResponseQuality(cleanedJson);
             log.info("LLM 응답 품질 점수: {}/100", qualityScore);
-            
+
             if (qualityScore < 30) {
                 log.warn("LLM 응답 품질이 낮습니다. 점수: {}", qualityScore);
             }
-            
+
             // 6단계: LLM 응답을 중간 DTO로 파싱
             LlmResumeResponse llmResumeResponse = objectMapper.readValue(cleanedJson, LlmResumeResponse.class);
-            
+
             // 7단계: 중간 DTO를 최종 응답 DTO로 변환 (null 안전성 확보)
             if (llmResumeResponse == null) {
                 log.error("llmResumeResponse가 null입니다.");
                 throw new ResumeAiException("AI 응답 파싱에 실패했습니다.");
             }
-            
+
             if (llmResumeResponse.suggestedResume() == null) {
                 log.error("llmResumeResponse.suggestedResume()이 null입니다.");
                 throw new ResumeAiException("AI가 제안한 이력서 내용이 없습니다.");
             }
-            
+
             SuggestedResume suggestedResume = convertToSuggestedResume(llmResumeResponse.suggestedResume());
-            
+
             log.info("LLM 응답 파싱 완료");
-            
+
             return new ResumeAiSuggestionResponse(
                     suggestedResume,
                     llmResumeResponse.improvementTips() != null ? llmResumeResponse.improvementTips() : List.of(),
                     llmResumeResponse.missingElements() != null ? llmResumeResponse.missingElements() : List.of()
             );
-            
+
         } catch (JsonProcessingException e) {
             log.error("LLM 응답 JSON 파싱 실패: {}", e.getMessage(), e);
             log.debug("파싱 실패한 응답: {}", llmResponse);
@@ -114,14 +115,13 @@ public class ResumeAiResponseParserService {
         }
     }
 
-
     /**
-     * 텍스트 컨텐츠에서 JSON 정제 (코드 블록 제거 등)
+     * LLM 응답에서 JSON 추출 및 래핑된 응답 처리 - 강화된 버전
      */
-    private String cleanJsonContent(String textContent) {
-        String trimmed = textContent.trim();
-        
-        // ```json으로 시작하는 경우
+    private String extractJsonFromResponse(String response) {
+        String trimmed = response.trim();
+
+        // ```json 으로 시작하는 경우
         if (trimmed.startsWith("```json")) {
             int startIndex = trimmed.indexOf("```json") + 7;
             int endIndex = trimmed.lastIndexOf("```");
@@ -129,17 +129,41 @@ public class ResumeAiResponseParserService {
                 trimmed = trimmed.substring(startIndex, endIndex).trim();
             }
         }
-        
-        // ```로 시작하는 경우
-        if (trimmed.startsWith("```")) {
+        // ``` 로 시작하는 경우
+        else if (trimmed.startsWith("```")) {
             int startIndex = trimmed.indexOf("```") + 3;
             int endIndex = trimmed.lastIndexOf("```");
             if (endIndex > startIndex) {
                 trimmed = trimmed.substring(startIndex, endIndex).trim();
             }
         }
-        
-        // 코드 블록 제거 완료, 정제된 JSON 반환
+
+        // 래핑된 응답 처리 - output 배열에서 실제 데이터 추출
+        try {
+            if (trimmed.contains("\"output\"") && trimmed.contains("[")) {
+                log.debug("래핑된 응답 감지, output에서 데이터 추출 시도");
+
+                var jsonNode = objectMapper.readTree(trimmed);
+
+                if (jsonNode.has("output") && jsonNode.get("output").isArray()) {
+                    var outputArray = jsonNode.get("output");
+                    if (outputArray.size() > 0) {
+                        var firstOutput = outputArray.get(0);
+                        if (firstOutput.isTextual()) {
+                            String extractedContent = firstOutput.asText();
+                            log.debug("output에서 추출된 내용: {}",
+                                    extractedContent.substring(0, Math.min(200, extractedContent.length())));
+                            return extractedContent;
+                        } else {
+                            return objectMapper.writeValueAsString(firstOutput);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("래핑된 응답 처리 중 오류 발생, 원본 응답 사용: {}", e.getMessage());
+        }
+
         return trimmed;
     }
 
@@ -171,7 +195,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedEducation> convertEducations(List<LlmEducation> llmEducations) {
         if (llmEducations == null) return List.of();
-        
+
         return llmEducations.stream()
                 .map(edu -> new SuggestedEducation(
                         safeGetString(edu.schoolName()),
@@ -186,7 +210,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedTechStack> convertTechStacks(List<LlmTechStack> llmTechStacks) {
         if (llmTechStacks == null) return List.of();
-        
+
         return llmTechStacks.stream()
                 .map(tech -> new SuggestedTechStack(
                         tech.techStackId(),
@@ -200,7 +224,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedCareer> convertCareers(List<LlmCareer> llmCareers) {
         if (llmCareers == null) return List.of();
-        
+
         return llmCareers.stream()
                 .map(career -> new SuggestedCareer(
                         safeParseDate(career.startDate()),
@@ -216,7 +240,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedCareerTechStack> convertCareerTechStacks(List<LlmCareerTechStack> llmTechStacks) {
         if (llmTechStacks == null) return List.of();
-        
+
         return llmTechStacks.stream()
                 .map(tech -> new SuggestedCareerTechStack(
                         tech.techStackId(),
@@ -228,7 +252,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedProject> convertProjects(List<LlmProject> llmProjects) {
         if (llmProjects == null) return List.of();
-        
+
         return llmProjects.stream()
                 .map(project -> new SuggestedProject(
                         safeParseDate(project.startDate()),
@@ -246,7 +270,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedProjectTechStack> convertProjectTechStacks(List<LlmProjectTechStack> llmTechStacks) {
         if (llmTechStacks == null) return List.of();
-        
+
         return llmTechStacks.stream()
                 .map(tech -> new SuggestedProjectTechStack(
                         tech.techStackId(),
@@ -258,7 +282,7 @@ public class ResumeAiResponseParserService {
 
     private List<SuggestedTraining> convertTrainings(List<LlmTraining> llmTrainings) {
         if (llmTrainings == null) return List.of();
-        
+
         return llmTrainings.stream()
                 .map(training -> new SuggestedTraining(
                         safeParseDate(training.startDate()),
@@ -271,23 +295,55 @@ public class ResumeAiResponseParserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * additionalInfos 변환 시 안전한 처리
+     */
     private List<SuggestedAdditionalInfo> convertAdditionalInfos(List<LlmAdditionalInfo> llmAdditionalInfos) {
         if (llmAdditionalInfos == null) return List.of();
-        
+
         return llmAdditionalInfos.stream()
-                .map(info -> new SuggestedAdditionalInfo(
-                        safeParseAdditionalInfoCategory(info.category()),
-                        info.title(),
-                        info.content(),
-                        safeParseDate(info.achievementDate()),
-                        info.description()
-                ))
+                .filter(Objects::nonNull) // null 체크 추가
+                .map(info -> {
+                    try {
+                        return new SuggestedAdditionalInfo(
+                                safeParseAdditionalInfoCategory(info.category()),
+                                safeGetString(info.title(), "미분류"), // 기본값 제공
+                                safeGetString(info.content(), ""),
+                                safeParseDate(info.achievementDate()),
+                                safeGetString(info.description(), "")
+                        );
+                    } catch (Exception e) {
+                        log.warn("AdditionalInfo 변환 중 오류: {}", e.getMessage());
+                        // 기본값으로 생성
+                        return new SuggestedAdditionalInfo(
+                                AdditionalInfoCategory.CERTIFICATE,
+                                "정보 누락",
+                                "",
+                                null,
+                                "파싱 오류로 인한 기본값"
+                        );
+                    }
+                })
                 .collect(Collectors.toList());
     }
 
-    // Safe parsing methods
+    // ===== Safe parsing methods =====
+
+    /**
+     * 값이 비어있으면 null 반환(원래 로직 유지)
+     */
     private String safeGetString(String value) {
         return (value != null && !value.trim().isEmpty()) ? value : null;
+    }
+
+    /**
+     * 값이 비어있으면 기본값 반환(신규 오버로드)
+     */
+    private String safeGetString(String value, String defaultValue) {
+        if (value != null && !value.trim().isEmpty()) {
+            return value;
+        }
+        return defaultValue;
     }
 
     private ResumeType safeParseResumeType(String resumeType) {
@@ -348,7 +404,7 @@ public class ResumeAiResponseParserService {
         if (dateString == null || dateString.trim().isEmpty()) {
             return null;
         }
-        
+
         try {
             return LocalDate.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE);
         } catch (DateTimeParseException e) {

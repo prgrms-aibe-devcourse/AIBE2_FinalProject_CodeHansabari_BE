@@ -157,8 +157,24 @@ public class ResumeAiLlmPromptService {
                     ]
                   }
                 ],
-                "trainings": [],
-                "additionalInfos": []
+                "trainings": [
+                  {
+                    "name": "교육명",
+                    "institution": "교육기관",
+                    "startDate": "2023-01-01",
+                    "endDate": "2023-03-31",
+                    "description": "교육 내용"
+                  }
+                ],
+                "additionalInfos": [
+                  {
+                    "category": "CERTIFICATE",
+                    "title": "정보처리기사",
+                    "content": "한국산업인력공단",
+                    "achievementDate": "2023-05-15",
+                    "description": "국가기술자격증"
+                  }
+                ]
               },
               "improvementTips": [
                 "작성 팁 1",
@@ -171,6 +187,15 @@ public class ResumeAiLlmPromptService {
             }
             ```
             
+            ### 중요: additionalInfos 구조
+            additionalInfos는 반드시 다음 구조의 객체 배열이어야 합니다:
+            - category: "CERTIFICATE", "AWARD", "LANGUAGE", "ACTIVITY" 중 하나
+            - title: 자격증명/수상명/활동명
+            - content: 발급기관/주최기관/상세내용  
+            - achievementDate: "YYYY-MM-DD" 형식 또는 null
+            - description: 부연설명
+            
+            단순 문자열 배열은 절대 사용하지 마세요!
             """;
     }
 
