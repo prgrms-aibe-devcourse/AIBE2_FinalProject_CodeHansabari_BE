@@ -8,6 +8,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import static com.cvmento.domain.resume.entity.QAdditionalInfo.additionalInfo;
+import static com.cvmento.domain.resume.entity.QCareer.career;
+import static com.cvmento.domain.resume.entity.QCareerTechStack.careerTechStack;
+import static com.cvmento.domain.resume.entity.QCustomLink.customLink;
+import static com.cvmento.domain.resume.entity.QEducation.education;
+import static com.cvmento.domain.resume.entity.QProject.project;
+import static com.cvmento.domain.resume.entity.QProjectTechStack.projectTechStack;
+import static com.cvmento.domain.resume.entity.QResume.resume;
+import static com.cvmento.domain.resume.entity.QResumeTechStack.resumeTechStack;
+import static com.cvmento.domain.resume.entity.QTraining.training;
+import static com.cvmento.domain.resume.entity.QTrainingTechStack.trainingTechStack;
+
 import java.util.List;
 
 @Repository
@@ -34,6 +46,28 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
         entityManager.clear();
 
         log.debug("이력서 상세 정보 저장 완료 - Resume ID: {}", resume.getId());
+    }
+
+    @Override
+    public void deleteAllResumeDetails(Resume resume) {
+        Long resumeId = resume.getId();
+
+        // 1. 중간 테이블부터 삭제 (FK 제약조건 고려)
+        deleteCareerTechStacks(resumeId);
+        deleteProjectTechStacks(resumeId);
+        deleteTrainingTechStacks(resumeId);
+
+        // 2. 자식 테이블들 삭제
+        deleteEducations(resumeId);
+        deleteResumeTechStacks(resumeId);
+        deleteCustomLinks(resumeId);
+        deleteCareers(resumeId);
+        deleteProjects(resumeId);
+        deleteTrainings(resumeId);
+        deleteAdditionalInfos(resumeId);
+
+        entityManager.flush();
+        log.debug("이력서 ID: {}의 모든 상세 정보 삭제 완료", resumeId);
     }
 
     // ======================== 개별 저장 메서드들 ========================
@@ -185,5 +219,77 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
 
     private TechStack findTechStackById(Long techStackId) {
         return entityManager.find(TechStack.class, techStackId);
+    }
+
+    // ======================== 개별 삭제 메서드들 ========================
+
+    private void deleteCareerTechStacks(Long resumeId) {
+        queryFactory
+                .delete(careerTechStack)
+                .where(careerTechStack.career.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteProjectTechStacks(Long resumeId) {
+        queryFactory
+                .delete(projectTechStack)
+                .where(projectTechStack.project.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteTrainingTechStacks(Long resumeId) {
+        queryFactory
+                .delete(trainingTechStack)
+                .where(trainingTechStack.training.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteEducations(Long resumeId) {
+        queryFactory
+                .delete(education)
+                .where(education.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteResumeTechStacks(Long resumeId) {
+        queryFactory
+                .delete(resumeTechStack)
+                .where(resumeTechStack.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteCustomLinks(Long resumeId) {
+        queryFactory
+                .delete(customLink)
+                .where(customLink.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteCareers(Long resumeId) {
+        queryFactory
+                .delete(career)
+                .where(career.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteProjects(Long resumeId) {
+        queryFactory
+                .delete(project)
+                .where(project.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteTrainings(Long resumeId) {
+        queryFactory
+                .delete(training)
+                .where(training.resume.id.eq(resumeId))
+                .execute();
+    }
+
+    private void deleteAdditionalInfos(Long resumeId) {
+        queryFactory
+                .delete(additionalInfo)
+                .where(additionalInfo.resume.id.eq(resumeId))
+                .execute();
     }
 }

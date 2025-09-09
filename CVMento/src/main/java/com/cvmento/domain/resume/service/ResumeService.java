@@ -1,6 +1,7 @@
 package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
+import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.domain.resume.repository.ResumeRepositoryImpl;
@@ -39,6 +40,29 @@ public class ResumeService {
                 resume.getId(), request.title(), request.type(), userEmail);
     }
 
+    /**
+     * 이력서 전체 정보 수정 (덮어쓰기 방식)
+     */
+    @Transactional
+    public void updateResume(Long resumeId, ResumeUpdateRequest request, String userEmail) {
+        Member member = findMemberByEmail(userEmail);
+
+        // 1. 기존 이력서 조회 및 권한 확인
+        Resume existingResume = findResumeByIdAndMember(resumeId, member);
+
+        // 2. 기존 이력서의 모든 하위 데이터 삭제
+        resumeRepositoryImpl.deleteAllResumeDetails(existingResume);
+
+        // 3. 기본 정보 업데이트
+        updateResumeBasicInfo(existingResume, request);
+
+        // 4. 새로운 상세 정보들 저장
+        resumeRepositoryImpl.saveResumeDetails(request.toSaveRequest(), existingResume);
+
+        log.info("이력서 전체 정보 수정 완료 - ID: {}, 제목: {}, 사용자: {}",
+                resumeId, request.title(), userEmail);
+    }
+
     // ======================== Private 메서드 ========================
 
     private Resume createAndSaveResume(ResumeSaveRequest request, Member member) {
@@ -55,25 +79,42 @@ public class ResumeService {
         );
 
         // 선택적 정보 업데이트
-        if (request.introduction() != null && !request.introduction().trim().isEmpty()) {
-            resume.updateIntroduction(request.introduction());
-        }
-
-        if (hasAnyUrl(request)) {
-            resume.updateUrls(request.githubUrl(), request.blogUrl(), request.notionUrl());
-        }
+        updateOptionalInfo(resume, request.introduction(), request.githubUrl(),
+                request.blogUrl(), request.notionUrl());
 
         return resumeRepository.save(resume);
+    }
+
+    private void updateResumeBasicInfo(Resume resume, ResumeUpdateRequest request) {
+        // 기본 정보 업데이트
+        resume.updateTitle(request.title());
+        resume.updateType(request.type());
+        resume.updateBasicInfo(request.name(), request.email(), request.birthYear(), request.phone());
+        resume.updateFieldAndCareerType(request.fieldName(), request.careerType());
+
+        // 선택적 정보 업데이트
+        updateOptionalInfo(resume, request.introduction(), request.githubUrl(),
+                request.blogUrl(), request.notionUrl());
+    }
+
+    private void updateOptionalInfo(Resume resume, String introduction, String githubUrl,
+                                    String blogUrl, String notionUrl) {
+        if (introduction != null && !introduction.trim().isEmpty()) {
+            resume.updateIntroduction(introduction);
+        } else {
+            resume.updateIntroduction(null); // 기존 소개 삭제
+        }
+
+        resume.updateUrls(githubUrl, blogUrl, notionUrl);
+    }
+
+    private Resume findResumeByIdAndMember(Long resumeId, Member member) {
+        return resumeRepository.findByIdAndMember(resumeId, member)
+                .orElseThrow(() -> new IllegalArgumentException("이력서를 찾을 수 없거나 접근 권한이 없습니다."));
     }
 
     private Member findMemberByEmail(String email) {
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
-    }
-
-    private boolean hasAnyUrl(ResumeSaveRequest request) {
-        return (request.githubUrl() != null && !request.githubUrl().trim().isEmpty()) ||
-                (request.blogUrl() != null && !request.blogUrl().trim().isEmpty()) ||
-                (request.notionUrl() != null && !request.notionUrl().trim().isEmpty());
     }
 }

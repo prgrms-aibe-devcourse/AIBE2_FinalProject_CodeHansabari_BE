@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/AIBE2_FinalProject_CodeHansabari_BE.iml" filepath="$PROJECT_DIR$/.idea/AIBE2_FinalProject_CodeHansabari_BE.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/cvmento.main.iml" filepath="$PROJECT_DIR$/.idea/modules/cvmento.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/cvmento.test.iml" filepath="$PROJECT_DIR$/.idea/modules/cvmento.test.iml" />
     </modules>
   </component>

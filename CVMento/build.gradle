@@ -84,8 +84,20 @@ dependencies {
 	implementation 'com.amazonaws:aws-java-sdk-lambda'
 
 
-}
 
+
+}
+def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')
+
+java {
+	sourceSets {
+		main {
+			java {
+				srcDir generated
+			}
+		}
+	}
+}
 
 tasks.named('test') {
 	useJUnitPlatform()
