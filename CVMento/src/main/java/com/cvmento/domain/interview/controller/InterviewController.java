@@ -5,6 +5,8 @@ import com.cvmento.domain.interview.dto.response.CustomAnswerResponse;
 import com.cvmento.domain.interview.dto.response.InterviewQnaListResponse;
 import com.cvmento.domain.interview.service.InterviewService;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.usage.annotation.RequireTokens;
+import com.cvmento.global.usage.enums.UsageType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -173,6 +175,7 @@ public class InterviewController {
             }
     )
     @PostMapping
+    @RequireTokens(UsageType.INTERVIEW_AUTO)
     public ResponseEntity<CommonResponse<InterviewQnaListResponse>> createInterviewQuestions(
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
@@ -253,6 +256,7 @@ public class InterviewController {
             }
     )
     @PostMapping("/custom-answer")
+    @RequireTokens(UsageType.INTERVIEW_CUSTOM)
     public ResponseEntity<CommonResponse<CustomAnswerResponse>> createCustomAnswer(
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @Valid @RequestBody CustomQuestionRequest request,

@@ -13,6 +13,7 @@ import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
 import com.cvmento.global.exception.customException.InvalidTokenException;
 import com.cvmento.global.security.TokenService;
+import com.cvmento.global.usage.service.NewUserTokenInitializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -45,6 +46,7 @@ public class GoogleOAuthService {
     private final CookieUtil cookieUtil;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final NewUserTokenInitializer newUserTokenInitializer;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
@@ -306,7 +308,20 @@ public class GoogleOAuthService {
             Member newMember = new Member(userInfo.getGoogleId(), userInfo.getEmail(),
                     userInfo.getName(), userInfo.getPicture());
             newMember.updateLastLoginAt(LocalDateTime.now());
-            return memberRepository.save(newMember);
+            Member savedMember = memberRepository.save(newMember);
+
+            // 🔥 신규 사용자 토큰 초기화 (추가된 부분)
+            try {
+                newUserTokenInitializer.initializeNewUserTokens(savedMember.getMemberId());
+                log.info("신규 가입 사용자 토큰 초기화 완료 - 사용자 ID: {}, 이메일: {}",
+                        savedMember.getMemberId(), savedMember.getEmail());
+            } catch (Exception e) {
+                log.error("신규 사용자 토큰 초기화 실패 - 사용자 ID: {}, 이메일: {}, 오류: {}",
+                        savedMember.getMemberId(), savedMember.getEmail(), e.getMessage());
+                // 토큰 초기화 실패가 로그인을 방해하지 않도록 예외를 던지지 않음
+            }
+
+            return savedMember;
         }
     }
 

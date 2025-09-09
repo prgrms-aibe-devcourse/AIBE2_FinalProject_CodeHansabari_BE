@@ -169,4 +169,28 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(UsageLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleUsageLimitExceededException(
+            UsageLimitExceededException ex, HttpServletRequest request) {
+
+        log.warn("사용량 제한 초과 - 기능: {}, 필요토큰: {}, 보유토큰: {}",
+                ex.getUsageType().getDescription(), ex.getRequiredTokens(), ex.getRemainingTokens());
+
+        // 추가 정보를 errors 맵에 포함
+        Map<String, String> errors = Map.of(
+                "usageType", ex.getUsageType().name(),
+                "remainingTokens", String.valueOf(ex.getRemainingTokens()),
+                "requiredTokens", String.valueOf(ex.getRequiredTokens()),
+                "nextRefillTime", ex.getNextRefillTime().toString()
+        );
+
+        return buildErrorResponse(
+                request,
+                HttpStatus.TOO_MANY_REQUESTS, // 429 상태코드가 적절
+                "USAGE_LIMIT_EXCEEDED",
+                ex.getMessage(),
+                errors
+        );
+    }
+
 }

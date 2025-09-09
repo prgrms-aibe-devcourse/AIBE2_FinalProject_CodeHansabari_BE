@@ -14,7 +14,6 @@ import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.InterviewLimitExceededException;
-import com.cvmento.global.exception.customException.MemberNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,11 +35,11 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
 /**
- * InterviewService의 단위 테스트 (상세 로깅 버전)
+ * InterviewService의 단위 테스트
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("InterviewService 단위 테스트")
-@Slf4j  // 로깅을 위한 어노테이션
+@Slf4j
 class InterviewServiceTest {
 
     @Mock
@@ -99,18 +98,16 @@ class InterviewServiceTest {
             List<CoverLetterQna> existingQnas = createMockQnaList(5);
             log.info("생성된 가짜 질문 개수: {}", existingQnas.size());
 
-            // Mock 설정 로깅
-            given(memberRepository.findByEmail(userEmail))
-                    .willReturn(Optional.of(testMember));
-            log.info("Mock 설정: memberRepository.findByEmail({}) -> testMember 반환", userEmail);
-
-            given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, testMember))
+            // 실제 서비스 로직에 맞춘 Mock 설정
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMember({}, testMember) -> testCoverLetter 반환", coverLetterId);
+            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmail({}, {}) -> testCoverLetter 반환",
+                    coverLetterId, userEmail);
 
             given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter))
                     .willReturn(existingQnas);
-            log.info("Mock 설정: coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter) -> {}개 질문 반환", existingQnas.size());
+            log.info("Mock 설정: coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter) -> {}개 질문 반환",
+                    existingQnas.size());
 
             // when
             log.info("=== 메서드 실행 ===");
@@ -138,9 +135,7 @@ class InterviewServiceTest {
             log.info("=== 테스트 시작: 기존 질문이 없을 때 빈 배열 반환 ===");
 
             // given
-            given(memberRepository.findByEmail(userEmail))
-                    .willReturn(Optional.of(testMember));
-            given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, testMember))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
                     .willReturn(Optional.of(testCoverLetter));
             given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter))
                     .willReturn(new ArrayList<>());
@@ -160,21 +155,22 @@ class InterviewServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 사용자일 때 예외 발생")
-        void shouldThrowExceptionWhenMemberNotFound() {
-            log.info("=== 테스트 시작: 존재하지 않는 사용자일 때 예외 발생 ===");
+        @DisplayName("존재하지 않는 자소서일 때 예외 발생")
+        void shouldThrowExceptionWhenCoverLetterNotFound() {
+            log.info("=== 테스트 시작: 존재하지 않는 자소서일 때 예외 발생 ===");
 
             // given
-            given(memberRepository.findByEmail(userEmail))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
                     .willReturn(Optional.empty());
-            log.info("Mock 설정: memberRepository.findByEmail({}) -> Optional.empty() 반환", userEmail);
+            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmail({}, {}) -> Optional.empty() 반환",
+                    coverLetterId, userEmail);
 
             // when & then
-            log.info("예외 발생 예상 - MemberNotFoundException");
+            log.info("예외 발생 예상 - CoverLetterException");
             assertThatThrownBy(() ->
                     interviewService.getExistingInterviewQna(coverLetterId, userEmail))
-                    .isInstanceOf(MemberNotFoundException.class)
-                    .hasMessage("사용자를 찾을 수 없습니다.");
+                    .isInstanceOf(CoverLetterException.class)
+                    .hasMessage("자소서를 찾을 수 없습니다.");
             log.info("✅ 예상된 예외 발생 확인");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -187,11 +183,9 @@ class InterviewServiceTest {
         @BeforeEach
         void setUp() {
             log.info("--- CreateInterviewQuestionsTest 공통 Mock 설정 ---");
-            given(memberRepository.findByEmail(userEmail))
-                    .willReturn(Optional.of(testMember));
-            given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, testMember))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("Member와 CoverLetter 조회 Mock 설정 완료\n");
+            log.info("CoverLetter 조회 Mock 설정 완료\n");
         }
 
         @Test
@@ -454,9 +448,9 @@ class InterviewServiceTest {
         }
 
         @Test
-        @DisplayName("LLM이 JSON이 아닌 응답을 보낼 때")
-        void shouldThrowExceptionWhenLlmReturnsInvalidJson() {
-            log.info("=== 테스트 시작: LLM이 JSON이 아닌 응답을 보낼 때 ===");
+        @DisplayName("LLM 서비스 실패시 예외 발생")
+        void shouldThrowExceptionWhenLlmServiceFails() {
+            log.info("=== 테스트 시작: LLM 서비스 실패시 예외 발생 ===");
 
             // given
             String customQuestion = "테스트 질문";
@@ -466,10 +460,10 @@ class InterviewServiceTest {
                     .willReturn(mockPrompt);
             log.info("Mock 설정: 프롬프트 생성");
 
-            // LLM이 일반 텍스트 응답을 보내는 상황
+            RuntimeException llmException = new RuntimeException("LLM 서비스 실패");
             given(llmClientService.generateCustomAnswer(mockPrompt))
-                    .willThrow(new InterviewException("커스텀 답변 데이터 파싱에 실패했습니다."));
-            log.info("Mock 설정: LLM이 파싱 불가능한 응답 반환");
+                    .willThrow(llmException);
+            log.info("Mock 설정: LLM 서비스에서 예외 발생 - '{}'", llmException.getMessage());
 
             // when & then
             log.info("예외 발생 예상 - InterviewException");
@@ -477,46 +471,13 @@ class InterviewServiceTest {
                     interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion))
                     .isInstanceOf(InterviewException.class)
                     .hasMessage("커스텀 질문 답변 생성에 실패했습니다.");
-            log.info("✅ 예상된 JSON 파싱 예외 발생 확인");
+            log.info("✅ 예상된 InterviewException 발생 확인");
 
             verify(coverLetterQnaRepository, never()).save(any());
-            log.info("✅ 저장 메서드가 호출되지 않음을 확인 (파싱 실패로 인해)");
+            log.info("✅ 저장 메서드가 호출되지 않음을 확인 (LLM 실패로 인해)");
 
             log.info("=== 테스트 완료 ===\n");
         }
-
-        @Test
-        @DisplayName("LLM 응답에 answer 필드가 없을 때")
-        void shouldThrowExceptionWhenAnswerFieldMissing() {
-            log.info("=== 테스트 시작: LLM 응답에 answer 필드가 없을 때 ===");
-
-            // given
-            String customQuestion = "테스트 질문";
-            String mockPrompt = "프롬프트";
-
-            given(promptService.buildCustomAnswerPrompt(testCoverLetter, customQuestion))
-                    .willReturn(mockPrompt);
-            log.info("Mock 설정: 프롬프트 생성");
-
-            // LLM이 answer 필드가 누락된 응답을 보내는 상황
-            given(llmClientService.generateCustomAnswer(mockPrompt))
-                    .willThrow(new InterviewException("커스텀 답변 데이터 파싱에 실패했습니다."));
-            log.info("Mock 설정: LLM이 answer 필드 누락된 응답 반환");
-
-            // when & then
-            log.info("예외 발생 예상 - InterviewException");
-            assertThatThrownBy(() ->
-                    interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion))
-                    .isInstanceOf(InterviewException.class)
-                    .hasMessage("커스텀 질문 답변 생성에 실패했습니다.");
-            log.info("✅ 예상된 필드 누락 예외 발생 확인");
-
-            verify(coverLetterQnaRepository, never()).save(any());
-            log.info("✅ 저장 메서드가 호출되지 않음을 확인 (필드 누락으로 인해)");
-
-            log.info("=== 테스트 완료 ===\n");
-        }
-
     }
 
     // ================ 테스트 헬퍼 메서드들 ================

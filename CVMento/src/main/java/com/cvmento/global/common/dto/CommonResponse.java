@@ -6,7 +6,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-// ApiResponse → CommonResponse로 이름 변경
 @Getter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
