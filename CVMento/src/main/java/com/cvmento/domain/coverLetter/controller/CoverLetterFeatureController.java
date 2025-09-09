@@ -1,34 +1,29 @@
 package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
-import com.cvmento.domain.coverLetter.service.FeatureExtractionService;
+import com.cvmento.domain.coverLetter.service.CoverLetterFeatureService;
 import com.cvmento.global.common.dto.CommonResponse;
-import com.cvmento.domain.member.entity.Member;
-import com.cvmento.domain.member.enums.Role;
-import com.cvmento.domain.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/feature-extraction")
+@RequestMapping("/api/cover-letter-feature")
 @RequiredArgsConstructor
-@Tag(name = "Feature Extraction", description = "자소서 특징 추출 API")
-public class FeatureExtractionController {
+@Tag(name = "Cover Letter Feature", description = "자소서 특징 추출 API")
+public class CoverLetterFeatureController {
 
-    private final FeatureExtractionService featureExtractionService;
-    private final AuthService authService;
+    private final CoverLetterFeatureService coverLetterFeatureService;
 
     @PostMapping("/extract")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ROOT')")
     @Operation(
         summary = "크롤링된 자소서에서 특징 추출", 
         description = """
@@ -73,19 +68,9 @@ public class FeatureExtractionController {
         description = "서버 오류 - 특징 추출 중 오류 발생"
     )
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> extractFeatures(@AuthenticationPrincipal UserDetails userDetails) {
-        // 관리자 권한 체크
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-        
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            throw new AccessDeniedException("특징 추출을 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
+    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> extractFeatures() {
         try {
-            List<FeatureCandidate> features = featureExtractionService.extractFeaturesFromCrawledData();
+            List<FeatureCandidate> features = coverLetterFeatureService.extractFeaturesFromCrawledData();
             return ResponseEntity.ok(CommonResponse.success("특징 추출이 완료되었습니다.", features));
         } catch (Exception e) {
             return ResponseEntity.ok(CommonResponse.error("EXTRACTION_FAILED", "특징 추출 중 오류가 발생했습니다: " + e.getMessage()));
@@ -93,23 +78,14 @@ public class FeatureExtractionController {
     }
 
     @GetMapping("/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ROOT')")
     @Operation(
         summary = "특징 추출 상태 확인", 
         description = "현재 특징 추출 작업의 상태를 확인합니다."
     )
     @ApiResponse(responseCode = "200", description = "상태 확인 성공")
     @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<String>> getStatus(@AuthenticationPrincipal UserDetails userDetails) {
-        // 관리자 권한 체크
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-        
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            throw new AccessDeniedException("상태를 확인할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
+    public ResponseEntity<CommonResponse<String>> getStatus() {
         return ResponseEntity.ok(CommonResponse.success("특징 추출 서비스가 정상적으로 작동 중입니다.", "정상"));
     }
 }

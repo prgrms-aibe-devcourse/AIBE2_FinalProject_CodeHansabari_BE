@@ -6,11 +6,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
-    name = "feature-extraction-llm-client",
+    name = "cover-letter-feature-llm-client",
     url = "${llm.api.url}",
-    configuration = FeatureExtractionLlmFeignConfig.class
+    configuration = CoverLetterFeatureLlmFeignConfig.class
 )
-public interface FeatureExtractionLlmFeignClient {
+public interface CoverLetterFeatureLlmFeignClient {
 
     @PostMapping("/responses")
     String analyzeRaw(@RequestBody LlmRequest request);

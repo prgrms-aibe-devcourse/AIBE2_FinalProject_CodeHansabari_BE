@@ -1,6 +1,6 @@
 package com.cvmento.domain.coverLetter.service;
 
-import com.cvmento.domain.coverLetter.client.FeatureExtractionLlmFeignClient;
+import com.cvmento.domain.coverLetter.client.CoverLetterFeatureLlmFeignClient;
 import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.response.EssayChunk;
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
@@ -27,9 +27,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
-public class FeatureExtractionService {
+public class CoverLetterFeatureService {
 
-    private final FeatureExtractionLlmFeignClient featureExtractionClient;
+    private final CoverLetterFeatureLlmFeignClient coverLetterFeatureLlmFeignClient;
     private final CrawlCoverLetterRepository crawlRepository;
     private final CoverLetterFeatureRepository featureRepository;
     private final ObjectMapper objectMapper;
@@ -224,7 +224,7 @@ public class FeatureExtractionService {
                 prompt
             );
             
-            String response = featureExtractionClient.analyzeRaw(request);
+            String response = coverLetterFeatureLlmFeignClient.analyzeRaw(request);
             
             // 응답 파싱
             return parseFeatureResponse(response, chunk);
