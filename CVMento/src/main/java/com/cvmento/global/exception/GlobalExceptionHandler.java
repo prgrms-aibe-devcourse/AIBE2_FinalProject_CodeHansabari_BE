@@ -1,10 +1,7 @@
 package com.cvmento.global.exception;
 
 
-import com.cvmento.global.exception.customException.CoverLetterAiException;
-import com.cvmento.global.exception.customException.CoverLetterException;
-import com.cvmento.global.exception.customException.InterviewException;
-import com.cvmento.global.exception.customException.MemberNotFoundException;
+import com.cvmento.global.exception.customException.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -57,6 +54,47 @@ public class GlobalExceptionHandler {
                 "VALIDATION_ERROR",
                 "입력값이 올바르지 않습니다.",
                 fieldErrors
+        );
+    }
+
+    // ===== Google OAuth 관련 예외 핸들러들 =====
+
+    @ExceptionHandler(InvalidAuthorizationCodeException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidAuthorizationCodeException(
+            InvalidAuthorizationCodeException ex, HttpServletRequest request) {
+        log.warn("Invalid authorization code: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_AUTHORIZATION_CODE",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidTokenException(
+            InvalidTokenException ex, HttpServletRequest request) {
+        log.warn("Invalid token: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.UNAUTHORIZED,
+                "INVALID_TOKEN",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(GoogleApiException.class)
+    public ResponseEntity<Map<String, Object>> handleGoogleApiException(
+            GoogleApiException ex, HttpServletRequest request) {
+        log.error("Google API error: {}", ex.getMessage(), ex);
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_GATEWAY,
+                "GOOGLE_API_ERROR",
+                ex.getMessage(),
+                null
         );
     }
 
@@ -118,4 +156,41 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
+    @ExceptionHandler(InterviewLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleInterviewLimitExceededException(InterviewLimitExceededException ex, HttpServletRequest request) {
+        log.error("InterviewLimitExceededException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.CONFLICT,
+                "INTERVIEW_LIMIT_EXCEEDED",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(UsageLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleUsageLimitExceededException(
+            UsageLimitExceededException ex, HttpServletRequest request) {
+
+        log.warn("사용량 제한 초과 - 기능: {}, 필요토큰: {}, 보유토큰: {}",
+                ex.getUsageType().getDescription(), ex.getRequiredTokens(), ex.getRemainingTokens());
+
+        // 추가 정보를 errors 맵에 포함
+        Map<String, String> errors = Map.of(
+                "usageType", ex.getUsageType().name(),
+                "remainingTokens", String.valueOf(ex.getRemainingTokens()),
+                "requiredTokens", String.valueOf(ex.getRequiredTokens()),
+                "nextRefillTime", ex.getNextRefillTime().toString()
+        );
+
+        return buildErrorResponse(
+                request,
+                HttpStatus.TOO_MANY_REQUESTS, // 429 상태코드가 적절
+                "USAGE_LIMIT_EXCEEDED",
+                ex.getMessage(),
+                errors
+        );
+    }
+
 }

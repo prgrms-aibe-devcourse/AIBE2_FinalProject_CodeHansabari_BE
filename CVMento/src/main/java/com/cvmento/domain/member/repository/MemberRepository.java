@@ -1,11 +1,13 @@
 package com.cvmento.domain.member.repository;
 
 import com.cvmento.domain.member.entity.Member;
+import com.cvmento.domain.member.enums.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -24,4 +26,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     boolean existsByEmail(String email);
 
     boolean existsByGoogleId(String googleId);
+
+    List<Member> findByStatus(UserStatus status);
 }
