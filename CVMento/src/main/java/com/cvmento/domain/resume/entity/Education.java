@@ -4,6 +4,8 @@ import com.cvmento.global.common.entity.BaseTimeEntity;
 import com.cvmento.domain.resume.enums.DegreeLevel;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -31,17 +33,17 @@ public class Education extends BaseTimeEntity {
     private DegreeLevel degreeLevel;
 
     @Column(precision = 3, scale = 2)
-    private Double personalGpa;
+    private BigDecimal personalGpa;
 
     @Column(precision = 3, scale = 2)
-    private Double totalGpa;
+    private BigDecimal totalGpa;
 
     @Column(nullable = false)
     private LocalDate graduationDate;
 
     // 생성자
     private Education(Resume resume, String schoolName, String major, DegreeLevel degreeLevel,
-                      Double personalGpa, Double totalGpa, LocalDate graduationDate) {
+                      BigDecimal personalGpa, BigDecimal totalGpa, LocalDate graduationDate) {
         this.resume = resume;
         this.schoolName = schoolName;
         this.major = major;
@@ -53,8 +55,7 @@ public class Education extends BaseTimeEntity {
 
     // 정적 팩토리 메서드
     public static Education createEducation(Resume resume, String schoolName, String major,
-                                            DegreeLevel degreeLevel, Double personalGpa,
-                                            Double totalGpa, LocalDate graduationDate) {
+                                            DegreeLevel degreeLevel, BigDecimal personalGpa, BigDecimal totalGpa, LocalDate graduationDate) {
         return new Education(resume, schoolName, major, degreeLevel, personalGpa, totalGpa, graduationDate);
     }
 
@@ -65,7 +66,7 @@ public class Education extends BaseTimeEntity {
         this.degreeLevel = degreeLevel;
     }
 
-    public void updateGpa(Double personalGpa, Double totalGpa) {
+    public void updateGpa(BigDecimal personalGpa, BigDecimal totalGpa) {
         this.personalGpa = personalGpa;
         this.totalGpa = totalGpa;
     }

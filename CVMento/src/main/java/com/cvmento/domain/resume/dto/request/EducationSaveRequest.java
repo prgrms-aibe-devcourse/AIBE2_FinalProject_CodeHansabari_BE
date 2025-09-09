@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.dto.request;
 import com.cvmento.domain.resume.enums.DegreeLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Schema(description = "학력 저장 요청")
@@ -18,10 +19,10 @@ public record EducationSaveRequest(
         DegreeLevel degreeLevel,
 
         @Schema(description = "개인 학점", example = "3.8")
-        Double personalGpa,
+        BigDecimal personalGpa,
 
         @Schema(description = "기준 학점", example = "4.5")
-        Double totalGpa,
+        BigDecimal totalGpa,
 
         @Schema(description = "졸업(예정)일", example = "2024-02-15")
         LocalDate graduationDate
