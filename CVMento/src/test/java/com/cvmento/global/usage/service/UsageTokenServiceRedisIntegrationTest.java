@@ -6,11 +6,7 @@ import com.cvmento.global.usage.dto.TokenUsageInfo;
 import com.cvmento.global.usage.enums.UsageType;
 import com.cvmento.global.exception.customException.UsageLimitExceededException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -48,6 +44,7 @@ import static org.assertj.core.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@Disabled("Redis 서버 연결 필요 - 로컬 환경에서만 실행")
 @Transactional
 @Slf4j
 class UsageTokenServiceRedisIntegrationTest {
