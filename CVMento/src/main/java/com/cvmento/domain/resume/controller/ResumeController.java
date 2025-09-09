@@ -2,6 +2,7 @@ package com.cvmento.domain.resume.controller;
 
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
+import com.cvmento.domain.resume.dto.response.ResumeDetailResponse;
 import com.cvmento.domain.resume.dto.response.ResumeThumbnailResponse;
 import com.cvmento.domain.resume.service.ResumeService;
 import com.cvmento.global.common.dto.CommonResponse;
@@ -140,8 +141,8 @@ public class ResumeController {
             @Valid @RequestBody ResumeSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        resumeService.saveResume(request, userEmail);
+        String memberEmail = userDetails.getUsername();
+        resumeService.saveResume(request, memberEmail);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success("이력서가 성공적으로 저장되었습니다.", null));
@@ -228,8 +229,8 @@ public class ResumeController {
             @Valid @RequestBody ResumeUpdateRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        resumeService.updateResume(resumeId, request, userEmail);
+        String memberEmail = userDetails.getUsername();
+        resumeService.updateResume(resumeId, request, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 수정되었습니다.", null));
     }
@@ -270,8 +271,8 @@ public class ResumeController {
             @Parameter(description = "이력서 ID", example = "1") @PathVariable Long resumeId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        resumeService.deleteResume(resumeId, userEmail);
+        String memberEmail = userDetails.getUsername();
+        resumeService.deleteResume(resumeId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 삭제되었습니다.", null));
     }
@@ -323,11 +324,76 @@ public class ResumeController {
             @Parameter(description = "페이지 크기", example = "10")
             @RequestParam(defaultValue = "10") int size
     ) {
-        String userEmail = userDetails.getUsername();
+        String memberEmail = userDetails.getUsername();
         Pageable pageable = PageRequest.of(page, size);
-        Page<ResumeThumbnailResponse> resumePage = resumeService.getResumeList(userEmail, pageable);
+        Page<ResumeThumbnailResponse> resumePage = resumeService.getResumeList(memberEmail, pageable);
 
         return ResponseEntity.ok(CommonResponse.success("이력서 목록을 성공적으로 조회했습니다.", resumePage));
+    }
+
+    /**
+     * 이력서 상세 조회
+     */
+    @Operation(
+            summary = "이력서 상세 조회",
+            description = "이력서 ID로 해당 이력서의 모든 상세 정보를 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "이력서 상세 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "이력서 상세 조회 성공",
+                                            value = """
+                                            {
+                                              "success": true,
+                                              "message": "이력서를 성공적으로 조회했습니다.",
+                                              "data": {
+                                                "resumeId": 1,
+                                                "title": "네이버 백엔드 개발자 지원용 이력서",
+                                                "type": "DEFAULT",
+                                                "name": "김개발",
+                                                "email": "kim@example.com",
+                                                "birthYear": 1995,
+                                                "phone": "010-1234-5678",
+                                                "careerType": "FRESHMAN",
+                                                "fieldName": "백엔드 개발자",
+                                                "introduction": "열정적인 개발자입니다.",
+                                                "githubUrl": "https://github.com/kimdev",
+                                                "blogUrl": null,
+                                                "notionUrl": null,
+                                                "createdAt": "2024-03-10 09:30:00",
+                                                "updatedAt": "2024-03-15 10:30:25",
+                                                "educations": [],
+                                                "techStacks": [],
+                                                "customLinks": [],
+                                                "careers": [],
+                                                "projects": [],
+                                                "trainings": [],
+                                                "additionalInfos": []
+                                              }
+                                            }
+                                            """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "이력서를 찾을 수 없음",
+                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
+                    )
+            }
+    )
+    @GetMapping("/{resumeId}")
+    public ResponseEntity<CommonResponse<ResumeDetailResponse>> getResumeDetail(
+            @Parameter(description = "이력서 ID", example = "1") @PathVariable Long resumeId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        ResumeDetailResponse resumeDetail = resumeService.getResumeDetail(resumeId, memberEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("이력서를 성공적으로 조회했습니다.", resumeDetail));
     }
 
 }
