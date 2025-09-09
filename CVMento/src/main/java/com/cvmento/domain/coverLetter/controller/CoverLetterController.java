@@ -96,8 +96,8 @@ public class CoverLetterController {
             @Valid @RequestBody CoverLetterSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        coverLetterService.saveCoverLetter(request, userEmail);
+        String memberEmail = userDetails.getUsername();
+        coverLetterService.saveCoverLetter(request, memberEmail);
 
         String message = request.isAiImproved() ?
                 "AI 첨삭된 자소서가 저장되었습니다." :
@@ -105,106 +105,6 @@ public class CoverLetterController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(message, null));
-    }
-
-    @Operation(
-            summary = "자소서 목록 조회",
-            description = "사용자의 자소서 목록을 페이징으로 조회합니다. 최신 수정일 순으로 정렬됩니다.",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "자소서 목록 조회 성공",
-                            content = @Content(
-                                    schema = @Schema(implementation = CommonResponse.class),
-                                    examples = @ExampleObject(
-                                            name = "자소서 목록 조회 응답",
-                                            value = "{\n" +
-                                                    "  \"success\": true,\n" +
-                                                    "  \"message\": \"자소서 목록 조회 성공\",\n" +
-                                                    "  \"data\": {\n" +
-                                                    "    \"content\": [\n" +
-                                                    "      {\n" +
-                                                    "        \"coverLetterId\": 1,\n" +
-                                                    "        \"title\": \"[AI첨삭] 네이버 백엔드 개발자 지원\",\n" +
-                                                    "        \"content\": \"저는 백엔드 개발 분야에서 3년간의 실무 경험을 통해 확고한 기술적 역량을 구축해왔습니다...\",\n" +
-                                                    "        \"jobField\": \"백엔드 개발자\",\n" +
-                                                    "        \"experience\": \"3년\",\n" +
-                                                    "        \"createdAt\": \"2025-09-01T10:30:00\",\n" +
-                                                    "        \"updatedAt\": \"2025-09-01T10:35:00\"\n" +
-                                                    "      }\n" +
-                                                    "    ],\n" +
-                                                    "    \"pageable\": {\n" +
-                                                    "      \"pageNumber\": 0,\n" +
-                                                    "      \"pageSize\": 5\n" +
-                                                    "    },\n" +
-                                                    "    \"totalElements\": 15,\n" +
-                                                    "    \"totalPages\": 3\n" +
-                                                    "  }\n" +
-                                                    "}"
-                                    )
-                            )
-                    )
-            }
-    )
-    @GetMapping
-    public ResponseEntity<CommonResponse<Page<CoverLetterListResponse>>> getCoverLetters(
-            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "5") int size,
-            @Parameter(description = "뷰 타입 (thumbnail: 미리보기, 그외: 전체내용)") @RequestParam(required = false) String view,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        String userEmail = userDetails.getUsername();
-        Pageable pageable = PageRequest.of(page, size);
-        Page<CoverLetterListResponse> response = coverLetterService.getCoverLetters(userEmail, pageable, view);
-
-        return ResponseEntity.ok(CommonResponse.success("자소서 목록 조회 성공", response));
-    }
-
-    @Operation(
-            summary = "자소서 상세 조회",
-            description = "특정 자소서의 상세 정보를 조회합니다.",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "자소서 조회 성공",
-                            content = @Content(
-                                    schema = @Schema(implementation = CommonResponse.class),
-                                    examples = @ExampleObject(
-                                            name = "자소서 상세 조회 응답",
-                                            value = "{\n" +
-                                                    "  \"success\": true,\n" +
-                                                    "  \"message\": \"자소서 조회 성공\",\n" +
-                                                    "  \"data\": {\n" +
-                                                    "    \"coverLetterId\": 1,\n" +
-                                                    "    \"title\": \"[원본] 네이버 백엔드 개발자 지원\",\n" +
-                                                    "    \"content\": \"저는 소프트웨어 개발에 대한 열정을 바탕으로 다양한 프로젝트를 수행해왔습니다. 특히 백엔드 개발에 관심이 많아 Spring Boot와 JPA를 활용한 REST API 개발 경험이 있습니다. 대학교 재학 중 진행한 팀 프로젝트에서는 주도적으로 서버 아키텍처를 설계하고 구현했으며, 이를 통해 협업과 문제해결 능력을 기를 수 있었습니다.\",\n" +
-                                                    "    \"jobField\": \"백엔드 개발자\",\n" +
-                                                    "    \"experience\": \"1년\",\n" +
-                                                    "    \"createdAt\": \"2025-09-01T10:30:00\",\n" +
-                                                    "    \"updatedAt\": \"2025-09-01T10:30:00\"\n" +
-                                                    "  }\n" +
-                                                    "}"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "자소서를 찾을 수 없음",
-                            content = @Content(
-                                    schema = @Schema(implementation = CommonResponse.class)
-                            )
-                    )
-            }
-    )
-    @GetMapping("/{coverLetterId}")
-    public ResponseEntity<CommonResponse<CoverLetterDetailResponse>> getCoverLetter(
-            @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        String userEmail = userDetails.getUsername();
-        CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, userEmail);
-
-        return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
     }
 
     @Operation(
@@ -264,14 +164,148 @@ public class CoverLetterController {
             @Valid @RequestBody CoverLetterUpdateRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        coverLetterService.updateCoverLetter(coverLetterId, request, userEmail);
+        String memberEmail = userDetails.getUsername();
+        coverLetterService.updateCoverLetter(coverLetterId, request, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서가 수정되었습니다.", null));
     }
 
+    @Operation(
+            summary = "자소서 삭제 (소프트 삭제)",
+            description = "자소서를 삭제합니다. 실제로는 상태만 변경되어 복구가 가능합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "자소서 삭제 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "자소서 삭제 성공 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"자소서가 삭제되었습니다.\",\n" +
+                                                    "  \"data\": null\n" +
+                                                    "}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "자소서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @DeleteMapping("/{coverLetterId}")
+    public ResponseEntity<CommonResponse<Void>> deleteCoverLetter(
+            @Parameter(description = "삭제할 자소서 ID") @PathVariable Long coverLetterId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        coverLetterService.deleteCoverLetter(coverLetterId, memberEmail);
 
-    /**
-     * 자소서 삭제 API (소프트삭제) - 추후 구현 예정
-     */
+        return ResponseEntity.ok(CommonResponse.success("자소서가 삭제되었습니다.", null));
+    }
+
+    @Operation(
+            summary = "자소서 목록 조회",
+            description = "사용자의 자소서 목록을 페이징으로 조회합니다. 최신 수정일 순으로 정렬됩니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "자소서 목록 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "자소서 목록 조회 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"자소서 목록 조회 성공\",\n" +
+                                                    "  \"data\": {\n" +
+                                                    "    \"content\": [\n" +
+                                                    "      {\n" +
+                                                    "        \"coverLetterId\": 1,\n" +
+                                                    "        \"title\": \"[AI첨삭] 네이버 백엔드 개발자 지원\",\n" +
+                                                    "        \"content\": \"저는 백엔드 개발 분야에서 3년간의 실무 경험을 통해 확고한 기술적 역량을 구축해왔습니다...\",\n" +
+                                                    "        \"jobField\": \"백엔드 개발자\",\n" +
+                                                    "        \"experience\": \"3년\",\n" +
+                                                    "        \"createdAt\": \"2025-09-01T10:30:00\",\n" +
+                                                    "        \"updatedAt\": \"2025-09-01T10:35:00\"\n" +
+                                                    "      }\n" +
+                                                    "    ],\n" +
+                                                    "    \"pageable\": {\n" +
+                                                    "      \"pageNumber\": 0,\n" +
+                                                    "      \"pageSize\": 5\n" +
+                                                    "    },\n" +
+                                                    "    \"totalElements\": 15,\n" +
+                                                    "    \"totalPages\": 3\n" +
+                                                    "  }\n" +
+                                                    "}"
+                                    )
+                            )
+                    )
+            }
+    )
+    @GetMapping
+    public ResponseEntity<CommonResponse<Page<CoverLetterListResponse>>> getCoverLetters(
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "5") int size,
+            @Parameter(description = "뷰 타입 (thumbnail: 미리보기, 그외: 전체내용)") @RequestParam(required = false) String view,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<CoverLetterListResponse> response = coverLetterService.getCoverLetters(memberEmail, pageable, view);
+
+        return ResponseEntity.ok(CommonResponse.success("자소서 목록 조회 성공", response));
+    }
+
+    @Operation(
+            summary = "자소서 상세 조회",
+            description = "특정 자소서의 상세 정보를 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "자소서 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "자소서 상세 조회 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"자소서 조회 성공\",\n" +
+                                                    "  \"data\": {\n" +
+                                                    "    \"coverLetterId\": 1,\n" +
+                                                    "    \"title\": \"[원본] 네이버 백엔드 개발자 지원\",\n" +
+                                                    "    \"content\": \"저는 소프트웨어 개발에 대한 열정을 바탕으로 다양한 프로젝트를 수행해왔습니다. 특히 백엔드 개발에 관심이 많아 Spring Boot와 JPA를 활용한 REST API 개발 경험이 있습니다. 대학교 재학 중 진행한 팀 프로젝트에서는 주도적으로 서버 아키텍처를 설계하고 구현했으며, 이를 통해 협업과 문제해결 능력을 기를 수 있었습니다.\",\n" +
+                                                    "    \"jobField\": \"백엔드 개발자\",\n" +
+                                                    "    \"experience\": \"1년\",\n" +
+                                                    "    \"createdAt\": \"2025-09-01T10:30:00\",\n" +
+                                                    "    \"updatedAt\": \"2025-09-01T10:30:00\"\n" +
+                                                    "  }\n" +
+                                                    "}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "자소서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @GetMapping("/{coverLetterId}")
+    public ResponseEntity<CommonResponse<CoverLetterDetailResponse>> getCoverLetter(
+            @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, memberEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
+    }
 }

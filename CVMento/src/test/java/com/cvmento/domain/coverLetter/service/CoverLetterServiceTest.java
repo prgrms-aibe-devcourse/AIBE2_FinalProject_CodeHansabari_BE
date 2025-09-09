@@ -2,6 +2,7 @@ package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterUpdateRequest;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
+import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
@@ -60,16 +61,16 @@ class CoverLetterServiceTest {
     @DisplayName("자소서 수정 성공 - 정상 케이스")
     void updateCoverLetter_Success() {
         // given
-        String userEmail = "test@example.com";
+        String memberEmail = "test@example.com";
         Long coverLetterId = 1L;
 
-        given(memberRepository.findByEmail(userEmail))
-                .willReturn(Optional.of(testMember));
-        given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, testMember))
+        // 변경: 이메일과 상태로 직접 조회하는 방식으로 Mock 설정
+        given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                 .willReturn(Optional.of(testCoverLetter));
 
         // when
-        coverLetterService.updateCoverLetter(coverLetterId, updateRequest, userEmail);
+        coverLetterService.updateCoverLetter(coverLetterId, updateRequest, memberEmail);
 
         // then
         assertThat(testCoverLetter.getTitle()).isEqualTo("[수정본] 카카오 백엔드 개발자 지원");
@@ -78,23 +79,21 @@ class CoverLetterServiceTest {
         assertThat(testCoverLetter.getExperienceYears()).isEqualTo(2);
     }
 
-
-
     @Test
     @DisplayName("자소서 수정 실패 - 존재하지 않는 자소서")
     void updateCoverLetter_Fail_CoverLetterNotFound() {
         // given
-        String userEmail = "test@example.com";
+        String memberEmail = "test@example.com";
         Long coverLetterId = 999L;
 
-        given(memberRepository.findByEmail(userEmail))
-                .willReturn(Optional.of(testMember));
-        given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, testMember))
+        // 변경: 이메일과 상태로 직접 조회하는 방식으로 Mock 설정
+        given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                 .willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() ->
-                coverLetterService.updateCoverLetter(coverLetterId, updateRequest, userEmail))
+                coverLetterService.updateCoverLetter(coverLetterId, updateRequest, memberEmail))
                 .isInstanceOf(CoverLetterException.class)
                 .hasMessage("자소서를 찾을 수 없습니다.");
     }
@@ -106,14 +105,10 @@ class CoverLetterServiceTest {
         String hackerEmail = "hacker@example.com";
         Long coverLetterId = 1L;
 
-        // 해커(다른 사용자) 생성
-        Member hackerMember = new Member("google456", hackerEmail, "해커", "hacker.jpg");
-
-        given(memberRepository.findByEmail(hackerEmail))
-                .willReturn(Optional.of(hackerMember));
-
-        // 해커가 testMember의 자소서를 조회하려 하지만 권한이 없어서 조회 안됨
-        given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, hackerMember))
+        // 변경: Member 엔티티 생성 불필요, 이메일로 직접 조회
+        // 해커가 다른 사람의 자소서를 조회하려 하지만 권한이 없어서 조회 안됨
+        given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                coverLetterId, hackerEmail, CoverLetterStatus.ACTIVE))
                 .willReturn(Optional.empty());
 
         // when & then
@@ -127,12 +122,12 @@ class CoverLetterServiceTest {
     @DisplayName("[수정본] 접두사가 올바르게 추가되는지 확인")
     void updateCoverLetter_TitlePrefix() {
         // given
-        String userEmail = "test@example.com";
+        String memberEmail = "test@example.com";
         Long coverLetterId = 1L;
 
-        given(memberRepository.findByEmail(userEmail))
-                .willReturn(Optional.of(testMember));
-        given(coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, testMember))
+        // 변경: 이메일과 상태로 직접 조회하는 방식으로 Mock 설정
+        given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                 .willReturn(Optional.of(testCoverLetter));
 
         CoverLetterUpdateRequest requestWithShortTitle = new CoverLetterUpdateRequest(
@@ -140,7 +135,7 @@ class CoverLetterServiceTest {
         );
 
         // when
-        coverLetterService.updateCoverLetter(coverLetterId, requestWithShortTitle, userEmail);
+        coverLetterService.updateCoverLetter(coverLetterId, requestWithShortTitle, memberEmail);
 
         // then
         assertThat(testCoverLetter.getTitle()).isEqualTo("[수정본] 단순제목");

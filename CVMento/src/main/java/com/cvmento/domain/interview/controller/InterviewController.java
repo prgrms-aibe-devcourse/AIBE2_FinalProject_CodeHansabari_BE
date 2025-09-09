@@ -90,8 +90,8 @@ public class InterviewController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        InterviewQnaListResponse response = interviewService.getExistingInterviewQna(coverLetterId, userEmail);
+        String memberEmail = userDetails.getUsername();
+        InterviewQnaListResponse response = interviewService.getExistingInterviewQna(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 조회 성공", response));
     }
@@ -180,8 +180,8 @@ public class InterviewController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        InterviewQnaListResponse response = interviewService.createInterviewQuestions(coverLetterId, userEmail);
+        String memberEmail = userDetails.getUsername();
+        InterviewQnaListResponse response = interviewService.createInterviewQuestions(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 생성 성공", response));
     }
@@ -262,12 +262,10 @@ public class InterviewController {
             @Valid @RequestBody CustomQuestionRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
+        String memberEmail = userDetails.getUsername();
         CustomAnswerResponse response = interviewService.createCustomAnswer(
-                coverLetterId, userEmail, request.question());
+                coverLetterId, memberEmail, request.question());
 
         return ResponseEntity.ok(CommonResponse.success("커스텀 질문 답변 생성 성공", response));
     }
-
-
 }

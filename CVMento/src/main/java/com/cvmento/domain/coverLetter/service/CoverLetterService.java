@@ -5,6 +5,7 @@ import com.cvmento.domain.coverLetter.dto.request.CoverLetterUpdateRequest;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterDetailResponse;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterListResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
+import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
@@ -33,8 +34,8 @@ public class CoverLetterService {
      * 자소서 저장 (원본/AI첨삭 구분)
      */
     @Transactional
-    public void saveCoverLetter(CoverLetterSaveRequest request, String userEmail) {
-        Member member = findMemberByEmail(userEmail);
+    public void saveCoverLetter(CoverLetterSaveRequest request, String memberEmail) {
+        Member member = findMemberByEmail(memberEmail);
 
         // 제목에 접두사 추가
         String finalTitle = buildTitleWithPrefix(request.title(), request.isAiImproved());
@@ -51,20 +52,20 @@ public class CoverLetterService {
 
         String logType = request.isAiImproved() ? "AI첨삭" : "원본";
         log.info("{} 자소서 저장 완료 - ID: {}, 사용자: {}",
-                logType, savedCoverLetter.getCoverLetterId(), userEmail);
+                logType, savedCoverLetter.getCoverLetterId(), memberEmail);
     }
 
     /**
      * 자소서 수정
      */
     @Transactional
-    public void updateCoverLetter(Long coverLetterId, CoverLetterUpdateRequest request, String userEmail) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public void updateCoverLetter(Long coverLetterId, CoverLetterUpdateRequest request, String memberEmail) {
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
         // [수정본] 접두사 추가
         String finalTitle = "[수정본] " + request.title();
 
-        // 엔티티 업데이트
+        // 엔티티 업데이트 (updatedAt은 자동으로 갱신됨)
         coverLetter.updateCoverLetter(
                 finalTitle,
                 request.content(),
@@ -73,15 +74,31 @@ public class CoverLetterService {
         );
         coverLetterRepository.save(coverLetter);
 
-        log.info("자소서 수정 완료 - ID: {}, 사용자: {}", coverLetterId, userEmail);
+        log.info("자소서 수정 완료 - ID: {}, 사용자: {}", coverLetterId, memberEmail);
     }
 
     /**
-     * 자소서 목록 조회 (페이징 + view 옵션)
+     * 자소서 삭제 (소프트 삭제)
      */
-    public Page<CoverLetterListResponse> getCoverLetters(String userEmail, Pageable pageable, String view) {
-        Member member = findMemberByEmail(userEmail);
-        Page<CoverLetter> coverLetters = coverLetterRepository.findByMemberOrderByUpdatedAtDesc(member, pageable);
+    @Transactional
+    public void deleteCoverLetter(Long coverLetterId, String memberEmail) {
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
+
+        // 소프트 삭제 (상태를 DELETED로 변경)
+        coverLetter.delete();
+
+        log.info("자소서 삭제 완료 - ID: {}, 사용자: {}", coverLetterId, memberEmail);
+    }
+
+    /**
+     * 자소서 목록 조회 (페이징 + view 옵션) - 활성 상태만
+     */
+    public Page<CoverLetterListResponse> getCoverLetters(String memberEmail, Pageable pageable, String view) {
+        Member member = findMemberByEmail(memberEmail);
+
+        // 활성 상태의 자소서만 조회
+        Page<CoverLetter> coverLetters = coverLetterRepository
+                .findByMemberAndStatusOrderByUpdatedAtDesc(member, CoverLetterStatus.ACTIVE, pageable);
 
         boolean isThumbnailView = "thumbnail".equals(view);
 
@@ -93,19 +110,19 @@ public class CoverLetterService {
                 .toList();
 
         log.info("자소서 목록 조회 - 사용자: {}, 페이지: {}, 크기: {}, 뷰: {}, 총 개수: {}",
-                userEmail, pageable.getPageNumber(), pageable.getPageSize(),
+                memberEmail, pageable.getPageNumber(), pageable.getPageSize(),
                 isThumbnailView ? "thumbnail" : "full", coverLetters.getTotalElements());
 
         return new PageImpl<>(responses, pageable, coverLetters.getTotalElements());
     }
 
     /**
-     * 자소서 단일 조회
+     * 자소서 단일 조회 - 활성 상태만
      */
-    public CoverLetterDetailResponse getCoverLetter(Long coverLetterId, String userEmail) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public CoverLetterDetailResponse getCoverLetter(Long coverLetterId, String memberEmail) {
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
-        log.info("자소서 상세 조회 - ID: {}, 사용자: {}", coverLetterId, userEmail);
+        log.info("자소서 상세 조회 - ID: {}, 사용자: {}", coverLetterId, memberEmail);
 
         return CoverLetterDetailResponse.from(coverLetter);
     }
@@ -122,9 +139,12 @@ public class CoverLetterService {
                 .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
     }
 
-    private CoverLetter findCoverLetterByIdAndUser(Long coverLetterId, String userEmail) {
-        Member member = findMemberByEmail(userEmail);
-        return coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, member)
+    /**
+     * 활성 상태의 자소서만 조회하는 헬퍼 메서드 (이메일 기반)
+     */
+    private CoverLetter findActiveCoverLetterByIdAndMember(Long coverLetterId, String memberEmail) {
+        return coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                        coverLetterId, memberEmail, CoverLetterStatus.ACTIVE)
                 .orElseThrow(() -> new CoverLetterException("자소서를 찾을 수 없습니다."));
     }
 }
