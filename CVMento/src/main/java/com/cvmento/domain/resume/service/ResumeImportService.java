@@ -143,57 +143,56 @@ public class ResumeImportService {
      */
     private ResumeResponse createResumeDirectly(MultipartFile file, String userEmail) {
         log.info("Direct Vision LLM 방식으로 이력서 생성 시작. 사용자: {}", userEmail);
-        
-        // PDF와 이미지 모두 처리
         log.info("Direct Vision LLM 방식으로 {} 파일 처리 중", file.getContentType());
         
-        String extractedJson = null; // 변수를 try 블록 바깥에 선언
-        
         try {
-            // === 1단계: 파일을 Base64로 변환 ===
-            // Vision LLM이 이미지를 처리할 수 있도록 Base64 인코딩
-            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
-            log.info("File converted to Base64. Size: {} bytes", base64Image.length());
-
-            // === 2단계: Vision LLM용 프롬프트 생성 ===
-            // 이미지에서 이력서 내용을 추출하라는 프롬프트
-            String prompt = llmPromptService.buildResumeImportPrompt();
-
-            // === 3단계: Vision LLM API 호출 ===
-            // 프롬프트 + Base64 이미지 + 파일 타입을 함께 전송
-            ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(
-                prompt,                    // 프롬프트
-                base64Image,              // Base64 인코딩된 이미지
-                file.getContentType()     // 파일 MIME 타입 (image/png, application/pdf 등)
-            );
+            String base64Image = convertFileToBase64(file);
+            String extractedJson = processWithVisionLLM(base64Image, file.getContentType(), userEmail);
+            ResumeCreateRequest createRequest = parseJsonToRequest(extractedJson, userEmail);
             
-            extractedJson = llmResponse.response();
-
-            // LLM 응답 검증
-            if (extractedJson == null || extractedJson.trim().isEmpty()) {
-                log.error("LLM returned empty content for user: {}", userEmail);
-                throw new ResumeAiException("AI가 이력서 내용을 추출하지 못했습니다. 다른 파일로 시도해주세요.");
-            }
-            log.info("LLM analysis complete. Received JSON content.");
-            log.debug("LLM 응답 JSON: {}", extractedJson); // JSON 내용 로깅
-
-            // === 4단계: JSON을 이력서 생성 요청 객체로 변환 및 생성 ===
+            return resumeService.createResume(createRequest, userEmail);
+        } catch (IOException e) {
+            log.error("Failed to read file for user: {}", userEmail, e);
+            throw new RuntimeException("파일을 읽는 중 오류가 발생했습니다.", e);
+        }
+    }
+    
+    private String convertFileToBase64(MultipartFile file) throws IOException {
+        String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+        log.info("File converted to Base64. Size: {} bytes", base64Image.length());
+        return base64Image;
+    }
+    
+    private String processWithVisionLLM(String base64Image, String contentType, String userEmail) {
+        String prompt = llmPromptService.buildResumeImportPrompt();
+        
+        ResumeLlmResponse llmResponse = llmClientService.analyzeUniversal(
+            prompt, base64Image, contentType
+        );
+        
+        String extractedJson = llmResponse.response();
+        if (extractedJson == null || extractedJson.trim().isEmpty()) {
+            log.error("LLM returned empty content for user: {}", userEmail);
+            throw new ResumeAiException("AI가 이력서 내용을 추출하지 못했습니다. 다른 파일로 시도해주세요.");
+        }
+        
+        log.info("LLM analysis complete. Received JSON content.");
+        log.debug("LLM 응답 JSON: {}", extractedJson);
+        return extractedJson;
+    }
+    
+    private ResumeCreateRequest parseJsonToRequest(String extractedJson, String userEmail) {
+        try {
             ResumeCreateRequest createRequest = objectMapper.readValue(extractedJson, ResumeCreateRequest.class);
-            
-            // 변환된 객체 검증 로깅
             log.debug("Parsed ResumeCreateRequest - title: {}, memberInfo: {}, sections count: {}", 
                 createRequest.title(), 
                 createRequest.memberInfo() != null ? "present" : "null", 
                 createRequest.sections() != null ? createRequest.sections().size() : "null");
-            return resumeService.createResume(createRequest, userEmail);
-
+            return createRequest;
         } catch (JsonProcessingException e) {
             log.error("Failed to parse JSON from LLM response for user: {}. Error: {}", userEmail, e.getMessage(), e);
-            log.error("Problematic JSON content: {}", extractedJson); // 문제가 된 JSON 로깅
+            log.error("Problematic JSON content: {}", extractedJson);
             throw new ResumeAiException("AI 응답을 처리하는 중 오류가 발생했습니다. 응답 형식이 올바르지 않을 수 있습니다.", e);
-        } catch (IOException e) {
-            log.error("Failed to read file for user: {}", userEmail, e);
-            throw new RuntimeException("파일을 읽는 중 오류가 발생했습니다.", e);
         }
     }
 

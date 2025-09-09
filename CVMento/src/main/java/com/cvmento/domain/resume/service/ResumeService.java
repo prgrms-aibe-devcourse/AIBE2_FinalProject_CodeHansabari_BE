@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.service;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.domain.resume.dto.request.ResumeCreateRequest;
+import com.cvmento.domain.resume.dto.request.ResumeRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeResponse;
 import com.cvmento.domain.resume.entity.Resume;
@@ -32,51 +33,60 @@ public class ResumeService {
     @Transactional
     public ResumeResponse createResume(ResumeCreateRequest request, String userEmail) {
         Member member = findMemberByEmail(userEmail);
-
-        // memberInfo에서 자기소개와 기술스택 추출
+        Resume resume = createResumeEntity(request, member);
+        addSectionsToResume(resume, request.sections());
+        
+        Resume savedResume = resumeRepository.save(resume);
+        List<String> convertedTechStack = techStackConverter.fromJson(savedResume.getTechStack());
+        return ResumeResponse.from(savedResume, convertedTechStack);
+    }
+    
+    private Resume createResumeEntity(ResumeCreateRequest request, Member member) {
         String selfIntroduction = request.memberInfo().introduction();
         List<String> techStack = request.memberInfo().techStack() != null 
             ? request.memberInfo().techStack() 
             : Collections.emptyList();
         
-        // 기술스택을 JSON으로 변환
         String techStackJson = techStackConverter.toJson(techStack);
         
-        Resume resume = new Resume(
+        return new Resume(
             request.title(),
             member,
             selfIntroduction,
             techStackJson
         );
-
-        request.sections().forEach(sectionDto -> {
-            // 기존 방식 유지 (하위 호환성)
-            String combinedContent = sectionDto.items().stream()
-                    .map(item -> String.format("Title: %s, SubTitle: %s, Period: %s - %s, Description: %s",
-                            item.title(), item.subTitle(), item.startDate(), item.endDate(), item.description()))
-                    .reduce((a, b) -> a + "\n---\n" + b)
-                    .orElse("");
-
+    }
+    
+    private void addSectionsToResume(Resume resume, List<ResumeRequest.ResumeSectionRequest> sectionRequests) {
+        sectionRequests.forEach(sectionDto -> {
+            String combinedContent = createCombinedContent(sectionDto);
             ResumeSection section = new ResumeSection(sectionDto.sectionType(), sectionDto.sectionTitle(), combinedContent, resume);
-            
-            // 새로운 구조화된 items 저장
-            sectionDto.items().forEach(itemDto -> {
-                LocalDate startDate = parseDate(itemDto.startDate());
-                LocalDate endDate = parseDate(itemDto.endDate());
-                section.addItem(itemDto.title(), itemDto.subTitle(), startDate, endDate, itemDto.description());
-            });
-            
+            addItemsToSection(section, sectionDto.items());
             resume.getSections().add(section);
         });
-
-        Resume savedResume = resumeRepository.save(resume);
-        return ResumeResponse.from(savedResume);
+    }
+    
+    private String createCombinedContent(ResumeRequest.ResumeSectionRequest sectionDto) {
+        return sectionDto.items().stream()
+                .map(item -> String.format("Title: %s, SubTitle: %s, Period: %s - %s, Description: %s",
+                        item.title(), item.subTitle(), item.startDate(), item.endDate(), item.description()))
+                .reduce((a, b) -> a + "\n---\n" + b)
+                .orElse("");
+    }
+    
+    private void addItemsToSection(ResumeSection section, List<ResumeRequest.SectionItemRequest> items) {
+        items.forEach(itemDto -> {
+            LocalDate startDate = parseDate(itemDto.startDate());
+            LocalDate endDate = parseDate(itemDto.endDate());
+            section.addItem(itemDto.title(), itemDto.subTitle(), startDate, endDate, itemDto.description());
+        });
     }
 
     @Transactional(readOnly = true)
     public ResumeResponse getResume(Long resumeId, String userEmail) {
         Resume resume = findResumeByIdAndUser(resumeId, userEmail);
-        return ResumeResponse.from(resume);
+        List<String> convertedTechStack = techStackConverter.fromJson(resume.getTechStack());
+        return ResumeResponse.from(resume, convertedTechStack);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +94,10 @@ public class ResumeService {
         Member member = findMemberByEmail(userEmail);
         List<Resume> resumes = resumeRepository.findByMember_MemberId(member.getMemberId());
         return resumes.stream()
-                .map(ResumeResponse::from)
+                .map(resume -> {
+                    List<String> convertedTechStack = techStackConverter.fromJson(resume.getTechStack());
+                    return ResumeResponse.from(resume, convertedTechStack);
+                })
                 .toList();
     }
 
@@ -112,7 +125,8 @@ public class ResumeService {
             resume.addSection(sectionDto.sectionType(), sectionDto.sectionTitle(), combinedContent);
         });
 
-        return ResumeResponse.from(resume);
+        List<String> convertedTechStack = techStackConverter.fromJson(resume.getTechStack());
+        return ResumeResponse.from(resume, convertedTechStack);
     }
 
     @Transactional
@@ -127,13 +141,9 @@ public class ResumeService {
     }
 
     private Resume findResumeByIdAndUser(Long resumeId, String userEmail) {
-        Member member = findMemberByEmail(userEmail);
-        Resume resume = resumeRepository.findById(resumeId)
+        // EntityGraph를 사용하여 연관 엔티티를 한 번에 로드
+        Resume resume = resumeRepository.findByResumeIdAndMember_Email(resumeId, userEmail)
                 .orElseThrow(() -> new ResumeNotFoundException("이력서를 찾을 수 없습니다."));
-        
-        if (!resume.getMember().getMemberId().equals(member.getMemberId())) {
-            throw new ResumeNotFoundException("이력서에 접근할 권한이 없습니다.");
-        }
         
         return resume;
     }

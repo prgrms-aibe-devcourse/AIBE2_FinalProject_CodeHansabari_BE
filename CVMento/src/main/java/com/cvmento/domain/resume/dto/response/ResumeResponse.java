@@ -7,7 +7,6 @@ import com.cvmento.domain.resume.entity.ResumeItem;
 import com.cvmento.domain.resume.enums.ResumeSectionType;
 
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays; // New import
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,13 +20,13 @@ public record ResumeResponse(
     String createdAt,
     String updatedAt
 ) {
-    public static ResumeResponse from(Resume resume) {
+    public static ResumeResponse from(Resume resume, List<String> techStackList) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return new ResumeResponse(
                 resume.getResumeId(),
                 resume.getTitle(),
                 MemberInfoResponse.from(resume.getMember()),
-                IntroResponse.from(resume.getSelfIntroduction(), resume.getTechStackList()), // Use new method
+                IntroResponse.from(resume.getSelfIntroduction(), techStackList),
                 resume.getSections().stream()
                         .map(ResumeSectionResponse::from)
                         .collect(Collectors.toList()),
