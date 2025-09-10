@@ -1,8 +1,6 @@
 package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.member.entity.Member;
-import com.cvmento.domain.resume.dto.request.UserExperienceRequest;
-import com.cvmento.domain.resume.dto.response.ResumeAiSuggestionResponse;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.ResumeAiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,8 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -1,7 +1,6 @@
 package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.member.entity.Member;
-import com.cvmento.domain.resume.dto.request.UserExperienceRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

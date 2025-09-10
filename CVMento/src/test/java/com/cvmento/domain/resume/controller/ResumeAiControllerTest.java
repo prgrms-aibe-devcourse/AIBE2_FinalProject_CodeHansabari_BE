@@ -1,8 +1,5 @@
 package com.cvmento.domain.resume.controller;
 
-import com.cvmento.domain.resume.dto.request.UserExperienceRequest;
-import com.cvmento.domain.resume.dto.response.ResumeAiSuggestionResponse;
-import com.cvmento.domain.resume.dto.response.SuggestedResume;
 import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;
 import com.cvmento.domain.resume.service.ResumeAiService;

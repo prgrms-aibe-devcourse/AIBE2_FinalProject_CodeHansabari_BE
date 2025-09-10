@@ -2,9 +2,6 @@ package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
-import com.cvmento.domain.resume.dto.request.UserExperienceRequest;
-import com.cvmento.domain.resume.dto.response.ResumeAiSuggestionResponse;
-import com.cvmento.domain.resume.dto.response.SuggestedResume;
 import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;
 import com.cvmento.global.exception.customException.ResumeAiException;
@@ -21,7 +18,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
