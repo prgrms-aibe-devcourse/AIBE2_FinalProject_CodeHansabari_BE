@@ -37,19 +37,9 @@ public class ResumeAiLlmPromptService {
     private String buildUserInfoSection(UserExperienceRequest request, Member member) {
         StringBuilder section = new StringBuilder("## 사용자 정보\\n");
         section.append("**이름**: ").append(member.getName()).append("\\n");
-        section.append("**이메일**: ").append(member.getEmail()).append("\\n");
-        section.append("**경력구분**: ").append(request.careerType()).append("\\n");
-        section.append("**지원분야**: ").append(request.fieldName()).append("\\n\\n");
+        section.append("**이메일**: ").append(member.getEmail()).append("\\n\\n");
         
         section.append("**경험 및 경력사항**:\\n").append(request.experiences()).append("\\n\\n");
-        
-        if (request.techStacks() != null && !request.techStacks().isEmpty()) {
-            section.append("**보유 기술스택**: ").append(String.join(", ", request.techStacks())).append("\\n\\n");
-        }
-        
-        if (request.additionalInfo() != null && !request.additionalInfo().trim().isEmpty()) {
-            section.append("**추가 정보**: ").append(request.additionalInfo()).append("\\n\\n");
-        }
         
         return section.toString();
     }
@@ -59,21 +49,23 @@ public class ResumeAiLlmPromptService {
     private String buildSectionAdditionRequestSection() {
         return """
             ## 작업 요청
-            위 사용자의 경험 정보를 바탕으로 이력서에 추가할 수 있는 섹션 내용들을 제안해주세요.
+            위 사용자의 경험 텍스트를 분석하여 이력서에 추가할 수 있는 섹션 내용들을 제안해주세요.
             
-            **제안 원칙:**
+            **분석 및 제안 원칙:**
+            - 경험 텍스트에서 경력구분(FRESHMAN/EXPERIENCED), 지원분야, 기술스택 등을 추론하여 추출
             - 사용자가 실제 경험한 내용만을 바탕으로 제안
             - 과장하거나 허위 내용 생성 금지
             - 경험에서 추출할 수 있는 현실적인 내용만 제안
             - 빈 섹션이 있어도 괜찮음 (경험이 없다면 비워둘 것)
             
-            **제안 범위:**
+            **추출 및 제안 범위:**
+            - 기본 정보: 경력구분, 지원분야를 경험 내용에서 추론
             - 경력 정보: 회사명, 기간, 직책, 주요 업무와 성과
-            - 프로젝트: 관련 프로젝트 내용
-            - 기술스택: 사용 기술과 숙련도
+            - 프로젝트: 관련 프로젝트 내용 및 성과
+            - 기술스택: 언급된 기술과 추정 숙련도
             - 학력 정보: 추정 가능한 범위에서만
             - 교육이력: 언급된 교육이나 자격증
-            - 기타사항: 자격증, 수상 등 (언급된 경우에만)
+            - 기타사항: 자격증, 수상, 특기사항 등 (언급된 경우에만)
             
             """;
     }

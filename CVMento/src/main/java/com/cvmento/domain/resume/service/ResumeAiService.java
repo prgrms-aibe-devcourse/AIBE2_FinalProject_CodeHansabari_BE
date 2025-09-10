@@ -27,8 +27,8 @@ public class ResumeAiService {
      * 사용자 경험 기반 이력서 섹션 추가 제안
      */
     public ResumeAiSuggestionResponse generateResumeSuggestions(UserExperienceRequest request, String userEmail) {
-        log.info("이력서 섹션 추가 제안 생성 시작. 사용자: {}, 경력구분: {}, 지원분야: {}", 
-                userEmail, request.careerType(), request.fieldName());
+        log.info("이력서 섹션 추가 제안 생성 시작. 사용자: {}, 경험 길이: {}자", 
+                userEmail, request.experiences().length());
         
         // 사용자 정보 조회
         Member member = findMemberByEmail(userEmail);
