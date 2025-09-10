@@ -302,7 +302,7 @@ public class AuthController {
         if (xRealIp != null && !xRealIp.isEmpty()) {
             return xRealIp;
         }
-
+ 
         return request.getRemoteAddr();
     }
 }
