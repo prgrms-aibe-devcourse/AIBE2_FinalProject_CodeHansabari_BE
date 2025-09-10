@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -307,5 +308,54 @@ public class CoverLetterController {
         CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
+    }
+
+    @Operation(
+            summary = "자소서 복구 (관리자 전용)",
+            description = "삭제된 자소서 ID를 받아서 복구합니다. 관리자만 사용 가능한 기능입니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "자소서 복구 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "자소서 복구 성공 응답",
+                                            value = """
+                                                {
+                                                  "success": true,
+                                                  "message": "자소서가 복구되었습니다.",
+                                                  "data": null
+                                                }
+                                                """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "관리자 권한 필요",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "복구할 수 있는 자소서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @PatchMapping("/{coverLetterId}/restore")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ROOT')")
+    public ResponseEntity<CommonResponse<Void>> restoreCoverLetter(
+            @Parameter(description = "복구할 자소서 ID") @PathVariable Long coverLetterId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String adminEmail = userDetails.getUsername();
+        coverLetterService.restoreCoverLetter(coverLetterId, adminEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("자소서가 복구되었습니다.", null));
     }
 }

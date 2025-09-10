@@ -127,6 +127,21 @@ public class CoverLetterService {
         return CoverLetterDetailResponse.from(coverLetter);
     }
 
+    /**
+     * 자소서 복구 (관리자 전용)
+     * 삭제된 자소서 ID만으로 복구
+     */
+    @Transactional
+    public void restoreCoverLetter(Long coverLetterId, String adminEmail) {
+        CoverLetter coverLetter = findDeletedCoverLetterById(coverLetterId);
+
+        // 복구 실행
+        coverLetter.restore();
+
+        log.info("관리자 권한으로 자소서 복구 완료 - ID: {}, 관리자: {}, 원 소유자: {}",
+                coverLetterId, adminEmail, coverLetter.getMember().getEmail());
+    }
+
     // ======================== 유틸리티 메서드 ========================
 
     private String buildTitleWithPrefix(String originalTitle, boolean isAiImproved) {
@@ -146,5 +161,13 @@ public class CoverLetterService {
         return coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
                         coverLetterId, memberEmail, CoverLetterStatus.ACTIVE)
                 .orElseThrow(() -> new CoverLetterException("자소서를 찾을 수 없습니다."));
+    }
+
+    /**
+     * 삭제된 상태의 자소서를 찾는 헬퍼 메서드 (관리자용 - ID만으로)
+     */
+    private CoverLetter findDeletedCoverLetterById(Long coverLetterId) {
+        return coverLetterRepository.findByCoverLetterIdAndStatus(coverLetterId, CoverLetterStatus.DELETED)
+                .orElseThrow(() -> new CoverLetterException("복구할 수 있는 자소서를 찾을 수 없습니다."));
     }
 }
