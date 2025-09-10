@@ -1,65 +1,159 @@
 package com.cvmento.domain.resume.entity;
 
-import com.cvmento.domain.member.entity.Member;
-import com.cvmento.domain.resume.enums.ResumeSectionType;
 import com.cvmento.global.common.entity.BaseTimeEntity;
+import com.cvmento.domain.resume.enums.ResumeType;
+import com.cvmento.domain.resume.enums.ResumeStatus;
+import com.cvmento.domain.resume.enums.CareerType;
+import com.cvmento.domain.member.entity.Member;
 import jakarta.persistence.*;
-import lombok.Getter;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
-
-import com.cvmento.domain.resume.enums.RecordStatus;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import lombok.*;
 import java.util.List;
 
 @Entity
+@Table(name = "resume")
 @Getter
-@Table(name = "resumes")
-@Where(clause = "status = 'ACTIVE'")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Resume extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "resume_id")
-    private Long resumeId;
+    private Long id;
 
-    @Column(name = "title", nullable = false)
+    @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(name = "template_type")
-    private String templateType = "default";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ResumeType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ResumeStatus status;
+
+    @Column(nullable = false, length = 50)
+    private String name;
+
+    @Column(nullable = false, length = 100)
+    private String email;
+
+    @Column(nullable = false)
+    private Integer birthYear;
+
+    @Column(nullable = false, length = 20)
+    private String phone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CareerType careerType;
+
+    @Column(nullable = false, length = 100)
+    private String fieldName;
+
+    @Column(columnDefinition = "TEXT")
+    private String introduction;
+
+    @Column(length = 200)
+    private String githubUrl;
+
+    @Column(length = 200)
+    private String blogUrl;
+
+    @Column(length = 200)
+    private String notionUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    // 연관관계 매핑
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ResumeSection> sections = new ArrayList<>();
+    private List<ResumeTechStack> resumeTechStacks;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private RecordStatus status = RecordStatus.ACTIVE; // 상태 (활성, 비활성, 삭제)
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Education> educations;
 
-    protected Resume() {}
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CustomLink> customLinks;
 
-    public Resume(String title, Member member) {
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Career> careers;
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> projects;
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Training> trainings;
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AdditionalInfo> additionalInfos;
+
+    // 생성자 - 필수 필드만
+    private Resume(String title, ResumeType type, String name, String email,
+                   Integer birthYear, String phone, CareerType careerType,
+                   String fieldName, Member member) {
         this.title = title;
+        this.type = type;
+        this.name = name;
+        this.email = email;
+        this.birthYear = birthYear;
+        this.phone = phone;
+        this.careerType = careerType;
+        this.fieldName = fieldName;
         this.member = member;
-        this.templateType = "default"; // 기본값 설정
+        this.status = ResumeStatus.ACTIVE; // 기본값: 활성
     }
 
+    // 정적 팩토리 메서드
+    public static Resume createResume(String title, ResumeType type, String name,
+                                      String email, Integer birthYear,
+                                      String phone, CareerType careerType,
+                                      String fieldName, Member member) {
+        return new Resume(title, type, name, email, birthYear, phone, careerType, fieldName, member);
+    }
+
+    // 비즈니스 메서드
     public void updateTitle(String title) {
         this.title = title;
     }
 
-    // 연관관계 편의 메소드
-    public void addSection(ResumeSectionType sectionType, String sectionTitle, String contentText) {
-        ResumeSection section = new ResumeSection(sectionType, sectionTitle, contentText, this);
-        this.sections.add(section);
+    public void updateBasicInfo(String name, String email, Integer birthYear, String phone) {
+        this.name = name;
+        this.email = email;
+        this.birthYear = birthYear;
+        this.phone = phone;
     }
 
-    public void setStatus(RecordStatus status) {
+    public void updateType(ResumeType type) {
+        this.type = type;
+    }
+
+    public void updateStatus(ResumeStatus status) {
         this.status = status;
+    }
+
+    public void updateFieldAndCareerType(String fieldName, CareerType careerType) {
+        this.fieldName = fieldName;
+        this.careerType = careerType;
+    }
+
+    public void updateIntroduction(String introduction) {
+        this.introduction = introduction;
+    }
+
+    public void updateUrls(String githubUrl, String blogUrl, String notionUrl) {
+        this.githubUrl = githubUrl;
+        this.blogUrl = blogUrl;
+        this.notionUrl = notionUrl;
+    }
+
+    public void restore() {
+        if (this.status != ResumeStatus.DELETED) {
+            throw new IllegalStateException("삭제된 상태의 이력서만 복구할 수 있습니다.");
+        }
+        this.status = ResumeStatus.ACTIVE;
+    }
+
+    public boolean isDeleted() {
+        return this.status == ResumeStatus.DELETED;
     }
 }

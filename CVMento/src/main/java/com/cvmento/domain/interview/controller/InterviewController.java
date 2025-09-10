@@ -1,8 +1,12 @@
 package com.cvmento.domain.interview.controller;
 
+import com.cvmento.domain.interview.dto.request.CustomQuestionRequest;
+import com.cvmento.domain.interview.dto.response.CustomAnswerResponse;
 import com.cvmento.domain.interview.dto.response.InterviewQnaListResponse;
 import com.cvmento.domain.interview.service.InterviewService;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.usage.annotation.RequireTokens;
+import com.cvmento.global.usage.enums.UsageType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -85,8 +90,8 @@ public class InterviewController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        InterviewQnaListResponse response = interviewService.getExistingInterviewQna(coverLetterId, userEmail);
+        String memberEmail = userDetails.getUsername();
+        InterviewQnaListResponse response = interviewService.getExistingInterviewQna(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 조회 성공", response));
     }
@@ -170,18 +175,97 @@ public class InterviewController {
             }
     )
     @PostMapping
+    @RequireTokens(UsageType.INTERVIEW_AUTO)
     public ResponseEntity<CommonResponse<InterviewQnaListResponse>> createInterviewQuestions(
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        InterviewQnaListResponse response = interviewService.createInterviewQuestions(coverLetterId, userEmail);
+        String memberEmail = userDetails.getUsername();
+        InterviewQnaListResponse response = interviewService.createInterviewQuestions(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 생성 성공", response));
     }
 
     /**
-     * 사용자 질문에 따른 ai 답변 생성 ( 답변은 1개이며, 갯수 상관없이 답변 )
+     * 사용자 커스텀 질문에 대한 AI 답변 생성
      */
+    @Operation(
+            summary = "커스텀 질문 AI 답변 생성",
+            description = "사용자가 직접 입력한 질문에 대해 자소서를 기반으로 한 AI 답변을 생성합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "답변 생성 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "답변 생성 성공",
+                                            value = """
+                                                {
+                                                  "success": true,
+                                                  "message": "커스텀 질문 답변 생성 성공",
+                                                  "data": {
+                                                    "answer": "자소서 기반 모범 답변",
+                                                    "tip": "답변할 때 유의할 점과 팁"
+                                                  }
+                                                }
+                                                """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "잘못된 요청",
+                            content = @Content(
+                                    schema = @Schema(implementation = Map.class),
+                                    examples = @ExampleObject(
+                                            name = "유효성 검증 실패",
+                                            value = """
+                                                {
+                                                  "timestamp": "2025-09-05T14:30:00",
+                                                  "status": 400,
+                                                  "error": "Bad Request",
+                                                  "errorCode": "VALIDATION_ERROR",
+                                                  "message": "질문은 필수입니다.",
+                                                  "errors": {}
+                                                }
+                                                """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "서버 내부 오류",
+                            content = @Content(
+                                    schema = @Schema(implementation = Map.class),
+                                    examples = @ExampleObject(
+                                            name = "답변 생성 실패",
+                                            value = """
+                                                {
+                                                  "timestamp": "2025-09-05T14:30:00",
+                                                  "status": 500,
+                                                  "error": "Internal Server Error",
+                                                  "errorCode": "INTERVIEW_SERVICE_ERROR",
+                                                  "message": "커스텀 질문 답변 생성에 실패했습니다.",
+                                                  "errors": {}
+                                                }
+                                                """
+                                    )
+                            )
+                    )
+            }
+    )
+    @PostMapping("/custom-answer")
+    @RequireTokens(UsageType.INTERVIEW_CUSTOM)
+    public ResponseEntity<CommonResponse<CustomAnswerResponse>> createCustomAnswer(
+            @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
+            @Valid @RequestBody CustomQuestionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        CustomAnswerResponse response = interviewService.createCustomAnswer(
+                coverLetterId, memberEmail, request.question());
 
+        return ResponseEntity.ok(CommonResponse.success("커스텀 질문 답변 생성 성공", response));
+    }
 }
