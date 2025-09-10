@@ -194,25 +194,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(ResumeAiException.class)
-    public ResponseEntity<Map<String, Object>> handleResumeAiException(ResumeAiException ex, HttpServletRequest request) {
-        log.error("ResumeAiException: {}", ex.getMessage(), ex);
-        
-        // 네트워크 연결 문제인 경우 502 Bad Gateway, 그 외는 500 Internal Server Error
-        HttpStatus status = ex.getMessage().contains("연결할 수 없습니다") ? 
-                HttpStatus.BAD_GATEWAY : HttpStatus.INTERNAL_SERVER_ERROR;
-        
-        String errorCode = status == HttpStatus.BAD_GATEWAY ? 
-                "RESUME_AI_CONNECTION_ERROR" : "RESUME_AI_SERVICE_ERROR";
-        
-        return buildErrorResponse(
-                request,
-                status,
-                errorCode,
-                ex.getMessage(),
-                null
-        );
-    }
   
     @ExceptionHandler(UsageLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleUsageLimitExceededException(
