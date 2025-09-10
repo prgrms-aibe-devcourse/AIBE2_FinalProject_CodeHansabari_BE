@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvocationType;
 import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
+import com.cvmento.global.exception.customException.LambdaException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,10 +61,10 @@ public class LambdaService {
 
         } catch (IOException e) {
             log.error("파일 처리 중 오류: {}", e.getMessage(), e);
-            throw new RuntimeException("파일을 읽는 중 오류가 발생했습니다.", e);
+            throw new LambdaException("파일을 읽는 중 오류가 발생했습니다.", e);
         } catch (Exception e) {
             log.error("Lambda 호출 중 오류: {}", e.getMessage(), e);
-            throw new RuntimeException("OCR 처리 중 오류가 발생했습니다.", e);
+            throw new LambdaException("OCR 처리 중 오류가 발생했습니다.", e);
         }
     }
 
@@ -72,13 +73,13 @@ public class LambdaService {
         if (result.getFunctionError() != null) {
             String errorMessage = new String(result.getPayload().array());
             log.error("Lambda 실행 오류: {}", errorMessage);
-            throw new RuntimeException("OCR 처리 실패: " + result.getFunctionError());
+            throw new LambdaException("OCR 처리 실패: " + result.getFunctionError());
         }
 
         // HTTP 상태 코드 체크
         if (result.getStatusCode() != 200) {
             log.error("Lambda 응답 상태 코드: {}", result.getStatusCode());
-            throw new RuntimeException("Lambda 호출 실패");
+            throw new LambdaException("Lambda 호출 실패");
         }
 
         // 응답 파싱
@@ -93,7 +94,7 @@ public class LambdaService {
                 int statusCode = jsonNode.get("statusCode").asInt();
                 if (statusCode != 200) {
                     String errorBody = jsonNode.has("body") ? jsonNode.get("body").asText() : "Unknown error";
-                    throw new RuntimeException("Lambda 처리 실패: " + errorBody);
+                    throw new LambdaException("Lambda 처리 실패: " + errorBody);
                 }
             }
 
