@@ -8,16 +8,16 @@ import jakarta.validation.constraints.*;
 
 import java.util.List;
 
-@Schema(description = "이력서 수정 요청")
-public record ResumeUpdateRequest(
+@Schema(description = "이력서 저장 요청")
+public record ResumeSaveRequest(
 
         // === 기본 정보 ===
-        @Schema(description = "이력서 제목", example = "네이버 백엔드 개발자 지원용 이력서 (수정)")
+        @Schema(description = "이력서 제목", example = "네이버 백엔드 개발자 지원용 이력서")
         @NotBlank(message = "이력서 제목은 필수입니다.")
         @Size(max = 100, message = "이력서 제목은 100자 이하여야 합니다.")
         String title,
 
-        @Schema(description = "이력서 타입", example = "MODERN")
+        @Schema(description = "이력서 타입", example = "DEFAULT")
         @NotNull(message = "이력서 타입은 필수입니다.")
         ResumeType type,
 
@@ -40,15 +40,15 @@ public record ResumeUpdateRequest(
         @NotBlank(message = "전화번호는 필수입니다.")
         String phone,
 
-        @Schema(description = "경력 구분", example = "EXPERIENCED")
+        @Schema(description = "경력 구분", example = "FRESHMAN")
         @NotNull(message = "경력 구분은 필수입니다.")
         CareerType careerType,
 
-        @Schema(description = "지원분야", example = "시니어 백엔드 개발자")
+        @Schema(description = "지원분야", example = "백엔드 개발자")
         @NotBlank(message = "지원분야는 필수입니다.")
         String fieldName,
 
-        @Schema(description = "간단소개", example = "5년 경력의 백엔드 개발자입니다.")
+        @Schema(description = "간단소개", example = "열정적인 개발자입니다.")
         String introduction,
 
         @Schema(description = "깃허브 URL", example = "https://github.com/username")
@@ -89,12 +89,4 @@ public record ResumeUpdateRequest(
         @Valid
         List<AdditionalInfoSaveRequest> additionalInfos
 ) {
-    // ResumeSaveRequest와 동일한 구조로 변환하는 헬퍼 메서드
-    public ResumeSaveRequest toSaveRequest() {
-        return new ResumeSaveRequest(
-                title, type, name, email, birthYear, phone, careerType, fieldName,
-                introduction, githubUrl, blogUrl, notionUrl,
-                educations, techStacks, customLinks, careers, projects, trainings, additionalInfos
-        );
-    }
 }

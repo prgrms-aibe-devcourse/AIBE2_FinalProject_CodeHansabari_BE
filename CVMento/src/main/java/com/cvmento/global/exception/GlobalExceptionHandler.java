@@ -168,7 +168,45 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+  
+    // ===== 이력서 관련 예외 핸들러들 =====
+    @ExceptionHandler(ResumeException.class)
+    public ResponseEntity<Map<String, Object>> handleResumeException(ResumeException ex, HttpServletRequest request) {
+        log.warn("ResumeException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "RESUME_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
 
+    @ExceptionHandler(ResumeNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResumeNotFoundException(ResumeNotFoundException ex, HttpServletRequest request) {
+        log.warn("ResumeNotFoundException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.NOT_FOUND,
+                "RESUME_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(LambdaException.class)
+    public ResponseEntity<Map<String, Object>> handleLambdaException(LambdaException ex, HttpServletRequest request) {
+        log.error("Lambda 서비스 오류: {}", ex.getMessage(), ex);
+        
+        return buildErrorResponse(
+                request,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "LAMBDA_SERVICE_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
+  
     @ExceptionHandler(UsageLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleUsageLimitExceededException(
             UsageLimitExceededException ex, HttpServletRequest request) {
