@@ -34,30 +34,36 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 공개 엔드포인트
                         .requestMatchers(
                                 "/",
                                 "/login/**",
                                 "/oauth2/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/swagger-resources/**",  // 추가
-                                "/webjars/**",           // 추가
+                                "/swagger-resources/**",
+                                "/webjars/**",
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
-                                "/v3/api-docs.yaml",     // 추가
+                                "/v3/api-docs.yaml",
                                 "/auth/test-login",
                                 "/auth/login/google",
                                 "/auth/google/login",
+                                "/auth/google/token",
                                 "/auth/refresh",
                                 "/auth/status",
-                                "/health",
-                                "/error",
                                 "/auth/google/url",
-                                "/auth/quick-login/**" // 개발용
+                                "/auth/quick-login/**", // 개발용
+                                "/health",
+                                "/error"
                         ).permitAll()
-                                .anyRequest().hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
-//                        .anyRequest().authenticated()
+
+                        // 관리자 전용 엔드포인트
+                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
+                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
+
+                        // 인증이 필요한 모든 요청
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)

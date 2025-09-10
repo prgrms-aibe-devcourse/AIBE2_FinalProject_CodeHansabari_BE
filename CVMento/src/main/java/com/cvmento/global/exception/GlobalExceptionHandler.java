@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -93,6 +94,46 @@ public class GlobalExceptionHandler {
                 request,
                 HttpStatus.BAD_GATEWAY,
                 "GOOGLE_API_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    // 관리자 기능 관련 예외 핸들러들 추가
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
+            AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.FORBIDDEN,
+                "ACCESS_DENIED",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
+            IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_ARGUMENT",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, Object>> handleSecurityException(
+            SecurityException ex, HttpServletRequest request) {
+        log.warn("Security exception: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.FORBIDDEN,
+                "SECURITY_ERROR",
                 ex.getMessage(),
                 null
         );
