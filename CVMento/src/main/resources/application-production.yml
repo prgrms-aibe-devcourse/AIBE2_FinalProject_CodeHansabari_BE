@@ -80,3 +80,14 @@ logging:
 
 server:
   port: 5000
+
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2
+      lambda:
+        function-name: aibe2-team2-resume-ocr-function
+
+  resume:
+    import:
+      strategy: lambda
