@@ -58,6 +58,7 @@ public class SecurityConfig {
                                 .anyRequest().hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/v1/resumes/*/restore").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/v1/cover-letters/*/restore").hasAnyRole("ADMIN", "ROOT") // 삭제된 자소서 복원
 //                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
