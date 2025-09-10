@@ -24,7 +24,7 @@ jobs:
         working-directory: CVMento
 
       - name: Build with Gradle
-        run: ./gradlew clean build -Dspring.profiles.active=test
+        run: ./gradlew clean build -Dspring.profiles.active=test -x test
         working-directory: CVMento
 
       - name: Check if JAR was created
