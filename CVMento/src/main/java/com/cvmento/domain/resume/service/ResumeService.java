@@ -116,6 +116,20 @@ public class ResumeService {
         return result;
     }
 
+    /**
+     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한
+     */
+    @Transactional
+    public void restoreResume(Long resumeId, String adminEmail) {
+        Resume resume = resumeRepository.findByIdAndStatus(resumeId, ResumeStatus.DELETED)
+                .orElseThrow(() -> new ResumeNotFoundException("복구할 수 있는 이력서를 찾을 수 없습니다."));
+
+        resume.restore();
+
+        log.info("관리자 권한으로 이력서 복구 완료 - ID: {}, 관리자: {}, 원 소유자: {}",
+                resumeId, adminEmail, resume.getMember().getEmail());
+    }
+
 
     // ======================== Private 메서드 ========================
 

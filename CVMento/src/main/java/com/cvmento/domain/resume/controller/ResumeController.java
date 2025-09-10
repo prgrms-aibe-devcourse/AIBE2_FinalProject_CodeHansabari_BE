@@ -396,4 +396,46 @@ public class ResumeController {
         return ResponseEntity.ok(CommonResponse.success("이력서를 성공적으로 조회했습니다.", resumeDetail));
     }
 
+    /**
+     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한
+     */
+    @Operation(
+            summary = "이력서 복구 (관리자 전용)",
+            description = "소프트 삭제된 이력서를 관리자 권한으로 복구합니다. 실제 데이터는 삭제되지 않고 상태만 ACTIVE로 변경됩니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "이력서 복구 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "이력서 복구 성공 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"이력서가 복구되었습니다.\",\n" +
+                                                    "  \"data\": null\n" +
+                                                    "}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "복구할 이력서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @PatchMapping("/{resumeId}/restore")
+    public ResponseEntity<CommonResponse<Void>> restoreResume(
+            @Parameter(description = "복구할 이력서 ID") @PathVariable Long resumeId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String adminEmail = userDetails.getUsername();
+        resumeService.restoreResume(resumeId, adminEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("이력서가 복구되었습니다.", null));
+    }
+
 }

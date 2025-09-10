@@ -57,6 +57,7 @@ public class SecurityConfig {
                         ).permitAll()
                                 .anyRequest().hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/v1/resumes/*/restore").hasAnyRole("ADMIN", "ROOT")
 //                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

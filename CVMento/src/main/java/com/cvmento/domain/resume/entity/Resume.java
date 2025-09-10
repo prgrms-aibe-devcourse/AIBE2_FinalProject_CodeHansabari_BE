@@ -145,4 +145,15 @@ public class Resume extends BaseTimeEntity {
         this.blogUrl = blogUrl;
         this.notionUrl = notionUrl;
     }
+
+    public void restore() {
+        if (this.status != ResumeStatus.DELETED) {
+            throw new IllegalStateException("삭제된 상태의 이력서만 복구할 수 있습니다.");
+        }
+        this.status = ResumeStatus.ACTIVE;
+    }
+
+    public boolean isDeleted() {
+        return this.status == ResumeStatus.DELETED;
+    }
 }
