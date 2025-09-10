@@ -86,4 +86,17 @@ public class CoverLetter extends BaseTimeEntity {
     public boolean isActive() {
         return this.status == CoverLetterStatus.ACTIVE;
     }
+
+    //자소서 복구 메서드 (소프트 삭제 상태에서 활성 상태로 변경)
+    public void restore() {
+        if (this.status != CoverLetterStatus.DELETED) {
+            throw new IllegalStateException("삭제된 상태의 자소서만 복구할 수 있습니다.");
+        }
+        this.status = CoverLetterStatus.ACTIVE;
+    }
+
+    //삭제된 상태인지 확인
+    public boolean isDeleted() {
+        return this.status == CoverLetterStatus.DELETED;
+    }
 }
