@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.service;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.resume.dto.request.UserExperienceRequest;
 import com.cvmento.domain.resume.dto.response.ResumeAiSuggestionResponse;
+import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.ResumeAiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,9 @@ class ResumeAiResponseParserServiceTest {
     @Mock
     private ResumeAiValidationService validationService;
     
+    @Mock
+    private OpenAiResponseParser openAiResponseParser;
+    
     private ObjectMapper objectMapper;
     private Member testMember;
     private UserExperienceRequest testRequest;
@@ -35,7 +39,7 @@ class ResumeAiResponseParserServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        parserService = new ResumeAiResponseParserService(objectMapper, validationService);
+        parserService = new ResumeAiResponseParserService(objectMapper, validationService, openAiResponseParser);
         
         testMember = Member.builder()
                 .name("김테스트")
@@ -43,11 +47,7 @@ class ResumeAiResponseParserServiceTest {
                 .build();
                 
         testRequest = new UserExperienceRequest(
-                "EXPERIENCED",
-                "백엔드 개발자", 
-                "5년간 Spring Boot를 사용한 백엔드 개발 경험이 있습니다.",
-                List.of("Java", "Spring Boot"),
-                "추가 정보 없음"
+                "5년간 Spring Boot를 사용한 백엔드 개발 경험이 있습니다. 네이버에서 근무했으며 Java와 Spring Boot를 주로 사용했습니다. 정보처리기사 자격증도 보유하고 있습니다."
         );
     }
 
@@ -88,6 +88,9 @@ class ResumeAiResponseParserServiceTest {
         when(validationService.containsSensitiveInfo(anyString())).thenReturn(false);
         when(validationService.calculateResponseQuality(anyString())).thenReturn(85);
         
+        // OpenAiResponseParser mock 설정 - 래핑된 응답에서 실제 JSON 추출
+        when(openAiResponseParser.extractTextContent(anyString())).thenReturn(validLlmResponse);
+        
         // When
         ResumeAiSuggestionResponse response = parserService.parseResumeSuggestionResponse(
                 validLlmResponse, testRequest, testMember);
@@ -109,6 +112,7 @@ class ResumeAiResponseParserServiceTest {
         
         // Mock 설정
         when(validationService.isValidLlmResponse(anyString())).thenReturn(false);
+        when(openAiResponseParser.extractTextContent(anyString())).thenReturn(invalidLlmResponse);
         
         // When & Then
         assertThatThrownBy(() -> parserService.parseResumeSuggestionResponse(
