@@ -1,6 +1,7 @@
 package com.cvmento.domain.interview.service;
 
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
+import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.interview.dto.response.*;
 import com.cvmento.domain.interview.entity.CoverLetterQna;
@@ -35,8 +36,8 @@ public class InterviewService {
     /**
      * 기존 면접 질문/답변 조회 (순수 조회)
      */
-    public InterviewQnaListResponse getExistingInterviewQna(Long coverLetterId, String userEmail) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public InterviewQnaListResponse getExistingInterviewQna(Long coverLetterId, String memberEmail) {
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
         List<CoverLetterQna> existingQnaList = coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(coverLetter);
         return buildQnaListResponse(existingQnaList);
     }
@@ -45,8 +46,8 @@ public class InterviewService {
      * 면접 질문/답변 생성 (초기/추가 자동 판단)
      */
     @Transactional
-    public InterviewQnaListResponse createInterviewQuestions(Long coverLetterId, String userEmail) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public InterviewQnaListResponse createInterviewQuestions(Long coverLetterId, String memberEmail) {
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
         long existingCount = coverLetterQnaRepository.countByCoverLetterAndSourceType(
                 coverLetter, QuestionSourceType.GENERATED);
@@ -63,8 +64,8 @@ public class InterviewService {
      * 사용자 커스텀 질문에 대한 AI 답변 생성 및 저장
      */
     @Transactional
-    public CustomAnswerResponse createCustomAnswer(Long coverLetterId, String userEmail, String customQuestion) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public CustomAnswerResponse createCustomAnswer(Long coverLetterId, String memberEmail, String customQuestion) {
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
         // 프롬프트 생성
         String prompt = promptService.buildCustomAnswerPrompt(coverLetter, customQuestion);
@@ -148,8 +149,12 @@ public class InterviewService {
         return new InterviewQnaListResponse(qnaResponses, newQnas.size(), newQnas.size());
     }
 
-    private CoverLetter findCoverLetterByIdAndUser(Long coverLetterId, String userEmail) {
-        return coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail)
+    /**
+     * 활성 상태의 자소서만 조회하는 헬퍼 메서드
+     */
+    private CoverLetter findActiveCoverLetterByIdAndMember(Long coverLetterId, String memberEmail) {
+        return coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                        coverLetterId, memberEmail, CoverLetterStatus.ACTIVE)
                 .orElseThrow(() -> new CoverLetterException("자소서를 찾을 수 없습니다."));
     }
 

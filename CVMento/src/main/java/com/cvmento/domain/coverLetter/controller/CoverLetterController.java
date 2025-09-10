@@ -1,6 +1,7 @@
 package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterSaveRequest;
+import com.cvmento.domain.coverLetter.dto.request.CoverLetterUpdateRequest;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterDetailResponse;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterListResponse;
 import com.cvmento.domain.coverLetter.service.CoverLetterService;
@@ -95,8 +96,8 @@ public class CoverLetterController {
             @Valid @RequestBody CoverLetterSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        coverLetterService.saveCoverLetter(request, userEmail);
+        String memberEmail = userDetails.getUsername();
+        coverLetterService.saveCoverLetter(request, memberEmail);
 
         String message = request.isAiImproved() ?
                 "AI 첨삭된 자소서가 저장되었습니다." :
@@ -104,6 +105,108 @@ public class CoverLetterController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(CommonResponse.success(message, null));
+    }
+
+    @Operation(
+            summary = "자소서 수정",
+            description = "기존 자소서를 수정합니다. 제목에 [수정본] 접두사가 자동으로 추가됩니다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "수정할 자소서 정보",
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = CoverLetterUpdateRequest.class),
+                            examples = @ExampleObject(
+                                    name = "자소서 수정 요청",
+                                    value = "{\n" +
+                                            "  \"title\": \"네이버 백엔드 개발자 지원\",\n" +
+                                            "  \"content\": \"저는 소프트웨어 개발에 대한 깊은 열정을 바탕으로 지속적으로 성장해온 개발자입니다. 특히 백엔드 개발 분야에서 Spring Boot와 JPA를 활용한 다양한 프로젝트를 통해 실무 경험을 쌓아왔습니다. 최근에는 성능 최적화와 코드 품질 향상에 특별한 관심을 가지고 있습니다.\",\n" +
+                                            "  \"jobField\": \"백엔드 개발자\",\n" +
+                                            "  \"experienceYears\": 2\n" +
+                                            "}"
+                            )
+                    )
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "자소서 수정 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "자소서 수정 성공 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"자소서가 수정되었습니다.\",\n" +
+                                                    "  \"data\": null\n" +
+                                                    "}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "자소서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "잘못된 요청 데이터",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @PutMapping("/{coverLetterId}")
+    public ResponseEntity<CommonResponse<Void>> updateCoverLetter(
+            @Parameter(description = "수정할 자소서 ID") @PathVariable Long coverLetterId,
+            @Valid @RequestBody CoverLetterUpdateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        coverLetterService.updateCoverLetter(coverLetterId, request, memberEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("자소서가 수정되었습니다.", null));
+    }
+
+    @Operation(
+            summary = "자소서 삭제 (소프트 삭제)",
+            description = "자소서를 삭제합니다. 실제로는 상태만 변경되어 복구가 가능합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "자소서 삭제 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "자소서 삭제 성공 응답",
+                                            value = "{\n" +
+                                                    "  \"success\": true,\n" +
+                                                    "  \"message\": \"자소서가 삭제되었습니다.\",\n" +
+                                                    "  \"data\": null\n" +
+                                                    "}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "자소서를 찾을 수 없음",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class)
+                            )
+                    )
+            }
+    )
+    @DeleteMapping("/{coverLetterId}")
+    public ResponseEntity<CommonResponse<Void>> deleteCoverLetter(
+            @Parameter(description = "삭제할 자소서 ID") @PathVariable Long coverLetterId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String memberEmail = userDetails.getUsername();
+        coverLetterService.deleteCoverLetter(coverLetterId, memberEmail);
+
+        return ResponseEntity.ok(CommonResponse.success("자소서가 삭제되었습니다.", null));
     }
 
     @Operation(
@@ -152,9 +255,9 @@ public class CoverLetterController {
             @Parameter(description = "뷰 타입 (thumbnail: 미리보기, 그외: 전체내용)") @RequestParam(required = false) String view,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
+        String memberEmail = userDetails.getUsername();
         Pageable pageable = PageRequest.of(page, size);
-        Page<CoverLetterListResponse> response = coverLetterService.getCoverLetters(userEmail, pageable, view);
+        Page<CoverLetterListResponse> response = coverLetterService.getCoverLetters(memberEmail, pageable, view);
 
         return ResponseEntity.ok(CommonResponse.success("자소서 목록 조회 성공", response));
     }
@@ -200,8 +303,8 @@ public class CoverLetterController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        String userEmail = userDetails.getUsername();
-        CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, userEmail);
+        String memberEmail = userDetails.getUsername();
+        CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
     }

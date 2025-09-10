@@ -1,6 +1,7 @@
 package com.cvmento.domain.interview.service;
 
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
+import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.interview.dto.response.CustomAnswerResponse;
 import com.cvmento.domain.interview.dto.response.InterviewLlmResponse;
@@ -59,13 +60,13 @@ class InterviewServiceTest {
     private Member testMember;
     private CoverLetter testCoverLetter;
     private Long coverLetterId = 1L;
-    private String userEmail = "test@example.com";
+    private String memberEmail = "test@example.com";
 
     @BeforeEach
     void setUp() throws Exception {
         log.info("=== 테스트 데이터 설정 시작 ===");
 
-        testMember = new Member("google123", userEmail, "테스트 사용자", "profile.jpg");
+        testMember = new Member("google123", memberEmail, "테스트 사용자", "profile.jpg");
         setField(testMember, "memberId", 1L);
         log.info("테스트 Member 생성 완료: email={}, name={}, memberId={}",
                 testMember.getEmail(), testMember.getName(), 1L);
@@ -98,11 +99,12 @@ class InterviewServiceTest {
             List<CoverLetterQna> existingQnas = createMockQnaList(5);
             log.info("생성된 가짜 질문 개수: {}", existingQnas.size());
 
-            // 실제 서비스 로직에 맞춘 Mock 설정
-            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
+            // 수정된 Mock 설정: 상태 조건 추가
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmail({}, {}) -> testCoverLetter 반환",
-                    coverLetterId, userEmail);
+            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus({}, {}, ACTIVE) -> testCoverLetter 반환",
+                    coverLetterId, memberEmail);
 
             given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter))
                     .willReturn(existingQnas);
@@ -111,7 +113,7 @@ class InterviewServiceTest {
 
             // when
             log.info("=== 메서드 실행 ===");
-            InterviewQnaListResponse result = interviewService.getExistingInterviewQna(coverLetterId, userEmail);
+            InterviewQnaListResponse result = interviewService.getExistingInterviewQna(coverLetterId, memberEmail);
             log.info("메서드 실행 결과: qnaList.size()={}, totalCount={}, generatedCount={}",
                     result.qnaList().size(), result.totalCount(), result.generatedCount());
 
@@ -135,14 +137,15 @@ class InterviewServiceTest {
             log.info("=== 테스트 시작: 기존 질문이 없을 때 빈 배열 반환 ===");
 
             // given
-            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                     .willReturn(Optional.of(testCoverLetter));
             given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter))
                     .willReturn(new ArrayList<>());
             log.info("Mock 설정: 빈 배열 반환하도록 설정");
 
             // when
-            InterviewQnaListResponse result = interviewService.getExistingInterviewQna(coverLetterId, userEmail);
+            InterviewQnaListResponse result = interviewService.getExistingInterviewQna(coverLetterId, memberEmail);
             log.info("메서드 실행 결과: qnaList.size()={}, totalCount={}, generatedCount={}",
                     result.qnaList().size(), result.totalCount(), result.generatedCount());
 
@@ -160,15 +163,16 @@ class InterviewServiceTest {
             log.info("=== 테스트 시작: 존재하지 않는 자소서일 때 예외 발생 ===");
 
             // given
-            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                     .willReturn(Optional.empty());
-            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmail({}, {}) -> Optional.empty() 반환",
-                    coverLetterId, userEmail);
+            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus({}, {}, ACTIVE) -> Optional.empty() 반환",
+                    coverLetterId, memberEmail);
 
             // when & then
             log.info("예외 발생 예상 - CoverLetterException");
             assertThatThrownBy(() ->
-                    interviewService.getExistingInterviewQna(coverLetterId, userEmail))
+                    interviewService.getExistingInterviewQna(coverLetterId, memberEmail))
                     .isInstanceOf(CoverLetterException.class)
                     .hasMessage("자소서를 찾을 수 없습니다.");
             log.info("✅ 예상된 예외 발생 확인");
@@ -183,9 +187,10 @@ class InterviewServiceTest {
         @BeforeEach
         void setUp() {
             log.info("--- CreateInterviewQuestionsTest 공통 Mock 설정 ---");
-            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("CoverLetter 조회 Mock 설정 완료\n");
+            log.info("CoverLetter 조회 Mock 설정 완료 (상태 조건 포함)\n");
         }
 
         @Test
@@ -215,7 +220,7 @@ class InterviewServiceTest {
 
             // when
             log.info("=== 메서드 실행 ===");
-            InterviewQnaListResponse result = interviewService.createInterviewQuestions(coverLetterId, userEmail);
+            InterviewQnaListResponse result = interviewService.createInterviewQuestions(coverLetterId, memberEmail);
 
             // then
             log.info("=== 결과 검증 ===");
@@ -281,7 +286,7 @@ class InterviewServiceTest {
 
             // when
             log.info("=== 메서드 실행 ===");
-            InterviewQnaListResponse result = interviewService.createInterviewQuestions(coverLetterId, userEmail);
+            InterviewQnaListResponse result = interviewService.createInterviewQuestions(coverLetterId, memberEmail);
 
             // then
             log.info("=== 결과 검증 ===");
@@ -317,7 +322,7 @@ class InterviewServiceTest {
             // when & then
             log.info("예외 발생 예상 - InterviewLimitExceededException");
             assertThatThrownBy(() ->
-                    interviewService.createInterviewQuestions(coverLetterId, userEmail))
+                    interviewService.createInterviewQuestions(coverLetterId, memberEmail))
                     .isInstanceOf(InterviewLimitExceededException.class)
                     .hasMessage("더 이상 질문을 생성할 수 없습니다. (최대 15개)");
             log.info("✅ 예상된 제한 초과 예외 발생 확인");
@@ -353,7 +358,7 @@ class InterviewServiceTest {
             // when & then
             log.info("예외 발생 예상 - InterviewException");
             assertThatThrownBy(() ->
-                    interviewService.createInterviewQuestions(coverLetterId, userEmail))
+                    interviewService.createInterviewQuestions(coverLetterId, memberEmail))
                     .isInstanceOf(InterviewException.class)
                     .hasMessage("질문/답변 생성에 실패했습니다.");
             log.info("✅ 예상된 InterviewException 발생 확인");
@@ -372,9 +377,10 @@ class InterviewServiceTest {
         @BeforeEach
         void setUp() {
             log.info("--- CreateCustomAnswerTest 공통 Mock 설정 ---");
-            given(coverLetterRepository.findByCoverLetterIdAndMemberEmail(coverLetterId, userEmail))
+            given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("CoverLetter 조회 Mock 설정 완료\n");
+            log.info("CoverLetter 조회 Mock 설정 완료 (상태 조건 포함)\n");
         }
 
         @Test
@@ -404,7 +410,7 @@ class InterviewServiceTest {
 
             // when
             log.info("=== 메서드 실행 ===");
-            CustomAnswerResponse result = interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion);
+            CustomAnswerResponse result = interviewService.createCustomAnswer(coverLetterId, memberEmail, customQuestion);
 
             // then
             log.info("=== 결과 검증 ===");
@@ -468,7 +474,7 @@ class InterviewServiceTest {
             // when & then
             log.info("예외 발생 예상 - InterviewException");
             assertThatThrownBy(() ->
-                    interviewService.createCustomAnswer(coverLetterId, userEmail, customQuestion))
+                    interviewService.createCustomAnswer(coverLetterId, memberEmail, customQuestion))
                     .isInstanceOf(InterviewException.class)
                     .hasMessage("커스텀 질문 답변 생성에 실패했습니다.");
             log.info("✅ 예상된 InterviewException 발생 확인");

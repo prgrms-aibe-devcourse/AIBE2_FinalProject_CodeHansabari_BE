@@ -1,5 +1,6 @@
 package com.cvmento.domain.coverLetter.entity;
 
+import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.interview.entity.CoverLetterQna;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.global.common.entity.BaseTimeEntity;
@@ -30,6 +31,10 @@ public class CoverLetter extends BaseTimeEntity {
 
     @Column(name = "experience_years")
     private Integer experienceYears;  // 경력 년수
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CoverLetterStatus status = CoverLetterStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
@@ -62,5 +67,23 @@ public class CoverLetter extends BaseTimeEntity {
             return "신입";
         }
         return experienceYears + "년";
+    }
+
+    // 자소서 정보 업데이트 메서드
+    public void updateCoverLetter(String title, String content, String jobField, Integer experienceYears) {
+        this.title = title;
+        this.content = content;
+        this.jobField = jobField;
+        this.experienceYears = experienceYears;
+    }
+
+    // 소프트 삭제 메서드
+    public void delete() {
+        this.status = CoverLetterStatus.DELETED;
+    }
+
+    // 활성 상태 확인
+    public boolean isActive() {
+        return this.status == CoverLetterStatus.ACTIVE;
     }
 }
