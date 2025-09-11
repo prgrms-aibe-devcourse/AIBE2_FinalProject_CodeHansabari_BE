@@ -1,9 +1,10 @@
 package com.cvmento.global.aws;
 
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.InvocationType;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import software.amazon.awssdk.services.lambda.model.InvocationType;
+import software.amazon.awssdk.core.SdkBytes;
 import com.cvmento.global.exception.customException.LambdaException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,7 +25,7 @@ import java.util.Map;
 @Slf4j
 public class LambdaService {
 
-    private final AWSLambda lambdaClient;
+    private final LambdaClient lambdaClient;  // 변경됨
     private final ObjectMapper objectMapper;
 
     @Value("${cloud.aws.lambda.function-name}")
@@ -57,13 +58,14 @@ public class LambdaService {
             String payloadJson = objectMapper.writeValueAsString(payload);
 
             MDC.put("spanId", "aws-lambda-api");
-            // Lambda 호출
-            InvokeRequest invokeRequest = new InvokeRequest()
-                    .withFunctionName(functionName)
-                    .withPayload(payloadJson)
-                    .withInvocationType(InvocationType.RequestResponse);
+            // Lambda 호출 (v2 방식)
+            InvokeRequest invokeRequest = InvokeRequest.builder()
+                    .functionName(functionName)
+                    .payload(SdkBytes.fromUtf8String(payloadJson))
+                    .invocationType(InvocationType.REQUEST_RESPONSE)
+                    .build();
 
-            InvokeResult result = lambdaClient.invoke(invokeRequest);
+            InvokeResponse result = lambdaClient.invoke(invokeRequest);
 
             MDC.put("spanId", "lambda-response-parsing");
             // 응답 처리
@@ -83,22 +85,22 @@ public class LambdaService {
         }
     }
 
-    private String parseLambdaResponse(InvokeResult result) throws IOException {
+    private String parseLambdaResponse(InvokeResponse result) throws IOException {
         // Lambda 실행 오류 체크
-        if (result.getFunctionError() != null) {
-            String errorMessage = new String(result.getPayload().array());
-            log.error("Lambda 실행 오류: {}", result.getFunctionError());
-            throw new LambdaException("OCR 처리 실패: " + result.getFunctionError());
+        if (result.functionError() != null) {
+            String errorMessage = result.payload().asUtf8String();
+            log.error("Lambda 실행 오류: {}", result.functionError());
+            throw new LambdaException("OCR 처리 실패: " + result.functionError());
         }
 
         // HTTP 상태 코드 체크
-        if (result.getStatusCode() != 200) {
-            log.error("Lambda 응답 상태코드: {}", result.getStatusCode());
+        if (result.statusCode() != 200) {
+            log.error("Lambda 응답 상태코드: {}", result.statusCode());
             throw new LambdaException("Lambda 호출 실패");
         }
 
         // 응답 파싱
-        String responseJson = new String(result.getPayload().array());
+        String responseJson = result.payload().asUtf8String();
         log.info("Lambda 응답 수신 완료 - 응답크기: {}chars", responseJson.length());
 
         try {
