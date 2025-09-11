@@ -293,7 +293,7 @@ public class AuthController {
 //         return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
 //     }
 
-    // === 헬퍼 메서드들 ===
+    // === 헬퍼 메서드들 === 
 
     private ResponseEntity<CommonResponse<TestLoginResponse>> performQuickLogin(String email, String name, Role role, HttpServletResponse response) {
         Member testMember = authService.createOrUpdateTestUser(email, name, role);
