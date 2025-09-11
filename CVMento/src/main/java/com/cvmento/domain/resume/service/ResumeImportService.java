@@ -104,15 +104,18 @@ public class ResumeImportService {
     }
 
     private ResumeImportResponse processFile(MultipartFile file) {
-        // 1. 프롬프트 생성
-        String prompt = resumeLlmPromptService.createResumeConversionPrompt(file);
+        // 1. Vision 프롬프트 생성 (Base64 이미지 포함)
+        VisionPromptResult visionPrompt = resumeLlmPromptService.createVisionPrompt(file);
 
-        // 2. LLM 호출
-        MDC.put("spanId", "resume-llm-client");
-        ResumeImportResponse response = resumeLlmClientService.convertResume(prompt);
+        // 2. Vision API 호출
+        MDC.put("spanId", "resume-llm-vision-client");
+        ResumeImportResponse response = resumeLlmClientService.convertResumeWithVision(
+                visionPrompt.textPrompt(), 
+                visionPrompt.base64Image()
+        );
 
         MDC.put("spanId", "resume-import-direct");
-        log.info("파일 변환 완료 - 이름: {}, 제목: {}", 
+        log.info("Vision API 파일 변환 완료 - 이름: {}, 제목: {}", 
                 response.name(), response.title());
 
         return response;
