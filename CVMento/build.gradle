@@ -85,7 +85,7 @@ dependencies {
 	implementation 'software.amazon.awssdk:cloudwatchlogs'
 
 	// Logback AWS Logs Appender
-	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
+//	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
 
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')
