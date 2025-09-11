@@ -5,6 +5,7 @@ import com.cvmento.domain.member.enums.UserStatus;
 import com.cvmento.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -27,9 +28,13 @@ public class NewUserTokenInitializer {
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeExistingUsersTokens() {
+        MDC.put("spanId", "app-startup-token-init");
+
         try {
+            MDC.put("spanId", "member-repository");
             List<Member> activeMembers = memberRepository.findByStatus(UserStatus.ACTIVE);
 
+            MDC.put("spanId", "app-startup-token-init");
             log.info("기존 활성 사용자 토큰 초기화 시작 - 대상 사용자 수: {}", activeMembers.size());
 
             int successCount = 0;
@@ -56,6 +61,8 @@ public class NewUserTokenInitializer {
      * 회원가입 시점에 호출
      */
     public void initializeNewUserTokens(Long userId) {
+        MDC.put("spanId", "new-user-token-init");
+
         try {
             usageTokenService.initializeUserTokens(userId);
             log.info("신규 사용자 토큰 초기화 완료 - 사용자 ID: {}", userId);

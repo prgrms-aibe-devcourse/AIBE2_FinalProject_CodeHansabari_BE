@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/resume-metadata")
 @RequiredArgsConstructor
+@Slf4j
 public class ResumeMetadataController {
 
     private final ResumeMetadataService resumeMetadataService;
@@ -165,7 +168,15 @@ public class ResumeMetadataController {
     )
     @GetMapping
     public ResponseEntity<CommonResponse<ResumeMetadataResponse>> getResumeMetadata() {
+        MDC.put("spanId", "metadata-controller");
+
+        log.info("이력서 메타데이터 조회 요청");
+
         ResumeMetadataResponse metadata = resumeMetadataService.getResumeMetadata();
+
+        log.info("메타데이터 조회 완료 - 기술스택: {}개, Enum 카테고리: 6개",
+                metadata.techStacks().size());
+
         return ResponseEntity.ok(CommonResponse.success("이력서 메타데이터를 성공적으로 조회했습니다.", metadata));
     }
 }

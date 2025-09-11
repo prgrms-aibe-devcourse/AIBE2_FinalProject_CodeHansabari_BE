@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.MDC;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -36,13 +37,18 @@ public class AuthService {
      * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
      */
     public Member getMemberFromUserDetails(UserDetails userDetails) {
+        MDC.put("spanId", "auth-service");
+
         if (userDetails == null) {
             throw new IllegalArgumentException("UserDetails가 null입니다.");
         }
 
-        // 이메일로 Member 조회 (현재 방식 유지)
-        return memberRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userDetails.getUsername()));
+        MDC.put("spanId", "member-repository");
+        Member member = memberRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+
+        MDC.put("spanId", "auth-service");
+        return member;
     }
 
     /**
@@ -51,6 +57,8 @@ public class AuthService {
      * @return 사용자가 인증되고 활성 상태이면 true
      */
     public boolean isUserAuthenticatedAndActive(UserDetails userDetails) {
+        MDC.put("spanId", "auth-service");
+
         if (userDetails == null) {
             return false;
         }
@@ -66,6 +74,8 @@ public class AuthService {
 
     @Transactional
     public TokenDto refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
+        MDC.put("spanId", "token-refresh-service");
+
         Optional<String> refreshTokenOpt = cookieUtil.getRefreshTokenFromCookies(request);
 
         if (refreshTokenOpt.isEmpty()) {
@@ -74,7 +84,6 @@ public class AuthService {
 
         String refreshToken = refreshTokenOpt.get();
 
-        // Refresh Token 기본 검증
         if (!jwtUtil.isValidToken(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
             throw new IllegalArgumentException("Invalid refresh token format");
@@ -91,49 +100,55 @@ public class AuthService {
         }
 
         try {
+            MDC.put("spanId", "token-service");
             TokenDto tokenDto = tokenService.refreshAccessToken(refreshToken);
 
-            // 새로운 Access Token을 쿠키에 설정
+            MDC.put("spanId", "token-refresh-service");
             cookieUtil.addAccessTokenCookie(response, tokenDto.accessToken(),
                     Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
 
-            log.info("Successfully refreshed access token for user ID: {}", jwtUtil.extractUserId(refreshToken));
+            String userId = jwtUtil.extractUserId(refreshToken);
+            log.info("토큰 갱신 성공 - userId: {}", userId);
             return tokenDto;
 
         } catch (IllegalArgumentException e) {
-            // TokenService에서 발생한 예외 (Redis 검증 실패 등)
             cookieUtil.deleteAllAuthCookies(response);
-            log.debug("Token refresh failed: {}", e.getMessage());
+            log.debug("토큰 갱신 실패: {}", e.getMessage());
             throw new IllegalArgumentException("Refresh token validation failed");
         }
     }
 
     @Transactional
     public void logout(Member member, HttpServletRequest request, HttpServletResponse response) {
+        MDC.put("spanId", "logout-service");
+
         String memberId = member.getMemberId().toString();
         Optional<String> accessToken = cookieUtil.getAccessTokenFromCookies(request);
         Optional<String> refreshToken = cookieUtil.getRefreshTokenFromCookies(request);
 
-        // 토큰 무효화 (블랙리스트 추가 및 Redis에서 삭제)
+        MDC.put("spanId", "token-service");
         tokenService.logout(memberId, accessToken.orElse(null), refreshToken.orElse(null));
 
-        // 쿠키 삭제
+        MDC.put("spanId", "logout-service");
         cookieUtil.deleteAllAuthCookies(response);
 
-        log.info("User logged out: {} (ID: {})", member.getEmail(), member.getMemberId());
+        log.info("사용자 로그아웃 완료 - memberId: {}", member.getMemberId());
     }
 
     @Transactional
     public Member createOrUpdateTestUser(String email, String name, Role role) {
+        MDC.put("spanId", "test-user-service");
+
+        MDC.put("spanId", "member-repository");
         Member testMember = memberRepository.findByEmail(email)
                 .orElseGet(() -> {
                     Member newMember = new Member("test-google-id-" + System.currentTimeMillis(),
                             email, name, "https://via.placeholder.com/150");
-                    log.info("Created test user: {} with role: {}", email, role);
+                    log.info("테스트 사용자 생성 - role: {}", role);
                     return memberRepository.save(newMember);
                 });
 
-        // 기존 사용자라면 정보 업데이트
+        MDC.put("spanId", "test-user-service");
         boolean needsUpdate = false;
 
         if (!testMember.getName().equals(name)) {
@@ -147,23 +162,26 @@ public class AuthService {
         }
 
         if (needsUpdate) {
+            MDC.put("spanId", "member-repository");
             testMember = memberRepository.save(testMember);
-            log.info("Updated test user: {} with role: {}", email, role);
+            MDC.put("spanId", "test-user-service");
+            log.info("테스트 사용자 업데이트 - role: {}", role);
         }
 
         return testMember;
     }
 
     public TokenDto generateTokensAndSetCookies(Member member, HttpServletResponse response) {
+        MDC.put("spanId", "token-generation-service");
+
         TokenDto tokenDto = tokenService.generateTokens(member.getMemberId().toString(), member.getEmail());
 
-        // HttpOnly 쿠키로 토큰 설정
         cookieUtil.addAccessTokenCookie(response, tokenDto.accessToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
         cookieUtil.addRefreshTokenCookie(response, tokenDto.refreshToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getRefreshTokenExpirationTime()));
 
-        log.debug("Generated tokens for user: {} (ID: {})", member.getEmail(), member.getMemberId());
+        log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
 
         return tokenDto;
     }

@@ -2,10 +2,13 @@ package com.cvmento.domain.interview.service;
 
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import org.slf4j.MDC;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InterviewLlmPromptService {
@@ -13,26 +16,53 @@ public class InterviewLlmPromptService {
     // ======================== Public Methods ========================
 
     public String buildQnaGenerationPrompt(CoverLetter coverLetter) {
-        return buildPromptStructure() +
+        MDC.put("spanId", "prompt-building-service");
+
+        log.info("초기 Q&A 프롬프트 생성 - 자소서ID: {}, 지원분야: {}",
+                coverLetter.getCoverLetterId(), coverLetter.getJobField());
+
+        String prompt = buildPromptStructure() +
                 buildCoverLetterSection(coverLetter) +
                 buildInitialRequestSection() +
                 buildCompleteGuidelines();
+
+        log.info("초기 Q&A 프롬프트 생성 완료 - 총 길이: {}chars", prompt.length());
+
+        return prompt;
     }
 
     public String buildAdditionalQnaPrompt(CoverLetter coverLetter, List<String> existingQuestions) {
-        return buildPromptStructure() +
+        MDC.put("spanId", "prompt-building-service");
+
+        log.info("추가 Q&A 프롬프트 생성 - 자소서ID: {}, 기존질문수: {}",
+                coverLetter.getCoverLetterId(), existingQuestions.size());
+
+        String prompt = buildPromptStructure() +
                 buildCoverLetterSection(coverLetter) +
                 buildExistingQuestionsSection(existingQuestions) +
                 buildAdditionalRequestSection() +
                 buildAdditionalCompleteGuidelines();
+
+        log.info("추가 Q&A 프롬프트 생성 완료 - 총 길이: {}chars", prompt.length());
+
+        return prompt;
     }
 
     public String buildCustomAnswerPrompt(CoverLetter coverLetter, String customQuestion) {
-        return buildCustomAnswerPromptStructure() +
+        MDC.put("spanId", "prompt-building-service");
+
+        log.info("커스텀 답변 프롬프트 생성 - 자소서ID: {}, 질문길이: {}",
+                coverLetter.getCoverLetterId(), customQuestion.length());
+
+        String prompt = buildCustomAnswerPromptStructure() +
                 buildCoverLetterSection(coverLetter) +
                 buildCustomQuestionSection(customQuestion) +
                 buildCustomAnswerRequestSection() +
                 buildAnswerOnlyGuidelines();
+
+        log.info("커스텀 답변 프롬프트 생성 완료 - 총 길이: {}chars", prompt.length());
+
+        return prompt;
     }
 
     // ======================== Common Sections ========================

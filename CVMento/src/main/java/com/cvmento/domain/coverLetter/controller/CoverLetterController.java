@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,11 +25,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.MDC;
 
 @Tag(name = "자소서 관리", description = "자소서 CRUD API")
 @RestController
 @RequestMapping("/api/v1/cover-letters")
 @RequiredArgsConstructor
+@Slf4j
 public class CoverLetterController {
 
     private final CoverLetterService coverLetterService;
@@ -97,8 +100,12 @@ public class CoverLetterController {
             @Valid @RequestBody CoverLetterSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "coverletter-save-controller");
+
         String memberEmail = userDetails.getUsername();
         coverLetterService.saveCoverLetter(request, memberEmail);
+        log.info("자소서 저장 요청 - 타입: {}, , 제목 : {}, 지원분야: {}, 경력: {}년",
+                request.isAiImproved() ? "AI첨삭" : "원본", request.title(), request.jobField(), request.experienceYears());
 
         String message = request.isAiImproved() ?
                 "AI 첨삭된 자소서가 저장되었습니다." :
@@ -165,7 +172,10 @@ public class CoverLetterController {
             @Valid @RequestBody CoverLetterUpdateRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "coverletter-update-controller");
         String memberEmail = userDetails.getUsername();
+        log.info("자소서 수정 요청 - coverLetterId: {}, 제목 : {}",
+                coverLetterId, request.title());
         coverLetterService.updateCoverLetter(coverLetterId, request, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서가 수정되었습니다.", null));
@@ -204,7 +214,10 @@ public class CoverLetterController {
             @Parameter(description = "삭제할 자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "coverletter-delete-controller");
         String memberEmail = userDetails.getUsername();
+
+        log.info("자소서 삭제 요청 - coverLetterId: {}", coverLetterId);
         coverLetterService.deleteCoverLetter(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서가 삭제되었습니다.", null));
@@ -256,7 +269,11 @@ public class CoverLetterController {
             @Parameter(description = "뷰 타입 (thumbnail: 미리보기, 그외: 전체내용)") @RequestParam(required = false) String view,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "coverletter-list-controller");
+
         String memberEmail = userDetails.getUsername();
+        log.info("자소서 목록 조회 요청 - page: {}, size: {}, view: {}", page, size, view);
+
         Pageable pageable = PageRequest.of(page, size);
         Page<CoverLetterListResponse> response = coverLetterService.getCoverLetters(memberEmail, pageable, view);
 
@@ -304,7 +321,11 @@ public class CoverLetterController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "coverletter-detail-controller");
+
         String memberEmail = userDetails.getUsername();
+        log.info("자소서 상세 조회 요청 - coverLetterId: {}", coverLetterId);
+
         CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
@@ -353,7 +374,9 @@ public class CoverLetterController {
             @Parameter(description = "복구할 자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "coverletter-restore-controller");
         String adminEmail = userDetails.getUsername();
+        log.info("관리자 자소서 복구 요청 - coverLetterId: {}", coverLetterId);
         coverLetterService.restoreCoverLetter(coverLetterId, adminEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서가 복구되었습니다.", null));
