@@ -83,8 +83,8 @@ dependencies {
 	implementation 'com.amazonaws:aws-java-sdk-s3'
 	implementation 'com.amazonaws:aws-java-sdk-lambda'
 
-
-
+	// Logback AWS Logs Appender
+	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
 
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')

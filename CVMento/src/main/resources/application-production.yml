@@ -73,13 +73,11 @@ llm:
         key: ${LLM_RESUME_VISION_KEY}
 
 logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail},%X{responseTime},%X{statusCode}] %logger{36} - %msg%n"
+  config: classpath:logback-spring.xml
   level:
-    com.cvmento: INFO       # 운영시 필수 정보만
-    org.springframework.security: WARN
-    org.springframework.data.redis: WARN
-    root: INFO
+    com.cvmento: INFO
+    ca.pjer.logback: WARN
+    root: WARN
 
 server:
   port: 5000
