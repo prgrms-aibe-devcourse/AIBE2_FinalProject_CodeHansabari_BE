@@ -1,11 +1,11 @@
 package com.cvmento.global.config;
 
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 @Configuration
 public class AwsConfig {
@@ -14,10 +14,10 @@ public class AwsConfig {
     private String region;
 
     @Bean
-    public AWSLambda lambdaClient() {
-        return AWSLambdaClientBuilder.standard()
-                .withRegion(region)
-                .withCredentials(InstanceProfileCredentialsProvider.getInstance())
+    public LambdaClient lambdaClient() {
+        return LambdaClient.builder()
+                .region(Region.of(region))
+                .credentialsProvider(InstanceProfileCredentialsProvider.create())
                 .build();
     }
 }

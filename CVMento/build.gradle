@@ -78,10 +78,11 @@ dependencies {
 	// Spring Cloud OpenFeign
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.3.0'
 
-	// AWS SDK for S3, Lambda
-	implementation platform('com.amazonaws:aws-java-sdk-bom:1.12.720')
-	implementation 'com.amazonaws:aws-java-sdk-s3'
-	implementation 'com.amazonaws:aws-java-sdk-lambda'
+	// AWS SDK v2로 통일
+	implementation platform('software.amazon.awssdk:bom:2.20.56')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:lambda'
+	implementation 'software.amazon.awssdk:cloudwatchlogs'
 
 	// Logback AWS Logs Appender
 	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
