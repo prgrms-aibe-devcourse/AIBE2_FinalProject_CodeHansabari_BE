@@ -40,11 +40,11 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/swagger-resources/**",  // 추가
-                                "/webjars/**",           // 추가
+                                "/swagger-resources/**",
+                                "/webjars/**",
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
-                                "/v3/api-docs.yaml",     // 추가
+                                "/v3/api-docs.yaml",
                                 "/auth/test-login",
                                 "/auth/login/google",
                                 "/auth/google/login",
@@ -53,21 +53,14 @@ public class SecurityConfig {
                                 "/health",
                                 "/error",
                                 "/auth/google/url",
-                                "/auth/quick-login/**", // 개발용
-                                "/health",
-                                "/error"
+                                "/auth/quick-login/**" // 개발용
                         ).permitAll()
-                                .anyRequest().hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/v1/resumes/*/restore").hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/v1/cover-letters/*/restore").hasAnyRole("ADMIN", "ROOT") // 삭제된 자소서 복원
-//                        .anyRequest().authenticated()
 
-                        // 관리자 전용 엔드포인트
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
                         .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
+                        .requestMatchers("/api/v1/resumes/*/restore").hasAnyRole("ADMIN", "ROOT")
+                        .requestMatchers("/api/v1/cover-letters/*/restore").hasAnyRole("ADMIN", "ROOT")
 
-                        // 인증이 필요한 모든 요청
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

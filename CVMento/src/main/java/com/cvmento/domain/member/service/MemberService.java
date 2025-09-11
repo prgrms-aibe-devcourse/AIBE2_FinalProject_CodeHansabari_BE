@@ -15,6 +15,7 @@ import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.security.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,22 +42,33 @@ public class MemberService {
     private final ResumeRepository resumeRepository;
     private final TokenService tokenService;
 
-    // ================ 일반 사용자 기능들 ================
 
     /**
      * 이메일로 회원 조회
      */
     public Member findByEmail(String email) {
-        return memberRepository.findByEmail(email)
+        MDC.put("spanId", "member-service");
+
+        MDC.put("spanId", "member-repository");
+        Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("회원을 찾을 수 없습니다: " + email));
+
+        MDC.put("spanId", "member-service");
+        return member;
     }
 
     /**
      * ID로 회원 조회
      */
     public Member findById(Long memberId) {
-        return memberRepository.findById(memberId)
+        MDC.put("spanId", "member-service");
+
+        MDC.put("spanId", "member-repository");
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException("회원을 찾을 수 없습니다. ID: " + memberId));
+
+        MDC.put("spanId", "member-service");
+        return member;
     }
 
     /**
@@ -64,10 +76,15 @@ public class MemberService {
      */
     @Transactional
     public Member save(Member member) {
-        return memberRepository.save(member);
+        MDC.put("spanId", "member-service");
+
+        MDC.put("spanId", "member-repository");
+        Member saved = memberRepository.save(member);
+
+        MDC.put("spanId", "member-service");
+        return saved;
     }
 
-    // ================ 관리자 기능들 ================
 
     /**
      * 회원 목록 조회 (검색 및 필터링 지원)
@@ -76,7 +93,8 @@ public class MemberService {
             Pageable pageable, String email, String name, Role role,
             UserStatus status, String sortBy, String sortDirection) {
 
-        // 동적 쿼리 생성
+        MDC.put("spanId", "member-list-service");
+
         Specification<Member> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -103,12 +121,13 @@ public class MemberService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
-        // 정렬 설정
         Sort sort = createSort(sortBy, sortDirection);
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
+        MDC.put("spanId", "member-repository");
         Page<Member> memberPage = memberRepository.findAll(spec, sortedPageable);
 
+        MDC.put("spanId", "member-list-service");
         log.info("회원 목록 조회 완료: 총 {}건, 페이지 {}/{}",
                 memberPage.getTotalElements(), memberPage.getNumber() + 1, memberPage.getTotalPages());
 
@@ -119,14 +138,18 @@ public class MemberService {
      * 회원 상세 조회
      */
     public MemberDetailResponse getMemberDetail(Long memberId) {
+        MDC.put("spanId", "member-detail-service");
+
         Member member = findById(memberId);
 
-        // 자소서 개수 조회
+        MDC.put("spanId", "coverletter-repository");
         int coverLetterCount = coverLetterRepository.findByMember(member).size();
 
-        // 이력서 개수 조회
-        int resumeCount = resumeRepository.findByMember_MemberId(member.getMemberId()).size();
+        MDC.put("spanId", "resume-repository");
+        int resumeCount = resumeRepository.findByIdAndMember(null, member) != null ?
+                member.getResumes().size() : 0;
 
+        MDC.put("spanId", "member-detail-service");
         log.info("회원 상세 조회 완료: memberId={}, email={}, 자소서={}개, 이력서={}개",
                 memberId, member.getEmail(), coverLetterCount, resumeCount);
 
@@ -138,34 +161,34 @@ public class MemberService {
      */
     @Transactional
     public void updateMemberStatus(Long memberId, MemberStatusUpdateRequest request, Member admin) {
+        MDC.put("spanId", "member-status-update-service");
+
         Member targetMember = findById(memberId);
 
-        // 자기 자신의 상태는 변경할 수 없음
         if (targetMember.getMemberId().equals(admin.getMemberId())) {
             throw new IllegalArgumentException("자기 자신의 상태는 변경할 수 없습니다.");
         }
 
-        // ROOT 관리자는 변경할 수 없음 (ROOT가 아닌 경우)
         if (targetMember.getRole() == Role.ROOT && admin.getRole() != Role.ROOT) {
             throw new AccessDeniedException("ROOT 관리자의 상태는 변경할 수 없습니다.");
         }
 
         UserStatus oldStatus = targetMember.getStatus();
 
-        // 상태 변경
         switch (request.status()) {
             case ACTIVE -> targetMember.activate();
             case INACTIVE -> targetMember.deactivate();
             case SUSPENDED -> targetMember.deactivate(); // SUSPENDED도 비활성화로 처리
         }
 
-        // 상태가 INACTIVE나 SUSPENDED로 변경되면 강제 로그아웃
         if (request.status() != UserStatus.ACTIVE) {
             forceLogoutMember(targetMember);
         }
 
+        MDC.put("spanId", "member-repository");
         memberRepository.save(targetMember);
 
+        MDC.put("spanId", "member-status-update-service");
         log.info("회원 상태 변경 완료: memberId={}, {}→{}, 관리자={}, 사유={}",
                 memberId, oldStatus, request.status(), admin.getEmail(), request.reason());
     }
@@ -175,24 +198,22 @@ public class MemberService {
      */
     @Transactional
     public void updateMemberRole(Long memberId, MemberRoleUpdateRequest request, Member admin) {
+        MDC.put("spanId", "member-role-update-service");
+
         Member targetMember = findById(memberId);
 
-        // 자기 자신의 역할은 변경할 수 없음
         if (targetMember.getMemberId().equals(admin.getMemberId())) {
             throw new IllegalArgumentException("자기 자신의 역할은 변경할 수 없습니다.");
         }
 
-        // ROOT 권한 변경은 ROOT만 가능
         if (request.role() == Role.ROOT && admin.getRole() != Role.ROOT) {
             throw new AccessDeniedException("ROOT 권한 부여는 ROOT 관리자만 가능합니다.");
         }
 
-        // ROOT 관리자의 역할 변경은 ROOT만 가능
         if (targetMember.getRole() == Role.ROOT && admin.getRole() != Role.ROOT) {
             throw new AccessDeniedException("ROOT 관리자의 역할은 변경할 수 없습니다.");
         }
 
-        // ADMIN이 다른 ADMIN의 역할 변경은 불가
         if (targetMember.getRole() == Role.ADMIN && admin.getRole() == Role.ADMIN) {
             throw new AccessDeniedException("동급 관리자의 역할은 변경할 수 없습니다.");
         }
@@ -200,13 +221,14 @@ public class MemberService {
         Role oldRole = targetMember.getRole();
         targetMember.changeRole(request.role());
 
-        // 권한이 축소되면 강제 로그아웃
         if (isRoleDowngraded(oldRole, request.role())) {
             forceLogoutMember(targetMember);
         }
 
+        MDC.put("spanId", "member-repository");
         memberRepository.save(targetMember);
 
+        MDC.put("spanId", "member-role-update-service");
         log.info("회원 역할 변경 완료: memberId={}, {}→{}, 관리자={}, 사유={}",
                 memberId, oldRole, request.role(), admin.getEmail(), request.reason());
     }
@@ -215,6 +237,9 @@ public class MemberService {
      * 회원 통계 조회
      */
     public MemberStatisticsResponse getMemberStatistics() {
+        MDC.put("spanId", "member-statistics-service");
+
+        MDC.put("spanId", "member-repository");
         long totalMembers = memberRepository.count();
 
         long activeMembers = memberRepository.countByStatus(UserStatus.ACTIVE);
@@ -225,15 +250,14 @@ public class MemberService {
         long adminRoleCount = memberRepository.countByRole(Role.ADMIN);
         long rootRoleCount = memberRepository.countByRole(Role.ROOT);
 
-        // 오늘 가입한 회원 수
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
         long todayNewMembers = memberRepository.countByCreatedAtBetween(startOfDay, endOfDay);
 
-        // 이번 달 가입한 회원 수
         LocalDateTime startOfMonth = LocalDateTime.now().toLocalDate().withDayOfMonth(1).atStartOfDay();
         long monthlyNewMembers = memberRepository.countByCreatedAtAfter(startOfMonth);
 
+        MDC.put("spanId", "member-statistics-service");
         log.info("회원 통계 조회 완료: 전체={}, 활성={}, 오늘가입={}, 이달가입={}",
                 totalMembers, activeMembers, todayNewMembers, monthlyNewMembers);
 
@@ -255,6 +279,8 @@ public class MemberService {
      */
     @Transactional
     public void forceMemberLogout(Long memberId, Member admin) {
+        MDC.put("spanId", "member-force-logout-service");
+
         Member targetMember = findById(memberId);
 
         // 자기 자신은 강제 로그아웃할 수 없음
@@ -272,8 +298,6 @@ public class MemberService {
         log.info("회원 강제 로그아웃 완료: memberId={}, email={}, 관리자={}",
                 memberId, targetMember.getEmail(), admin.getEmail());
     }
-
-    // ================ 내부 헬퍼 메서드들 ================
 
     /**
      * 정렬 조건 생성
@@ -316,6 +340,7 @@ public class MemberService {
      * 회원 강제 로그아웃 처리
      */
     private void forceLogoutMember(Member member) {
+        MDC.put("spanId", "token-service");
         try {
             // 해당 사용자의 모든 토큰 무효화
             tokenService.logout(member.getMemberId().toString(), null, null);
@@ -324,5 +349,6 @@ public class MemberService {
             log.warn("강제 로그아웃 중 오류 발생: memberId={}, error={}", member.getMemberId(), e.getMessage());
             // 로그아웃 실패해도 상태 변경은 진행
         }
+        MDC.put("spanId", "member-force-logout-service");
     }
 }

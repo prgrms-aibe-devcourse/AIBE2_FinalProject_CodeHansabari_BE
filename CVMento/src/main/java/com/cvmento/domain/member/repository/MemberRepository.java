@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>, JpaSpecificationExecutor<Member> {
 
     Optional<Member> findByGoogleId(String googleId);
 
@@ -30,7 +30,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByGoogleId(String googleId);
 
-    // ================ 관리자용 통계 쿼리 메서드들 ================
 
     /**
      * 상태별 회원 수 조회

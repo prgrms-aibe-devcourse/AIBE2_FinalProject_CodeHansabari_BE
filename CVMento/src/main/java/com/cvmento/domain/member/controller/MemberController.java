@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -76,6 +77,8 @@ public class MemberController {
     public ResponseEntity<CommonResponse<MemberInfo>> getMyProfile(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-profile-controller");
+
         Member member = authService.getMemberFromUserDetails(userDetails);
         MemberInfo memberInfo = MemberInfo.from(member);
 
@@ -140,6 +143,8 @@ public class MemberController {
             @Parameter(description = "정렬 방향 (asc, desc)") @RequestParam(defaultValue = "desc") String sortDirection,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-list-controller");
+
         validateAdminAccess(userDetails);
 
         Pageable pageable = PageRequest.of(page, size);
@@ -161,6 +166,8 @@ public class MemberController {
             @Parameter(description = "회원 ID") @PathVariable Long memberId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-detail-controller");
+
         validateAdminAccess(userDetails);
 
         MemberDetailResponse memberDetail = memberService.getMemberDetail(memberId);
@@ -180,6 +187,8 @@ public class MemberController {
             @Valid @RequestBody MemberStatusUpdateRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-status-update-controller");
+
         validateAdminAccess(userDetails);
 
         Member admin = authService.getMemberFromUserDetails(userDetails);
@@ -201,6 +210,8 @@ public class MemberController {
             @Valid @RequestBody MemberRoleUpdateRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-role-update-controller");
+
         validateAdminAccess(userDetails);
 
         Member admin = authService.getMemberFromUserDetails(userDetails);
@@ -220,6 +231,8 @@ public class MemberController {
     public ResponseEntity<CommonResponse<Object>> getMemberStatistics(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-statistics-controller");
+
         validateAdminAccess(userDetails);
 
         Object statistics = memberService.getMemberStatistics();
@@ -238,6 +251,8 @@ public class MemberController {
             @Parameter(description = "회원 ID") @PathVariable Long memberId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "member-force-logout-controller");
+
         validateAdminAccess(userDetails);
 
         Member admin = authService.getMemberFromUserDetails(userDetails);
