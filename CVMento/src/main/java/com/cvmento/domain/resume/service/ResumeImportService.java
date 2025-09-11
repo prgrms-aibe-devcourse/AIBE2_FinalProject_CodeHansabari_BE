@@ -108,7 +108,7 @@ public class ResumeImportService {
         VisionPromptResult visionPrompt = resumeLlmPromptService.createVisionPrompt(file);
 
         // 2. Vision API 호출
-        MDC.put("spanId", "resume-llm-vision-client");
+        MDC.put("spanId", "resume-llm-client");
         ResumeImportResponse response = resumeLlmClientService.convertResumeWithVision(
                 visionPrompt.textPrompt(), 
                 visionPrompt.base64Image()
@@ -135,6 +135,7 @@ public class ResumeImportService {
             log.info("Lambda OCR 완료 - 추출된 텍스트 길이: {}chars", extractedText.length());
 
             // 2. 추출된 텍스트로 프롬프트 생성
+            MDC.put("spanId", "resume-prompt-service");
             String prompt = resumeLlmPromptService.createResumeConversionPrompt(extractedText);
 
             // 3. LLM 호출

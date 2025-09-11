@@ -30,7 +30,7 @@ public class ResumeLlmClientService {
     }
     
     public ResumeImportResponse convertResumeWithVision(String textPrompt, String base64Image) {
-        MDC.put("spanId", "resume-llm-vision-client");
+        MDC.put("spanId", "resume-llm-client");
 
         validatePrompt(textPrompt);
         validateBase64Image(base64Image);
@@ -98,7 +98,7 @@ public class ResumeLlmClientService {
 
     private ResumeImportResponse parseVisionApiResponse(String rawResponse) {
         try {
-            MDC.put("spanId", "vision-response-parser");
+            MDC.put("spanId", "openai-response-parser");
             String textContent = extractVisionContent(rawResponse);
 
             MDC.put("spanId", "resume-response-parsing");
@@ -197,15 +197,15 @@ public class ResumeLlmClientService {
         try {
             log.info("Resume Vision API 요청 시작 - 모델: {}", request.model());
 
-            MDC.put("spanId", "openai-resume-vision-api");
+            MDC.put("spanId", "openai-resume-api");
             String rawResponse = getVisionRawResponse(request);
 
-            MDC.put("spanId", "resume-vision-response-parsing");
+            MDC.put("spanId", "resume-response-parsing");
             log.info("Resume Vision 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
 
             ResumeImportResponse response = parseVisionApiResponse(rawResponse);
 
-            MDC.put("spanId", "resume-llm-vision-client");
+            MDC.put("spanId", "resume-llm-client");
             log.info("Resume Vision 응답 파싱 완료 - 이름: {}, 제목: {}",
                     response.name(), response.title());
 

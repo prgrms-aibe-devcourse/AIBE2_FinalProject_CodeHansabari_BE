@@ -18,7 +18,7 @@ import java.util.Base64;
 public class ResumeLlmPromptService {
 
     public VisionPromptResult createVisionPrompt(MultipartFile file) {
-        MDC.put("spanId", "resume-vision-prompt-service");
+        MDC.put("spanId", "resume-prompt-service");
         
         try {
             String base64Image = convertFileToBase64Image(file);
