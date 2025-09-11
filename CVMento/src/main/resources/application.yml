@@ -2,7 +2,7 @@ spring:
   application:
     name: backend
   profiles:
-    active: local  # 기본 프로파일
+    active: production  # 기본 프로파일
   jackson:
     time-zone: Asia/Seoul
 
