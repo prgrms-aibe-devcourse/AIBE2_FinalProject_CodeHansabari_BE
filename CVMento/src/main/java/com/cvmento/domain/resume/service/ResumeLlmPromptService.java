@@ -270,12 +270,12 @@ public class ResumeLlmPromptService {
         return """
         {
           "title": "이력서 제목 (예: 백엔드 개발자 김철수)",
-          "type": "DEFAULT", // DEFAULT, MODERN, CREATIVE 중 하나
+          "type": "DEFAULT",
           "name": "성명",
           "email": "이메일 주소",
           "birthYear": 출생년도(숫자),
           "phone": "전화번호",
-          "careerType": "FRESHMAN", // FRESHMAN(신입), EXPERIENCED(경력) 중 하나
+          "careerType": "FRESHMAN",
           "fieldName": "분야/직무명",
           "introduction": "자기소개 (없으면 null)",
           "githubUrl": "GitHub URL (없으면 null)",
@@ -285,16 +285,16 @@ public class ResumeLlmPromptService {
             {
               "schoolName": "학교명",
               "major": "전공",
-              "degreeLevel": "BACHELOR", // HIGH_SCHOOL, ASSOCIATE, BACHELOR, MASTER, DOCTORATE
-              "personalGpa": 개인성적(소수점),
-              "totalGpa": 만점성적(소수점),
+              "degreeLevel": "BACHELOR",
+              "personalGpa": 개인성적(소수점, 없으면 null),
+              "totalGpa": 만점성적(소수점, 없으면 null),
               "graduationDate": "졸업일(YYYY-MM-DD)"
             }
           ],
           "techStacks": [
             {
-              "techStackId": 1, // 임시로 1 설정
-              "proficiencyLevel": "INTERMEDIATE" // BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+              "techStackId": 1,
+              "proficiencyLevel": "INTERMEDIATE"
             }
           ],
           "customLinks": [
@@ -322,7 +322,7 @@ public class ResumeLlmPromptService {
           "projects": [
             {
               "projectName": "프로젝트명",
-              "projectType": "PERSONAL", // TEAM, PERSONAL, COMPANY
+              "projectType": "PERSONAL",
               "startDate": "시작일(YYYY-MM-DD)",
               "endDate": "종료일(YYYY-MM-DD)",
               "description": "프로젝트 설명",
@@ -354,7 +354,7 @@ public class ResumeLlmPromptService {
           ],
           "additionalInfos": [
             {
-              "category": "AWARD", // AWARD, CERTIFICATE, LANGUAGE, ETC
+              "category": "AWARD",
               "title": "제목",
               "description": "상세 설명",
               "achievementDate": "취득/수상일(YYYY-MM-DD)"
@@ -362,15 +362,32 @@ public class ResumeLlmPromptService {
           ]
         }
         
-        중요 사항:
-        1. 정보가 없는 필드는 빈 배열([]) 또는 null로 설정
-        2. techStackId는 임시로 1로 설정 (실제 구현에서 매핑 필요)
-        3. 날짜는 반드시 YYYY-MM-DD 형식으로 변환
-        4. 경력이 있으면 EXPERIENCED, 신입이면 FRESHMAN으로 설정
-        5. 반드시 유효한 JSON 형식으로 응답
-        6. 마크다운 코드블록(```) 사용하지 말고 순수 JSON만 반환
-        7. 응답은 { 로 시작해서 } 로 끝나야 함
-        8. 추가 설명이나 텍스트 없이 JSON만 반환
+        ========== 중요 제약 조건 ==========
+        
+        1. ENUM 값 제한 (정확히 이 값들만 사용):
+           - type: DEFAULT, MODERN, CREATIVE
+           - careerType: FRESHMAN, EXPERIENCED
+           - degreeLevel: HIGH_SCHOOL, ASSOCIATE, BACHELOR, MASTER, DOCTORATE
+           - proficiencyLevel: BEGINNER, INTERMEDIATE, ADVANCED (EXPERT 없음!)
+           - projectType: PERSONAL, TEAM, COMPANY
+           - category: AWARD, LANGUAGE, CERTIFICATE, ACTIVITY (ETC 없음!)
+        
+        2. 기술스택 처리:
+           - techStackId는 모두 1로 설정 (후처리에서 실제 이름으로 매핑됨)
+           - 실제 기술스택은 description에 기록해주세요
+        
+        3. 필수 규칙:
+           - 모든 날짜는 YYYY-MM-DD 형식
+           - 정보가 없으면 빈 배열([]) 또는 null 사용
+           - 숫자 필드는 따옴표 없이 숫자로
+           - 반드시 유효한 JSON만 반환
+           - 마크다운 코드블록 사용 금지
+           - 추가 설명 없이 JSON만 반환
+        
+        4. 이미지에서 추출한 실제 정보를 사용하세요:
+           - 템플릿 값(김철수, kim@example.com 등) 사용 금지
+           - 실제 이름, 이메일, 전화번호, 경력사항 등을 정확히 추출
+           - 불분명한 정보는 null 또는 빈 배열로 처리
         """;
     }
 }
