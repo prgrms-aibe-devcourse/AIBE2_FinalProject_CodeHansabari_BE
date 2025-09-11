@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/resumes")
 @RequiredArgsConstructor
+@Slf4j
 public class ResumeController {
 
     private final ResumeService resumeService;
@@ -141,7 +144,13 @@ public class ResumeController {
             @Valid @RequestBody ResumeSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "resume-save-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("이력서 저장 요청 - 제목: {}, 타입: {}, 필드: {}",
+                request.title(), request.type(), request.fieldName());
+
         resumeService.saveResume(request, memberEmail);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -229,7 +238,13 @@ public class ResumeController {
             @Valid @RequestBody ResumeUpdateRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "resume-update-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("이력서 수정 요청 - ID: {}, 제목: {}, 타입: {}",
+                resumeId, request.title(), request.type());
+
         resumeService.updateResume(resumeId, request, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 수정되었습니다.", null));
@@ -271,7 +286,12 @@ public class ResumeController {
             @Parameter(description = "이력서 ID", example = "1") @PathVariable Long resumeId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "resume-delete-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("이력서 삭제 요청 - ID: {}", resumeId);
+
         resumeService.deleteResume(resumeId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 성공적으로 삭제되었습니다.", null));
@@ -324,9 +344,16 @@ public class ResumeController {
             @Parameter(description = "페이지 크기", example = "10")
             @RequestParam(defaultValue = "10") int size
     ) {
+        MDC.put("spanId", "resume-list-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("이력서 목록 조회 요청 - page: {}, size: {}", page, size);
+
         Pageable pageable = PageRequest.of(page, size);
         Page<ResumeThumbnailResponse> resumePage = resumeService.getResumeList(memberEmail, pageable);
+
+        log.info("이력서 목록 조회 완료 - 총 개수: {}", resumePage.getTotalElements());
 
         return ResponseEntity.ok(CommonResponse.success("이력서 목록을 성공적으로 조회했습니다.", resumePage));
     }
@@ -390,7 +417,12 @@ public class ResumeController {
             @Parameter(description = "이력서 ID", example = "1") @PathVariable Long resumeId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "resume-detail-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("이력서 상세 조회 요청 - ID: {}", resumeId);
+
         ResumeDetailResponse resumeDetail = resumeService.getResumeDetail(resumeId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서를 성공적으로 조회했습니다.", resumeDetail));
@@ -432,7 +464,12 @@ public class ResumeController {
             @Parameter(description = "복구할 이력서 ID") @PathVariable Long resumeId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "resume-restore-controller");
+
         String adminEmail = userDetails.getUsername();
+
+        log.info("이력서 복구 요청 - ID: {}", resumeId);
+
         resumeService.restoreResume(resumeId, adminEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 복구되었습니다.", null));

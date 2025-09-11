@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,11 +35,14 @@ public class CoverLetterAiService {
      * 자소서 AI 개선 메인 메서드 (경력 정보 포함)
      */
     public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request, String userEmail) {
+        MDC.put("spanId", "coverletter-ai-service");
+
         try {
             // 1. 특징 데이터 로드
             List<CoverLetterFeatureDto> featuresDtoList = loadCoverLetterFeatures();
 
             // 2. LLM 프롬프트 생성 (경력 정보 포함)
+            MDC.put("spanId", "prompt-generation-service");
             String prompt = llmPromptService.buildImprovementPrompt(
                     request.content(),
                     featuresDtoList,
@@ -47,10 +51,11 @@ public class CoverLetterAiService {
                     request.customPrompt()
             );
 
-            // 경력 정보 로깅
-            log.info("자소서 AI 첨삭 요청 - 사용자: {}, 지원분야: {}, 경력: {}, 커스텀프롬프트: {}",
-                    userEmail, request.jobField(), request.getTotalExperience(),
-                    request.customPrompt() != null ? "있음" : "없음");
+            MDC.put("spanId", "coverletter-ai-service");
+            // 개인정보 제거: 이메일 대신 요청 정보만 로깅
+            log.info("자소서 AI 첨삭 처리 시작 - 지원분야: {}, 경력: {}, 특징데이터수: {}, 프롬프트길이: {}",
+                    request.jobField(), request.getTotalExperience(),
+                    featuresDtoList.size(), prompt.length());
 
             // 3. LLM API 호출
             LlmAnalysisResponse llmResponse = llmClientService.analyze(prompt);
@@ -59,7 +64,13 @@ public class CoverLetterAiService {
             CoverLetterFeedback feedback = parseFeedback(llmResponse.feedback());
 
             // 5. 최종 응답 생성
-            return buildResponse(feedback, llmResponse.improvedContent());
+            CoverLetterAiResponse result = buildResponse(feedback, llmResponse.improvedContent());
+
+            log.info("자소서 AI 첨삭 완료 - 강점: {}개, 개선사항: {}개, 개선내용길이: {}",
+                    feedback.strengths().size(), feedback.improvements().size(),
+                    result.improvedContent().length());
+
+            return result;
 
         } catch (Exception e) {
             logError(e, request);
@@ -71,8 +82,13 @@ public class CoverLetterAiService {
 
     /** DB에서 우수 자소서 특징 데이터를 조회 */
     private List<CoverLetterFeatureDto> loadCoverLetterFeatures() {
+        MDC.put("spanId", "feature-repository");
         List<CoverLetterFeature> features = coverLetterFeatureRepository.findAll();
-        if (features.isEmpty()) log.warn("우수 자소서 특징 데이터가 없습니다.");
+
+        MDC.put("spanId", "coverletter-ai-service");
+        if (features.isEmpty()) {
+            log.warn("우수 자소서 특징 데이터가 없습니다.");
+        }
 
         return features.stream()
                 .map(f -> new CoverLetterFeatureDto(f.getFeaturesCategory().name(), f.getDescription()))
@@ -81,13 +97,21 @@ public class CoverLetterAiService {
 
     /** LLM API에서 반환된 피드백 JSON을 파싱 */
     private CoverLetterFeedback parseFeedback(String feedbackJson) {
-        if (feedbackJson == null || feedbackJson.trim().isEmpty()) return createDefaultFeedback();
+        MDC.put("spanId", "feedback-parsing-service");
+
+        if (feedbackJson == null || feedbackJson.trim().isEmpty()) {
+            log.warn("피드백 JSON이 비어있음");
+            return createDefaultFeedback();
+        }
 
         try {
             var feedback = objectMapper.readValue(feedbackJson, CoverLetterFeedback.class);
+            log.debug("피드백 파싱 성공 - 강점: {}개, 개선사항: {}개",
+                    feedback.strengths() != null ? feedback.strengths().size() : 0,
+                    feedback.improvements() != null ? feedback.improvements().size() : 0);
             return validateAndCorrectFeedback(feedback);
         } catch (JsonProcessingException e) {
-            log.error("피드백 JSON 파싱 실패: {}", feedbackJson, e);
+            log.error("피드백 JSON 파싱 실패 - 길이: {}", feedbackJson.length(), e);
             return createDefaultFeedback();
         }
     }

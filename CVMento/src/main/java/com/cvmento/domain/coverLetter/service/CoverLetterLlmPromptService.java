@@ -2,6 +2,8 @@ package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.internal.CoverLetterFeatureDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,26 +12,30 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CoverLetterLlmPromptService {
 
     public String buildImprovementPrompt(String content, List<CoverLetterFeatureDto> features,
                                          String jobField, String totalExperience, String customPrompt) {
-        return buildPromptStructure() +
+        MDC.put("spanId", "prompt-building-service");
+
+        log.info("프롬프트 생성 시작 - 컨텐츠길이: {}, 특징수: {}, 지원분야: {}, 경력: {}",
+                content != null ? content.length() : 0,
+                features != null ? features.size() : 0,
+                jobField != null ? jobField : "없음",
+                totalExperience != null ? totalExperience : "없음");
+
+        String prompt = buildPromptStructure() +
                 buildFeatureCriteria(features) +
                 buildApplicantContextSection(jobField, totalExperience) +
                 buildContentSection(content) +
                 buildCustomPromptSection(customPrompt) +
                 buildRequestSection() +
                 buildGuidelines();
-    }
 
-    // 기존 방식 유지 (하위 호환성)
-    public String buildImprovementPrompt(String content, List<CoverLetterFeatureDto> features, String customPrompt) {
-        return buildImprovementPrompt(content, features, null, null, customPrompt);
-    }
+        log.info("프롬프트 생성 완료 - 총 길이: {}chars", prompt.length());
 
-    public String buildImprovementPrompt(String content, List<CoverLetterFeatureDto> features) {
-        return buildImprovementPrompt(content, features, null, null, null);
+        return prompt;
     }
 
     private String buildPromptStructure() {
@@ -44,6 +50,11 @@ public class CoverLetterLlmPromptService {
     private String buildFeatureCriteria(List<CoverLetterFeatureDto> features) {
         StringBuilder criteria = new StringBuilder("## 우수 자소서 작성 기준\n");
 
+        if (features == null || features.isEmpty()) {
+            log.warn("특징 데이터가 비어있음");
+            return criteria.append("(특징 데이터 없음)\n\n").toString();
+        }
+
         Map<String, List<CoverLetterFeatureDto>> categoryFeatures =
                 features.stream().collect(Collectors.groupingBy(CoverLetterFeatureDto::category));
 
@@ -54,6 +65,7 @@ public class CoverLetterLlmPromptService {
             criteria.append("\n");
         });
 
+        log.debug("특징 기준 구성 완료 - 카테고리수: {}", categoryFeatures.size());
         return criteria.toString();
     }
 

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.MDC;
 
 /**
  * Interview LLM 클라이언트 서비스 - 구조화된 파싱
@@ -28,8 +29,9 @@ public class InterviewLlmClientService {
     private final OpenAiResponseParser openAiResponseParser;
 
     public InterviewLlmResponse generateQnaList(String prompt) {
-        validatePrompt(prompt);
+        MDC.put("spanId", "interview-llm-client");
 
+        validatePrompt(prompt);
         LlmRequest request = createLlmRequest(prompt);
         return callLlmApi(request);
     }
@@ -49,21 +51,24 @@ public class InterviewLlmClientService {
 
     private InterviewLlmResponse callLlmApi(LlmRequest request) {
         try {
-            log.info("=== Interview LLM API 요청 시작 ===");
-            log.info("요청 프롬프트 길이: {}", request.input().length());
+            log.info("Interview LLM API 요청 시작 - 프롬프트길이: {}", request.input().length());
 
+            MDC.put("spanId", "openai-interview-api");
             String rawResponse = getRawResponse(request);
-            log.info("=== 원본 응답 받음 ===");
+
+            MDC.put("spanId", "interview-response-parsing");
+            log.info("Interview LLM 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
 
             InterviewLlmResponse response = parseOpenAiResponse(rawResponse);
 
-            log.info("=== 변환된 응답 ===");
-            log.info("질문/답변 개수: {}", response.qnaList() != null ? response.qnaList().size() : 0);
+            MDC.put("spanId", "interview-llm-client");
+            log.info("Interview 응답 파싱 완료 - Q&A 개수: {}",
+                    response.qnaList() != null ? response.qnaList().size() : 0);
 
             return response;
 
         } catch (Exception e) {
-            log.error("Interview LLM API 호출 실패", e);
+            log.error("Interview LLM API 호출 실패: {}", e.getMessage(), e);
             throw new InterviewException("면접 질문/답변 생성에 실패했습니다.", e);
         }
     }
@@ -72,41 +77,39 @@ public class InterviewLlmClientService {
         try {
             return interviewLlmFeignClient.analyzeRaw(request);
         } catch (Exception e) {
-            log.error("Raw 응답 받기 실패", e);
+            log.error("LLM API 원본 응답 받기 실패: {}", e.getMessage());
             throw new InterviewException("Interview LLM API 호출 실패", e);
         }
     }
 
     private InterviewLlmResponse parseOpenAiResponse(String rawResponse) {
         try {
+            MDC.put("spanId", "openai-response-parser");
             String textContent = openAiResponseParser.extractTextContent(rawResponse);
+
+            MDC.put("spanId", "interview-response-parsing");
             return parseActualContent(textContent);
 
         } catch (Exception e) {
-            log.error("OpenAI 응답 파싱 실패: {}", e.getMessage());
+            log.error("Interview OpenAI 응답 파싱 실패: {}", e.getMessage());
             throw new InterviewException("LLM 응답 파싱에 실패했습니다.", e);
         }
     }
 
     private InterviewLlmResponse parseActualContent(String text) {
         try {
-            // 실제 LLM 응답 내용 로깅 추가
-            log.info("=== LLM 실제 응답 내용 ===");
-            log.info("응답 길이: {} chars", text.length());
-            log.info("응답 내용: {}", text);
-            log.info("============================");
+            log.debug("Interview 응답 파싱 시작 - 텍스트길이: {}", text.length());
 
-            // 마크다운 코드 블록 제거 (혹시 있을 경우)
+            // 마크다운 코드 블록 제거
             String cleanText = text.trim()
                     .replaceAll("```json\\s*", "")
                     .replaceAll("\\s*```", "")
                     .trim();
 
-            // text가 JSON 형식인지 확인하고 파싱
+            // JSON 파싱
             if (cleanText.startsWith("{")) {
                 var contentJson = objectMapper.readTree(cleanText);
 
-                // qnaList 배열 추출
                 if (contentJson.has("qnaList")) {
                     var qnaArray = contentJson.get("qnaList");
                     if (qnaArray.isArray()) {
@@ -121,62 +124,66 @@ public class InterviewLlmClientService {
                             }
                         }
 
-                        log.info("실제 content 파싱 성공 - QnA 개수: {}", qnaList.size());
+                        log.info("Interview Q&A 파싱 성공 - 개수: {}", qnaList.size());
                         return new InterviewLlmResponse(qnaList);
                     }
                 } else {
-                    // qnaList가 없는 경우 다른 가능한 필드명들 확인
                     log.error("qnaList 필드가 없습니다. 사용 가능한 필드들:");
                     contentJson.fieldNames().forEachRemaining(fieldName ->
                             log.error("- {}: {}", fieldName, contentJson.get(fieldName).getNodeType()));
                 }
             }
 
-            // JSON 파싱에 실패한 경우
-            log.error("QnA JSON 파싱 실패 - qnaList를 찾을 수 없습니다");
+            log.error("Interview Q&A JSON 파싱 실패 - qnaList를 찾을 수 없습니다");
             throw new InterviewException("질문/답변 데이터 파싱에 실패했습니다.");
 
         } catch (InterviewException e) {
-            throw e; // 이미 처리된 예외는 다시 던지기
+            throw e;
         } catch (Exception e) {
-            log.error("실제 content 파싱 실패: {}", e.getMessage());
+            log.error("Interview content 파싱 실패: {}", e.getMessage());
             throw new InterviewException("LLM 컨텐츠 파싱에 실패했습니다.", e);
         }
     }
 
     // ======================== 커스텀 프롬프트 메서드 ========================
     public CustomAnswerResponse generateCustomAnswer(String prompt) {
-        validatePrompt(prompt);
+        MDC.put("spanId", "interview-llm-client");
 
+        validatePrompt(prompt);
         LlmRequest request = createLlmRequest(prompt);
         return callCustomAnswerLlmApi(request);
     }
 
     private CustomAnswerResponse callCustomAnswerLlmApi(LlmRequest request) {
         try {
-            log.info("=== Custom Answer LLM API 요청 시작 ===");
-            log.info("요청 모델: {}", request.model());
-            log.info("요청 프롬프트 길이: {}", request.input().length());
+            log.info("Custom Answer LLM API 요청 시작 - 프롬프트길이: {}", request.input().length());
 
+            MDC.put("spanId", "openai-interview-api");
             String rawResponse = getRawResponse(request);
-            log.info("=== 원본 응답 받음 ===");
+
+            MDC.put("spanId", "custom-answer-parsing");
+            log.info("Custom Answer 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
 
             CustomAnswerResponse response = parseCustomAnswerResponse(rawResponse);
 
-            log.info("=== 변환된 응답 ===");
-            log.info("답변 길이: {}", response.answer() != null ? response.answer().length() : 0);
+            MDC.put("spanId", "interview-llm-client");
+            log.info("Custom Answer 파싱 완료 - 답변길이: {}",
+                    response.answer() != null ? response.answer().length() : 0);
 
             return response;
 
         } catch (Exception e) {
-            log.error("Custom Answer LLM API 호출 실패", e);
+            log.error("Custom Answer LLM API 호출 실패: {}", e.getMessage(), e);
             throw new InterviewException("커스텀 질문 답변 생성에 실패했습니다.", e);
         }
     }
 
     private CustomAnswerResponse parseCustomAnswerResponse(String rawResponse) {
         try {
+            MDC.put("spanId", "openai-response-parser");
             String textContent = openAiResponseParser.extractTextContent(rawResponse);
+
+            MDC.put("spanId", "custom-answer-parsing");
             return parseCustomAnswerContent(textContent);
 
         } catch (Exception e) {
@@ -187,10 +194,7 @@ public class InterviewLlmClientService {
 
     private CustomAnswerResponse parseCustomAnswerContent(String text) {
         try {
-            log.info("=== Custom Answer 실제 응답 내용 ===");
-            log.info("응답 길이: {} chars", text.length());
-            log.info("응답 내용: {}", text);
-            log.info("============================");
+            log.debug("Custom Answer 파싱 시작 - 텍스트길이: {}", text.length());
 
             // 마크다운 코드 블록 제거
             String cleanText = text.trim()
@@ -206,7 +210,7 @@ public class InterviewLlmClientService {
                     String answer = contentJson.get("answer").asText();
                     String tip = contentJson.get("tip").asText();
 
-                    log.info("커스텀 답변 파싱 성공 - 답변 길이: {}, 팁 길이: {}",
+                    log.info("Custom Answer 파싱 성공 - 답변길이: {}, 팁길이: {}",
                             answer.length(), tip.length());
                     return new CustomAnswerResponse(answer, tip);
                 } else {
@@ -216,13 +220,13 @@ public class InterviewLlmClientService {
                 }
             }
 
-            log.error("커스텀 답변 JSON 파싱 실패 - answer, tip을 찾을 수 없습니다");
+            log.error("Custom Answer JSON 파싱 실패 - answer, tip을 찾을 수 없습니다");
             throw new InterviewException("커스텀 답변 데이터 파싱에 실패했습니다.");
 
         } catch (InterviewException e) {
             throw e;
         } catch (Exception e) {
-            log.error("커스텀 답변 content 파싱 실패: {}", e.getMessage());
+            log.error("Custom Answer content 파싱 실패: {}", e.getMessage());
             throw new InterviewException("커스텀 답변 컨텐츠 파싱에 실패했습니다.", e);
         }
     }

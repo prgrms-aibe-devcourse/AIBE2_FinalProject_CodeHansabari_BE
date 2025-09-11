@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @Tag(name = "ai 모의면접", description = "자소서 기반 ai 모의면접 질문/답변 생성 API")
 @RestController
 @RequestMapping("/api/v1/me/cover-letters/{coverLetterId}/interview-questions")
@@ -90,8 +93,16 @@ public class InterviewController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "interview-list-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("면접 Q&A 조회 요청 - 자소서ID: {}", coverLetterId);
+
         InterviewQnaListResponse response = interviewService.getExistingInterviewQna(coverLetterId, memberEmail);
+
+        log.info("면접 Q&A 조회 완료 - 총 개수: {}, 생성된 개수: {}",
+                response.totalCount(), response.generatedCount());
 
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 조회 성공", response));
     }
@@ -180,8 +191,15 @@ public class InterviewController {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "interview-generation-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("면접 Q&A 생성 요청 - 자소서ID: {}", coverLetterId);
+
         InterviewQnaListResponse response = interviewService.createInterviewQuestions(coverLetterId, memberEmail);
+
+        log.info("면접 Q&A 생성 완료 - 생성된 개수: {}", response.totalCount());
 
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 생성 성공", response));
     }
@@ -262,9 +280,19 @@ public class InterviewController {
             @Valid @RequestBody CustomQuestionRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        MDC.put("spanId", "custom-answer-controller");
+
         String memberEmail = userDetails.getUsername();
+
+        log.info("커스텀 답변 생성 요청 - 자소서ID: {}, 질문길이: {}",
+                coverLetterId, request.question() != null ? request.question().length() : 0);
+
         CustomAnswerResponse response = interviewService.createCustomAnswer(
                 coverLetterId, memberEmail, request.question());
+
+        log.info("커스텀 답변 생성 완료 - 답변길이: {}, 팁길이: {}",
+                response.answer() != null ? response.answer().length() : 0,
+                response.tip() != null ? response.tip().length() : 0);
 
         return ResponseEntity.ok(CommonResponse.success("커스텀 질문 답변 생성 성공", response));
     }
