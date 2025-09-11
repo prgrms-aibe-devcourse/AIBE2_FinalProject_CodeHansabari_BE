@@ -34,29 +34,34 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 공개 엔드포인트
                         .requestMatchers(
                                 "/",
                                 "/login/**",
                                 "/oauth2/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/webjars/**",
+                                "/swagger-resources/**",  // 추가
+                                "/webjars/**",           // 추가
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
-                                "/v3/api-docs.yaml",
+                                "/v3/api-docs.yaml",     // 추가
                                 "/auth/test-login",
                                 "/auth/login/google",
                                 "/auth/google/login",
-                                "/auth/google/token",
                                 "/auth/refresh",
                                 "/auth/status",
+                                "/health",
+                                "/error",
                                 "/auth/google/url",
                                 "/auth/quick-login/**", // 개발용
                                 "/health",
                                 "/error"
                         ).permitAll()
+                                .anyRequest().hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/v1/resumes/*/restore").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/v1/cover-letters/*/restore").hasAnyRole("ADMIN", "ROOT") // 삭제된 자소서 복원
+//                        .anyRequest().authenticated()
 
                         // 관리자 전용 엔드포인트
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")

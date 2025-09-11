@@ -1,11 +1,9 @@
 package com.cvmento.domain.interview.service;
 
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
+import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
-import com.cvmento.domain.interview.dto.response.InterviewLlmResponse;
-import com.cvmento.domain.interview.dto.response.InterviewQnaDto;
-import com.cvmento.domain.interview.dto.response.InterviewQnaListResponse;
-import com.cvmento.domain.interview.dto.response.InterviewQnaResponse;
+import com.cvmento.domain.interview.dto.response.*;
 import com.cvmento.domain.interview.entity.CoverLetterQna;
 import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
@@ -22,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.MDC;
 
 @Service
 @RequiredArgsConstructor
@@ -38,9 +37,17 @@ public class InterviewService {
     /**
      * 기존 면접 질문/답변 조회 (순수 조회)
      */
-    public InterviewQnaListResponse getExistingInterviewQna(Long coverLetterId, String userEmail) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public InterviewQnaListResponse getExistingInterviewQna(Long coverLetterId, String memberEmail) {
+        MDC.put("spanId", "interview-list-service");
+
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
+
+        MDC.put("spanId", "interview-repository");
         List<CoverLetterQna> existingQnaList = coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(coverLetter);
+
+        MDC.put("spanId", "interview-list-service");
+        log.info("면접 Q&A 조회 - 자소서ID: {}, 기존 개수: {}", coverLetterId, existingQnaList.size());
+
         return buildQnaListResponse(existingQnaList);
     }
 
@@ -48,18 +55,61 @@ public class InterviewService {
      * 면접 질문/답변 생성 (초기/추가 자동 판단)
      */
     @Transactional
-    public InterviewQnaListResponse createInterviewQuestions(Long coverLetterId, String userEmail) {
-        CoverLetter coverLetter = findCoverLetterByIdAndUser(coverLetterId, userEmail);
+    public InterviewQnaListResponse createInterviewQuestions(Long coverLetterId, String memberEmail) {
+        MDC.put("spanId", "interview-generation-service");
 
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
+
+        MDC.put("spanId", "interview-repository");
         long existingCount = coverLetterQnaRepository.countByCoverLetterAndSourceType(
                 coverLetter, QuestionSourceType.GENERATED);
 
+        MDC.put("spanId", "interview-generation-service");
         if (existingCount >= 15) {
+            log.warn("면접 질문 생성 제한 초과 - 자소서ID: {}, 기존개수: {}", coverLetterId, existingCount);
             throw new InterviewLimitExceededException("더 이상 질문을 생성할 수 없습니다. (최대 15개)");
         }
 
+        String type = existingCount == 0 ? "초기" : "추가";
+        log.info("면접 Q&A {} 생성 시작 - 자소서ID: {}, 기존개수: {}", type, coverLetterId, existingCount);
+
         String prompt = buildPromptByCount(coverLetter, existingCount);
-        return generateQuestionsWithPrompt(coverLetter, prompt, existingCount == 0 ? "초기" : "추가");
+        return generateQuestionsWithPrompt(coverLetter, prompt, type);
+    }
+
+    /**
+     * 사용자 커스텀 질문에 대한 AI 답변 생성 및 저장
+     */
+    @Transactional
+    public CustomAnswerResponse createCustomAnswer(Long coverLetterId, String memberEmail, String customQuestion) {
+        MDC.put("spanId", "custom-answer-service");
+
+        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
+
+        log.info("커스텀 답변 생성 시작 - 자소서ID: {}, 질문길이: {}",
+                coverLetterId, customQuestion.length());
+
+        // 프롬프트 생성
+        MDC.put("spanId", "prompt-building-service");
+        String prompt = promptService.buildCustomAnswerPrompt(coverLetter, customQuestion);
+
+        try {
+            MDC.put("spanId", "custom-answer-service");
+            // LLM API 호출
+            CustomAnswerResponse response = llmClientService.generateCustomAnswer(prompt);
+
+            // DB에 저장
+            saveCustomQuestionAndAnswer(customQuestion, response, coverLetter);
+
+            log.info("커스텀 답변 생성 완료 - 자소서ID: {}, 답변길이: {}",
+                    coverLetterId, response.answer().length());
+
+            return response;
+
+        } catch (Exception e) {
+            log.error("커스텀 답변 생성 실패 - 자소서ID: {}, 오류: {}", coverLetterId, e.getMessage(), e);
+            throw new InterviewException("커스텀 질문 답변 생성에 실패했습니다.", e);
+        }
     }
 
     // ======================== 유틸리티 메서드 ========================
@@ -68,8 +118,11 @@ public class InterviewService {
         if (existingCount == 0) {
             return promptService.buildQnaGenerationPrompt(coverLetter);
         } else {
+            MDC.put("spanId", "interview-repository");
             List<String> existingQuestions = coverLetterQnaRepository.findQuestionsByCoverLetterAndSourceType(
                     coverLetter, QuestionSourceType.GENERATED);
+
+            MDC.put("spanId", "interview-generation-service");
             return promptService.buildAdditionalQnaPrompt(coverLetter, existingQuestions);
         }
     }
@@ -79,26 +132,32 @@ public class InterviewService {
             InterviewLlmResponse llmResponse = llmClientService.generateQnaList(prompt);
             List<CoverLetterQna> newQnas = saveQnaListToDatabaseAndReturn(llmResponse.qnaList(), coverLetter);
 
-            log.info("{} 질문/답변 {}개 생성 완료 - 자소서 ID: {}",
-                    type, llmResponse.qnaList().size(), coverLetter.getCoverLetterId());
+            log.info("{} Q&A 생성 완료 - 자소서ID: {}, 생성개수: {}",
+                    type, coverLetter.getCoverLetterId(), llmResponse.qnaList().size());
 
             return buildNewQnaListResponse(newQnas);
 
         } catch (Exception e) {
-            log.error("{} 질문/답변 생성 실패 - 자소서 ID: {}", type, coverLetter.getCoverLetterId(), e);
+            log.error("{} Q&A 생성 실패 - 자소서ID: {}, 오류: {}",
+                    type, coverLetter.getCoverLetterId(), e.getMessage(), e);
             throw new InterviewException("질문/답변 생성에 실패했습니다.", e);
         }
     }
 
     private List<CoverLetterQna> saveQnaListToDatabaseAndReturn(List<InterviewQnaDto> qnaDataList, CoverLetter coverLetter) {
+        MDC.put("spanId", "interview-repository");
+
         List<CoverLetterQna> savedQnas = new ArrayList<>();
 
         for (InterviewQnaDto qnaData : qnaDataList) {
-            CoverLetterQna qna = new CoverLetterQna(qnaData.question(), coverLetter);
+            CoverLetterQna qna = new CoverLetterQna(qnaData.question(), coverLetter, QuestionSourceType.GENERATED);
             qna.updateAnswerAndTip(qnaData.answer(), qnaData.tip());
             CoverLetterQna savedQna = coverLetterQnaRepository.save(qna);
             savedQnas.add(savedQna);
         }
+
+        MDC.put("spanId", "interview-generation-service");
+        log.info("Q&A DB 저장 완료 - 저장개수: {}", savedQnas.size());
 
         return savedQnas;
     }
@@ -123,11 +182,25 @@ public class InterviewService {
         return new InterviewQnaListResponse(qnaResponses, newQnas.size(), newQnas.size());
     }
 
-    private CoverLetter findCoverLetterByIdAndUser(Long coverLetterId, String userEmail) {
-        Member member = memberRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
-
-        return coverLetterRepository.findByCoverLetterIdAndMember(coverLetterId, member)
+    /**
+     * 활성 상태의 자소서만 조회하는 헬퍼 메서드
+     */
+    private CoverLetter findActiveCoverLetterByIdAndMember(Long coverLetterId, String memberEmail) {
+        MDC.put("spanId", "coverletter-repository");
+        CoverLetter coverLetter = coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
+                        coverLetterId, memberEmail, CoverLetterStatus.ACTIVE)
                 .orElseThrow(() -> new CoverLetterException("자소서를 찾을 수 없습니다."));
+
+        MDC.put("spanId", "interview-list-service");
+        return coverLetter;
+    }
+
+    private void saveCustomQuestionAndAnswer(String question, CustomAnswerResponse response, CoverLetter coverLetter) {
+        MDC.put("spanId", "interview-repository");
+        CoverLetterQna qna = new CoverLetterQna(question, coverLetter, QuestionSourceType.CUSTOM);
+        qna.updateAnswerAndTip(response.answer(), response.tip());
+        coverLetterQnaRepository.save(qna);
+
+        MDC.put("spanId", "custom-answer-service");
     }
 }

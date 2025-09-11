@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -49,6 +50,7 @@ public class AuthController {
     public ResponseEntity<CommonResponse<GoogleLoginUrlResponse>> getGoogleLoginUrl(
             @RequestParam(required = false) String redirectUri) {
 
+        MDC.put("spanId", "google-url-controller");
         GoogleLoginUrlResponse response = googleOAuthService.generateGoogleLoginUrl(redirectUri);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -63,24 +65,26 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
+        MDC.put("spanId", "google-oauth-controller");
+
         try {
-            String clientIp = getClientIpAddress(httpRequest);
-            LoginResponse loginResponse = googleOAuthService.processGoogleLogin(request, clientIp, httpResponse);
+            // IP 수집 제거
+            LoginResponse loginResponse = googleOAuthService.processGoogleLogin(request, null, httpResponse);
 
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
         } catch (InvalidAuthorizationCodeException e) {
-            log.warn("Invalid authorization code: {}", e.getMessage());
+            log.warn("구글 로그인 실패: 잘못된 authorization code");
             return ResponseEntity.badRequest()
                     .body(CommonResponse.error("INVALID_AUTH_CODE", e.getMessage()));
 
         } catch (GoogleApiException e) {
-            log.error("Google API error: {}", e.getMessage());
+            log.error("구글 API 오류: {}", e.getMessage());
             return ResponseEntity.status(502)
                     .body(CommonResponse.error("GOOGLE_API_ERROR", "구글 서버와 통신 중 오류가 발생했습니다."));
 
         } catch (Exception e) {
-            log.error("Google login failed", e);
+            log.error("구글 로그인 처리 실패", e);
             return ResponseEntity.status(500)
                     .body(CommonResponse.error("LOGIN_ERROR", "로그인 처리 중 오류가 발생했습니다."));
         }
@@ -98,22 +102,23 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
+        MDC.put("spanId", "google-token-controller");
+
         try {
-            String clientIp = getClientIpAddress(httpRequest);
-            log.info("구글 토큰 로그인 시도 - IP: {}", clientIp);
+            log.info("구글 토큰 로그인 시도");
 
-            LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, clientIp, httpResponse);
+            LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, null, httpResponse);
 
-            log.info("구글 토큰 로그인 성공 - 사용자: {}", loginResponse.getMember().email());
+            log.info("구글 토큰 로그인 성공 - memberId: {}", loginResponse.getMember().memberId());
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
         } catch (InvalidTokenException e) {
-            log.warn("Invalid Google ID token: {}", e.getMessage());
+            log.warn("구글 ID 토큰 검증 실패: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(CommonResponse.error("INVALID_TOKEN", e.getMessage()));
 
         } catch (Exception e) {
-            log.error("구글 토큰 로그인 실패 - IP: {}, 오류: {}", getClientIpAddress(httpRequest), e.getMessage());
+            log.error("구글 토큰 로그인 실패: {}", e.getMessage());
             return ResponseEntity.status(500)
                     .body(CommonResponse.error("LOGIN_ERROR", "로그인 처리 중 오류가 발생했습니다."));
         }
@@ -140,6 +145,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "토큰 갱신 성공")
     @ApiResponse(responseCode = "401", description = "유효하지 않은 Refresh Token")
     public ResponseEntity<CommonResponse<TokenRefreshResponse>> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        MDC.put("spanId", "refresh-token-controller");
+
         try {
             authService.refreshAccessToken(request, response);
             TokenRefreshResponse refreshResponse = TokenRefreshResponse.builder()
@@ -172,6 +179,8 @@ public class AuthController {
     public ResponseEntity<CommonResponse<Void>> logout(@AuthenticationPrincipal UserDetails userDetails,
                                                        HttpServletRequest request,
                                                        HttpServletResponse response) {
+        MDC.put("spanId", "logout-controller");
+
         if (userDetails == null) {
             return ResponseEntity.status(401)
                     .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
@@ -179,6 +188,8 @@ public class AuthController {
 
         try {
             Member member = authService.getMemberFromUserDetails(userDetails);
+            log.info("로그아웃 요청 - memberId: {}", member.getMemberId());
+
             authService.logout(member, request, response);
             return ResponseEntity.ok(CommonResponse.success("로그아웃되었습니다."));
         } catch (IllegalArgumentException e) {
@@ -196,6 +207,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공")
     @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     public ResponseEntity<CommonResponse<?>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "user-info-controller");
+
         if (userDetails == null) {
             return ResponseEntity.status(401)
                     .body(CommonResponse.error("UNAUTHORIZED", "인증되지 않은 사용자입니다."));
@@ -214,6 +227,8 @@ public class AuthController {
     @GetMapping("/status")
     @Operation(summary = "인증 상태 확인", description = "현재 인증 상태를 확인합니다.")
     public ResponseEntity<CommonResponse<AuthStatusResponse>> checkAuthStatus(@AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "auth-status-controller");
+
         if (authService.isUserAuthenticatedAndActive(userDetails)) {
             try {
                 Member member = authService.getMemberFromUserDetails(userDetails);
@@ -227,7 +242,6 @@ public class AuthController {
             }
         }
 
-        // 인증되지 않았거나 활성 사용자가 아닌 경우
         AuthStatusResponse statusResponse = AuthStatusResponse.builder()
                 .authenticated(false)
                 .build();
@@ -244,6 +258,8 @@ public class AuthController {
             @RequestParam(defaultValue = "Test User") String name,
             HttpServletResponse response) {
 
+        MDC.put("spanId", "test-login-controller");
+
         Member testMember = authService.createOrUpdateTestUser(email, name, Role.USER);
         authService.generateTokensAndSetCookies(testMember, response);
 
@@ -256,26 +272,26 @@ public class AuthController {
         return ResponseEntity.ok(CommonResponse.success(loginResponse));
     }
 
-    @PostMapping("/quick-login/user")
-    @Operation(summary = "일반 사용자로 빠른 로그인")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsUser(HttpServletResponse response) {
-        return performQuickLogin("user@test.com", "일반 사용자", Role.USER, response);
-    }
+     @PostMapping("/quick-login/user")
+     @Operation(summary = "일반 사용자로 빠른 로그인")
+     @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+     public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsUser(HttpServletResponse response) {
+         return performQuickLogin("user@test.com", "일반 사용자", Role.USER, response);
+     }
 
-    @PostMapping("/quick-login/expert")
-    @Operation(summary = "최상위 관리자로 빠른 로그인")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsExpert(HttpServletResponse response) {
-        return performQuickLogin("root@test.com", "최상위 관리자", Role.ROOT, response);
-    }
+     @PostMapping("/quick-login/expert")
+     @Operation(summary = "최상위 관리자로 빠른 로그인")
+     @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+     public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsExpert(HttpServletResponse response) {
+         return performQuickLogin("root@test.com", "최상위 관리자", Role.ROOT, response);
+     }
 
-    @PostMapping("/quick-login/admin")
-    @Operation(summary = "관리자로 빠른 로그인")
-    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
-    public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsAdmin(HttpServletResponse response) {
-        return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
-    }
+     @PostMapping("/quick-login/admin")
+     @Operation(summary = "관리자로 빠른 로그인")
+     @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")
+     public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsAdmin(HttpServletResponse response) {
+         return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
+     }
 
     // === 헬퍼 메서드들 ===
 
@@ -292,17 +308,8 @@ public class AuthController {
         return ResponseEntity.ok(CommonResponse.success(loginResponse));
     }
 
+    // IP 수집 제거
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-
-        return request.getRemoteAddr();
+        return "removed"; // IP 수집하지 않음
     }
 }

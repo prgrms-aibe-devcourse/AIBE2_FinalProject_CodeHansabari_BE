@@ -73,10 +73,24 @@ llm:
         key: ${LLM_RESUME_VISION_KEY}
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail},%X{responseTime},%X{statusCode}] %logger{36} - %msg%n"
   level:
-    com.example: INFO
+    com.cvmento: INFO       # 운영시 필수 정보만
     org.springframework.security: WARN
     org.springframework.data.redis: WARN
+    root: INFO
 
 server:
   port: 5000
+
+cloud:
+  aws:
+    region:
+      static: ap-northeast-2
+    lambda:
+      function-name: aibe2-team2-resume-ocr-function
+
+resume:
+  import:
+    strategy: lambda

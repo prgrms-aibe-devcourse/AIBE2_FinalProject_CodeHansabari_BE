@@ -35,10 +35,10 @@ public class CoverLetterQna extends BaseTimeEntity {
 
     protected CoverLetterQna() {}
 
-    public CoverLetterQna(String question, CoverLetter coverLetter) {
+    public CoverLetterQna(String question, CoverLetter coverLetter, QuestionSourceType sourceType) {
         this.question = question;
         this.coverLetter = coverLetter;
-        this.sourceType = QuestionSourceType.GENERATED; // 기본값으로 GENERATED 설정
+        this.sourceType = sourceType;
     }
 
     public void updateAnswer(String answer) {
@@ -51,5 +51,9 @@ public class CoverLetterQna extends BaseTimeEntity {
     public void updateAnswerAndTip(String answer, String tip) {
         this.answer = answer;
         this.tip = tip;
+    }
+
+    public void updateSourceType(QuestionSourceType sourceType) {
+        this.sourceType = sourceType;
     }
 }

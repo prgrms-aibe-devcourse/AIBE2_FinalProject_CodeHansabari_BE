@@ -10,10 +10,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<Member, Long>, JpaSpecificationExecutor<Member> {
+public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByGoogleId(String googleId);
 
@@ -67,4 +68,6 @@ public interface MemberRepository extends JpaRepository<Member, Long>, JpaSpecif
             "FROM Member m GROUP BY SUBSTRING(m.email, LOCATE('@', m.email) + 1) " +
             "ORDER BY count DESC")
     java.util.List<Object[]> getEmailDomainStatistics();
+
+    List<Member> findByStatus(UserStatus status);
 }

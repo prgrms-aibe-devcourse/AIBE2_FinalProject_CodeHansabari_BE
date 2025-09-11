@@ -8,6 +8,7 @@ import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,8 +24,9 @@ public class CoverLetterLlmClientService {
     private final OpenAiResponseParser openAiResponseParser;
 
     public LlmAnalysisResponse analyze(String prompt) {
-        validatePrompt(prompt);
+        MDC.put("spanId", "llm-client-service");
 
+        validatePrompt(prompt);
         LlmRequest request = createLlmRequest(prompt);
         return callLlmApi(request);
     }
@@ -44,23 +46,26 @@ public class CoverLetterLlmClientService {
 
     private LlmAnalysisResponse callLlmApi(LlmRequest request) {
         try {
-            log.info("=== LLM API 요청 시작 ===");
-            log.info("요청 모델: {}", request.model());
-            log.info("요청 프롬프트 길이: {}", request.input().length());
+            log.info("LLM API 요청 시작 - 모델: {}, 프롬프트길이: {}",
+                    request.model(), request.input().length());
 
+            MDC.put("spanId", "openai-llm-api");
             String rawResponse = getRawResponse(request);
-            log.info("=== 원본 응답 받음 ===");
+
+            MDC.put("spanId", "llm-response-parsing");
+            log.info("LLM 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
 
             LlmAnalysisResponse response = parseResponse(rawResponse);
 
-            log.info("=== 변환된 응답 ===");
-            log.info("피드백 길이: {}", response.feedback() != null ? response.feedback().length() : "null");
-            log.info("개선된 내용 길이: {}", response.improvedContent() != null ? response.improvedContent().length() : "null");
+            MDC.put("spanId", "llm-client-service");
+            log.info("LLM 응답 파싱 완료 - 피드백길이: {}, 개선내용길이: {}",
+                    response.feedback() != null ? response.feedback().length() : 0,
+                    response.improvedContent() != null ? response.improvedContent().length() : 0);
 
             return response;
 
         } catch (Exception e) {
-            log.error("LLM API 호출 실패", e);
+            log.error("LLM API 호출 실패 - 모델: {}, 오류: {}", request.model(), e.getMessage(), e);
             throw new CoverLetterAiException("LLM 서비스 호출에 실패했습니다.", e);
         }
     }
@@ -69,18 +74,22 @@ public class CoverLetterLlmClientService {
         try {
             return coverLetterLlmFeignClient.analyzeRaw(request);
         } catch (Exception e) {
-            log.error("Raw 응답 받기 실패", e);
+            log.error("LLM API 원본 응답 받기 실패: {}", e.getMessage());
             throw new CoverLetterAiException("LLM API 호출 실패", e);
         }
     }
 
     private LlmAnalysisResponse parseResponse(String rawResponse) {
         try {
+            MDC.put("spanId", "openai-response-parser");
             String textContent = openAiResponseParser.extractTextContent(rawResponse);
+
+            MDC.put("spanId", "llm-response-parsing");
             return parseActualContent(textContent);
 
         } catch (Exception e) {
-            log.error("OpenAI 응답 파싱 실패: {}", e.getMessage());
+            log.error("OpenAI 응답 파싱 실패 - 응답길이: {}, 오류: {}",
+                    rawResponse.length(), e.getMessage());
             throw new CoverLetterAiException("LLM 응답 파싱에 실패했습니다.", e);
         }
     }
@@ -104,17 +113,18 @@ public class CoverLetterLlmClientService {
                     improvedContent = contentJson.get("improvedContent").asText();
                 }
 
-                log.info("실제 content 파싱 성공 - feedback: {} chars, improved: {} chars",
+                log.info("JSON 파싱 성공 - feedback: {}chars, improved: {}chars",
                         feedback.length(), improvedContent.length());
 
                 return new LlmAnalysisResponse(feedback, improvedContent);
             } else {
                 // JSON이 아닌 경우 전체를 improvedContent로 사용
-                log.info("JSON이 아닌 텍스트 - 전체를 improvedContent로 사용");
+                log.warn("JSON 형식이 아닌 응답 - 전체를 improvedContent로 처리");
                 return new LlmAnalysisResponse("", text);
             }
         } catch (Exception e) {
-            log.error("실제 content 파싱 실패: {}", e.getMessage());
+            log.error("실제 content 파싱 실패 - 텍스트길이: {}, 오류: {}",
+                    text.length(), e.getMessage());
             return new LlmAnalysisResponse("", text);
         }
     }

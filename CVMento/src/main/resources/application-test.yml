@@ -12,8 +12,8 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
-      password: test
+      port: 6381
+      password: team2
       timeout: 2000ms
   cloud:
     openfeign:
@@ -60,10 +60,12 @@ llm:
         key: dummy-test-key-vision
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail},%X{responseTime},%X{statusCode}] %logger{36} - %msg%n"
   level:
-    com.example: INFO
-    org.springframework.security: WARN
-    org.springframework.data.redis: WARN
+    com.cvmento: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.data.redis: DEBUG
 
 server:
   port: 8080
