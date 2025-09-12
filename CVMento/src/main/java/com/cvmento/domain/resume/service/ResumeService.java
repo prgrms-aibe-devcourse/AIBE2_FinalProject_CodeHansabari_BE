@@ -14,6 +14,7 @@ import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 이력서 서비스.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,106 +37,122 @@ public class ResumeService {
     private final MemberRepository memberRepository;
 
     /**
-     * 이력서 전체 정보 저장
+     * 이력서 전체 정보 저장.
      */
     @Transactional
     public void saveResume(ResumeSaveRequest request, String memberEmail) {
+        MDC.put("spanId", "resume-save-service");
+
         Member member = findMemberByEmail(memberEmail);
 
-        // 1. 이력서 기본 정보 저장
         Resume resume = createAndSaveResume(request, member);
 
-        // 2. 상세 정보들 저장 (QueryDSL 구현체 사용)
+        MDC.put("spanId", "resume-details-repository");
         resumeRepositoryImpl.saveResumeDetails(request, resume);
 
-        log.info("이력서 전체 정보 저장 완료 - ID: {}, 제목: {}, 타입: {}, 멤버: {}",
-                resume.getId(), request.title(), request.type(), memberEmail);
+        MDC.put("spanId", "resume-save-service");
+        log.info("이력서 저장 완료 - ID: {}, 제목: {}, 타입: {}",
+                resume.getId(), request.title(), request.type());
     }
 
     /**
-     * 이력서 전체 정보 수정 (덮어쓰기 방식)
+     * 이력서 전체 정보 수정 (덮어쓰기 방식).
      */
     @Transactional
     public void updateResume(Long resumeId, ResumeUpdateRequest request, String memberEmail) {
-        Member member = findMemberByEmail(memberEmail);
+        MDC.put("spanId", "resume-update-service");
 
-        // 1. 기존 이력서 조회 및 권한 확인
+        Member member = findMemberByEmail(memberEmail);
         Resume existingResume = findActiveResumeByIdAndMember(resumeId, member);
 
-        // 2. 기존 이력서의 모든 하위 데이터 삭제
+        MDC.put("spanId", "resume-details-repository");
         resumeRepositoryImpl.deleteAllResumeDetails(existingResume);
 
-        // 3. 기본 정보 업데이트
+        MDC.put("spanId", "resume-update-service");
         updateResumeBasicInfo(existingResume, request);
 
-        // 4. 새로운 상세 정보들 저장
+        MDC.put("spanId", "resume-details-repository");
         resumeRepositoryImpl.saveResumeDetails(request.toSaveRequest(), existingResume);
 
-        log.info("이력서 전체 정보 수정 완료 - ID: {}, 제목: {}, 멤버: {}",
-                resumeId, request.title(), memberEmail);
+        MDC.put("spanId", "resume-update-service");
+        log.info("이력서 수정 완료 - ID: {}, 제목: {}", resumeId, request.title());
     }
 
     /**
-     * 이력서 소프트 삭제
+     * 이력서 소프트 삭제.
      */
     @Transactional
     public void deleteResume(Long resumeId, String memberEmail) {
-        Member member = findMemberByEmail(memberEmail);
+        MDC.put("spanId", "resume-delete-service");
 
-        // 1. 이력서 조회 및 권한 확인
+        Member member = findMemberByEmail(memberEmail);
         Resume resume = findActiveResumeByIdAndMember(resumeId, member);
 
-        // 2. 상태를 DELETED로 변경
         resume.updateStatus(ResumeStatus.DELETED);
 
-        log.info("이력서 소프트 삭제 완료 - ID: {}, 제목: {}, 멤버: {}",
-                resumeId, resume.getTitle(), memberEmail);
+        log.info("이력서 소프트 삭제 완료 - ID: {}, 제목: {}", resumeId, resume.getTitle());
     }
 
     /**
-     * 이력서 목록 조회 (썸네일, 페이징)
+     * 이력서 목록 조회 (썸네일, 페이징).
      */
     public Page<ResumeThumbnailResponse> getResumeList(String memberEmail, Pageable pageable) {
+        MDC.put("spanId", "resume-list-service");
+
+        MDC.put("spanId", "resume-repository");
         Page<Resume> resumePage = resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
                 memberEmail, ResumeStatus.ACTIVE, pageable);
+
+        MDC.put("spanId", "resume-list-service");
+        log.info("이력서 목록 조회 완료 - 총 개수: {}, 현재페이지: {}",
+                resumePage.getTotalElements(), resumePage.getNumber());
 
         return resumePage.map(this::convertToThumbnailResponse);
     }
 
     /**
-     * 이력서 상세 조회 (QueryDSL Projection 활용)
+     * 이력서 상세 조회 (QueryDSL Projection 활용).
      */
     public ResumeDetailResponse getResumeDetail(Long resumeId, String memberEmail) {
+        MDC.put("spanId", "resume-detail-service");
+
         Member member = findMemberByEmail(memberEmail);
 
-        // QueryDSL로 DTO 직접 조회
+        MDC.put("spanId", "resume-details-repository");
         ResumeDetailResponse result = resumeRepositoryImpl.findResumeDetailByIdAndMember(
                 resumeId, member, ResumeStatus.ACTIVE);
 
+        MDC.put("spanId", "resume-detail-service");
         if (result == null) {
             throw new ResumeNotFoundException("이력서를 찾을 수 없거나 접근 권한이 없습니다.");
         }
+
+        log.info("이력서 상세 조회 완료 - ID: {}, 제목: {}", resumeId, result.title());
 
         return result;
     }
 
     /**
-     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한
+     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한.
      */
     @Transactional
     public void restoreResume(Long resumeId, String adminEmail) {
+        MDC.put("spanId", "resume-restore-service");
+
+        MDC.put("spanId", "resume-repository");
         Resume resume = resumeRepository.findByIdAndStatus(resumeId, ResumeStatus.DELETED)
                 .orElseThrow(() -> new ResumeNotFoundException("복구할 수 있는 이력서를 찾을 수 없습니다."));
 
+        MDC.put("spanId", "resume-restore-service");
         resume.restore();
 
         log.info("관리자 권한으로 이력서 복구 완료 - ID: {}, 관리자: {}, 원 소유자: {}",
                 resumeId, adminEmail, resume.getMember().getEmail());
     }
 
-
-    // ======================== Private 메서드 ========================
-
+    /**
+     * 이력서 엔티티 생성 및 저장.
+     */
     private Resume createAndSaveResume(ResumeSaveRequest request, Member member) {
         Resume resume = Resume.createResume(
                 request.title(),
@@ -149,9 +169,16 @@ public class ResumeService {
         updateOptionalInfo(resume, request.introduction(), request.githubUrl(),
                 request.blogUrl(), request.notionUrl());
 
-        return resumeRepository.save(resume);
+        MDC.put("spanId", "resume-repository");
+        Resume saved = resumeRepository.save(resume);
+
+        MDC.put("spanId", "resume-save-service");
+        return saved;
     }
 
+    /**
+     * 이력서 기본 정보 업데이트.
+     */
     private void updateResumeBasicInfo(Resume resume, ResumeUpdateRequest request) {
         resume.updateTitle(request.title());
         resume.updateType(request.type());
@@ -162,6 +189,9 @@ public class ResumeService {
                 request.blogUrl(), request.notionUrl());
     }
 
+    /**
+     * 선택적 정보 업데이트 (소개, URL 등).
+     */
     private void updateOptionalInfo(Resume resume, String introduction, String githubUrl,
                                     String blogUrl, String notionUrl) {
         if (introduction != null && !introduction.trim().isEmpty()) {
@@ -177,15 +207,26 @@ public class ResumeService {
      * 활성 상태 이력서만 조회 - 커스텀 예외 사용
      */
     private Resume findActiveResumeByIdAndMember(Long resumeId, Member member) {
-        return resumeRepository.findByIdAndMemberAndStatus(resumeId, member, ResumeStatus.ACTIVE)
+        MDC.put("spanId", "resume-repository");
+        Resume resume = resumeRepository.findByIdAndMemberAndStatus(resumeId, member, ResumeStatus.ACTIVE)
                 .orElseThrow(() -> new ResumeNotFoundException("이력서를 찾을 수 없거나 접근 권한이 없습니다."));
+
+        MDC.put("spanId", "resume-update-service");
+        return resume;
     }
 
     private Member findMemberByEmail(String email) {
-        return memberRepository.findByEmail(email)
+        MDC.put("spanId", "member-repository");
+        Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("멤버를 찾을 수 없습니다."));
+
+        MDC.put("spanId", "resume-save-service");
+        return member;
     }
 
+    /**
+     * Resume을 썸네일 응답으로 변환.
+     */
     private ResumeThumbnailResponse convertToThumbnailResponse(Resume resume) {
         List<String> completedSections = getCompletedSections(resume);
 
@@ -196,6 +237,10 @@ public class ResumeService {
                 completedSections
         );
     }
+
+    /**
+     * 이력서 완성 섹션 목록 생성.
+     */
     private List<String> getCompletedSections(Resume resume) {
         List<String> sections = new ArrayList<>();
 

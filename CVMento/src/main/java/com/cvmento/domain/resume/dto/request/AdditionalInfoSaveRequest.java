@@ -5,9 +5,20 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 
+/**
+ * 기타사항 저장 요청.
+ *
+ * @param startDate 시작일
+ * @param endDate 종료일
+ * @param category 카테고리
+ * @param activityName 활동명
+ * @param relatedOrganization 관련기관
+ * @param detailedContent 상세내용
+ * @param certificateNumber 자격증 번호
+ * @param languageLevel 어학 등급
+ */
 @Schema(description = "기타사항 저장 요청")
 public record AdditionalInfoSaveRequest(
-
         @Schema(description = "시작일", example = "2023-05-01")
         LocalDate startDate,
 

@@ -7,9 +7,21 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * 프로젝트 저장 요청.
+ *
+ * @param startDate 시작일
+ * @param endDate 종료일
+ * @param name 프로젝트명
+ * @param description 프로젝트 소개
+ * @param detailedDescription 프로젝트 상세소개
+ * @param repositoryUrl 저장소 링크
+ * @param deployUrl 배포 링크
+ * @param projectType 프로젝트 타입
+ * @param techStacks 사용 기술스택 목록
+ */
 @Schema(description = "프로젝트 저장 요청")
 public record ProjectSaveRequest(
-
         @Schema(description = "시작일", example = "2023-03-01")
         LocalDate startDate,
 

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -66,21 +67,23 @@ public class GoogleOAuthService {
      * 구글 OAuth2 로그인 URL 생성
      */
     public GoogleLoginUrlResponse generateGoogleLoginUrl(String customRedirectUri) {
+        MDC.put("spanId", "google-url-service");
+
         String state = UUID.randomUUID().toString();
         String redirectUri = StringUtils.hasText(customRedirectUri) ? customRedirectUri : defaultRedirectUri;
 
-        String loginUrl = UriComponentsBuilder.fromHttpUrl(GOOGLE_AUTH_URL) // 구글 엔드포인트여야 함
+        String loginUrl = UriComponentsBuilder.fromHttpUrl(GOOGLE_AUTH_URL)
                 .queryParam("client_id", googleClientId)
-                .queryParam("redirect_uri", redirectUri) // 프론트가 보낸 콜백 URL
+                .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", "openid profile email")
                 .queryParam("response_type", "code")
                 .queryParam("state", state)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .encode(StandardCharsets.UTF_8)   // ★ 중요: 마지막에 한 번만
+                .encode(StandardCharsets.UTF_8)
                 .toUriString();
 
-        log.info("Generated Google OAuth URL with state: {}", state);
+        log.info("구글 OAuth URL 생성 완료");
         return new GoogleLoginUrlResponse(loginUrl, state);
     }
 
@@ -88,33 +91,37 @@ public class GoogleOAuthService {
      * Authorization Code를 사용한 구글 로그인 처리
      */
     @Transactional
-    public LoginResponse processGoogleLogin(GoogleLoginRequest request, String clientIp, HttpServletResponse response) {
-        try {
-            // 1. Authorization Code를 Access Token으로 교환
-            GoogleTokenResponse tokenResponse = exchangeCodeForToken(request.getCode(), request.getRedirectUri());
+    public LoginResponse processGoogleLogin(GoogleLoginRequest request, HttpServletResponse response) {
+        MDC.put("spanId", "google-oauth-service");
 
-            // 2. Access Token으로 사용자 정보 조회
+        try {
+            MDC.put("spanId", "google-token-api");
+            GoogleTokenResponse tokenResponse = exchangeCodeForToken(request.code(), request.redirectUri());
+
+            MDC.put("spanId", "google-userinfo-api");
             GoogleUserInfo userInfo = getUserInfoFromGoogle(tokenResponse.getAccessToken());
 
-            // 3. 사용자 생성 또는 조회
+            MDC.put("spanId", "google-oauth-service");
             Member member = findOrCreateMember(userInfo);
 
-            // 4. JWT 토큰 생성 및 쿠키 설정
+            MDC.put("spanId", "token-service");
             TokenDto tokenDto = tokenService.generateTokens(member.getMemberId().toString(), member.getEmail());
+
+            MDC.put("spanId", "google-oauth-service");
             setAuthenticationCookies(response, tokenDto);
 
-            log.info("Google OAuth login successful for user: {} (ID: {})", member.getEmail(), member.getMemberId());
+            log.info("구글 OAuth 로그인 성공 - memberId: {}", member.getMemberId());
 
-            return LoginResponse.builder()
-                    .message("구글 로그인이 완료되었습니다.")
-                    .member(MemberInfo.from(member))
-                    .note("로그인 상태가 쿠키에 저장되었습니다.")
-                    .build();
+            return new LoginResponse(
+                    "구글 로그인이 완료되었습니다.",
+                    MemberInfo.from(member),
+                    "로그인 상태가 쿠키에 저장되었습니다."
+            );
 
         } catch (GoogleApiException | InvalidAuthorizationCodeException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Google OAuth login failed for IP: {}", clientIp, e);
+            log.error("구글 OAuth 로그인 실패", e);
             throw new GoogleApiException("구글 로그인 처리 중 오류가 발생했습니다.", e);
         }
     }
@@ -123,33 +130,38 @@ public class GoogleOAuthService {
      * Google ID Token을 사용한 로그인 처리 (프론트엔드 SDK용) - 보안 강화
      */
     @Transactional
-    public LoginResponse processGoogleTokenLogin(GoogleTokenRequest request, String clientIp, HttpServletResponse response) {
-        try {
-            // ID Token 검증 및 사용자 정보 추출 (Google API로 안전하게 검증)
-            GoogleUserInfo userInfo = verifyGoogleIdToken(request.getIdToken());
+    public LoginResponse processGoogleTokenLogin(GoogleTokenRequest request, HttpServletResponse response) {
+        MDC.put("spanId", "google-token-service");
 
-            // 사용자 생성 또는 조회
+        try {
+            MDC.put("spanId", "google-token-verify-api");
+            GoogleUserInfo userInfo = verifyGoogleIdToken(request.idToken());
+
+            MDC.put("spanId", "google-token-service");
             Member member = findOrCreateMember(userInfo);
 
-            // JWT 토큰 생성 및 쿠키 설정
+            MDC.put("spanId", "token-service");
             TokenDto tokenDto = tokenService.generateTokens(member.getMemberId().toString(), member.getEmail());
+
+            MDC.put("spanId", "google-token-service");
             setAuthenticationCookies(response, tokenDto);
 
-            log.info("Google token login successful for user: {} (ID: {})", member.getEmail(), member.getMemberId());
+            log.info("구글 토큰 로그인 성공 - memberId: {}", member.getMemberId());
 
-            return LoginResponse.builder()
-                    .message("구글 로그인이 완료되었습니다.")
-                    .member(MemberInfo.from(member))
-                    .note("로그인 상태가 쿠키에 저장되었습니다.")
-                    .build();
+            return new LoginResponse(
+                    "구글 로그인이 완료되었습니다.",
+                    MemberInfo.from(member),
+                    "로그인 상태가 쿠키에 저장되었습니다."
+            );
 
         } catch (InvalidTokenException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Google token login failed for IP: {}", clientIp, e);
+            log.error("구글 토큰 로그인 실패", e);
             throw new InvalidTokenException("Google ID Token 검증에 실패했습니다.");
         }
     }
+
 
     private GoogleTokenResponse exchangeCodeForToken(String code, String redirectUri) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -270,6 +282,7 @@ public class GoogleOAuthService {
     }
 
     private Member findOrCreateMember(GoogleUserInfo userInfo) {
+        MDC.put("spanId", "member-repository");
         Optional<Member> existingMember = memberRepository.findByGoogleId(userInfo.getGoogleId());
 
         if (existingMember.isPresent()) {
@@ -313,12 +326,10 @@ public class GoogleOAuthService {
             // 🔥 신규 사용자 토큰 초기화 (추가된 부분)
             try {
                 newUserTokenInitializer.initializeNewUserTokens(savedMember.getMemberId());
-                log.info("신규 가입 사용자 토큰 초기화 완료 - 사용자 ID: {}, 이메일: {}",
-                        savedMember.getMemberId(), savedMember.getEmail());
+                log.info("신규 가입 사용자 토큰 초기화 완료 - memberId: {}", savedMember.getMemberId());
             } catch (Exception e) {
-                log.error("신규 사용자 토큰 초기화 실패 - 사용자 ID: {}, 이메일: {}, 오류: {}",
-                        savedMember.getMemberId(), savedMember.getEmail(), e.getMessage());
-                // 토큰 초기화 실패가 로그인을 방해하지 않도록 예외를 던지지 않음
+                log.error("신규 사용자 토큰 초기화 실패 - memberId: {}, 오류: {}",
+                        savedMember.getMemberId(), e.getMessage());
             }
 
             return savedMember;
