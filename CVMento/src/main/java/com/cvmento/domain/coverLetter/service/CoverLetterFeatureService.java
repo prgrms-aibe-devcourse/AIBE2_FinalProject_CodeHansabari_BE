@@ -1,26 +1,21 @@
 package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.client.CoverLetterFeatureLlmFeignClient;
-import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
-import com.cvmento.domain.coverLetter.dto.response.EssayChunk;
+import com.cvmento.domain.coverLetter.dto.request.GeminiRequest;
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
 import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
 import com.cvmento.domain.coverLetter.repository.CrawlCoverLetterRepository;
 import com.cvmento.domain.coverLetter.repository.CoverLetterFeatureRepository;
-import com.cvmento.global.common.util.OpenAiResponseParser;
+import com.cvmento.global.common.util.GeminiResponseParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,46 +28,66 @@ public class CoverLetterFeatureService {
     private final CrawlCoverLetterRepository crawlRepository;
     private final CoverLetterFeatureRepository featureRepository;
     private final ObjectMapper objectMapper;
-    private final OpenAiResponseParser openAiResponseParser;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-
-    @Value("${feature.extraction.chunk.overlap-ratio:0.15}")
-    private double overlapRatio;
-
-    @Value("${feature.extraction.chunk.min-chunk-size:600}")
-    private int minChunkSize;
-
-    @Value("${feature.extraction.chunk.max-chunk-size:1200}")
-    private int maxChunkSize;
+    private final GeminiResponseParser geminiResponseParser;
 
     /**
-     * 크롤링된 자소서 데이터에서 특징을 추출하는 메인 메서드
+     * 테스트용: 단일 자소서에서 특징을 추출하는 메서드
+     * @param essayId 추출할 자소서의 ID
+     * @return 추출된 특징 후보 리스트 (각 카테고리별 1개씩, 총 3개)
+     */
+    public List<FeatureCandidate> extractFeaturesFromSingleEssay(Long essayId) {
+        try {
+            log.info("테스트용: 단일 자소서 {}에서 특징 추출 시작", essayId);
+            
+            // 1. 특정 자소서 조회
+            Optional<CrawlCoverLetter> essayOpt = crawlRepository.findById(essayId);
+            if (essayOpt.isEmpty()) {
+                log.warn("자소서 {}를 찾을 수 없습니다.", essayId);
+                return new ArrayList<>();
+            }
+            
+            CrawlCoverLetter essay = essayOpt.get();
+            log.info("자소서 {} 조회 완료: {}자", essayId, essay.getText().length());
+            
+            // 2. 자소서 전체를 한 번에 LLM에 전송
+            List<FeatureCandidate> features = extractFeaturesFromFullEssay(essay);
+            log.info("테스트용: {}개 특징 추출 완료", features.size());
+            
+            // 3. DB 저장은 하지 않음 (테스트용)
+            log.info("테스트용: 특징 추출 완료 (DB 저장 안함)");
+            
+            return features;
+            
+        } catch (Exception e) {
+            log.error("테스트용 특징 추출 중 오류 발생", e);
+            throw new RuntimeException("테스트용 특징 추출 실패", e);
+        }
+    }
+
+    /**
+     * 크롤링된 자소서 데이터에서 특징을 추출하는 메인 메서드 (청킹 없이)
      */
     public List<FeatureCandidate> extractFeaturesFromCrawledData() {
         try {
-            log.info("크롤링된 자소서 데이터에서 특징 추출 시작");
+            log.info("크롤링된 자소서 데이터에서 특징 추출 시작 (청킹 없이)");
             
             // 1. 크롤링된 자소서 데이터 조회
             List<CrawlCoverLetter> crawledEssays = crawlRepository.findAll();
             log.info("총 {}개의 크롤링된 자소서 발견", crawledEssays.size());
             
-            // 2. 자소서를 청크로 분할
-            List<EssayChunk> chunks = createChunks(crawledEssays);
-            log.info("총 {}개의 청크 생성", chunks.size());
-            
-            // 3. 각 청크에서 특징 추출 (병렬 처리)
-            List<FeatureCandidate> allCandidates = extractFeaturesFromChunks(chunks);
+            // 2. 각 자소서에서 특징 추출 (순차 처리)
+            List<FeatureCandidate> allCandidates = extractFeaturesFromEssays(crawledEssays);
             log.info("총 {}개의 특징 후보 추출", allCandidates.size());
             
-            // 4. 중복 제거 및 병합
+            // 3. 중복 제거 및 병합
             List<FeatureCandidate> deduplicatedFeatures = deduplicateFeatures(allCandidates);
             log.info("중복 제거 후 {}개의 특징", deduplicatedFeatures.size());
             
-            // 5. 최종 100개 선정
+            // 4. 최종 100개 선정
             List<FeatureCandidate> finalFeatures = selectTop100Features(deduplicatedFeatures);
             log.info("최종 {}개의 특징 선정 완료", finalFeatures.size());
             
-            // 6. DB에 저장
+            // 5. DB에 저장
             saveFeaturesToDatabase(finalFeatures);
             log.info("{}개의 특징을 DB에 저장 완료", finalFeatures.size());
             
@@ -85,204 +100,324 @@ public class CoverLetterFeatureService {
     }
 
     /**
-     * 자소서를 비율 기반 오버랩으로 청킹
-     * - 글자 수에 따라 2-4개 청크로 분할
-     * - 각 청크 간 15% 오버랩으로 문맥 보존
+     * 배치 단위로 자소서들을 처리하여 특징 추출
      */
-    private List<EssayChunk> createChunks(List<CrawlCoverLetter> essays) {
-        List<EssayChunk> chunks = new ArrayList<>();
-        
-        for (CrawlCoverLetter essay : essays) {
-            String content = essay.getText();
-            if (content == null || content.trim().isEmpty()) continue;
-            
-            int totalLength = content.length();
-            log.debug("자소서 {} 처리 중: 총 {}자", essay.getCoverLetterId(), totalLength);
-            
-            // 글자 수에 따라 청크 수 결정
-            int chunkCount = determineChunkCount(totalLength);
-            int chunkSize = totalLength / chunkCount;
-            
-            log.debug("자소서 {}: {}개 청크로 분할, 청크 크기: {}자", 
-                     essay.getCoverLetterId(), chunkCount, chunkSize);
-            
-            // 각 청크 생성 (오버랩 포함)
-            for (int i = 0; i < chunkCount; i++) {
-                EssayChunk chunk = createChunkWithOverlap(
-                    essay, content, i, chunkCount, chunkSize, totalLength
-                );
-                chunks.add(chunk);
-            }
-        }
-        
-        log.info("총 {}개 자소서에서 {}개 청크 생성 완료", essays.size(), chunks.size());
-        return chunks;
-    }
-
-    /**
-     * 글자 수에 따라 청크 수 결정
-     */
-    private int determineChunkCount(int totalLength) {
-        if (totalLength <= minChunkSize * 2) {
-            return 2;  // 짧은 자소서: 2개 청크
-        } else if (totalLength <= maxChunkSize * 2) {
-            return 3;  // 중간 자소서: 3개 청크
-        } else {
-            return 4;  // 긴 자소서: 4개 청크
-        }
-    }
-
-    /**
-     * 오버랩을 포함한 개별 청크 생성
-     */
-    private EssayChunk createChunkWithOverlap(
-            CrawlCoverLetter essay, String content, int chunkIndex, 
-            int chunkCount, int chunkSize, int totalLength) {
-        
-        // 오버랩 크기 계산
-        int overlapSize = (int) (chunkSize * overlapRatio);
-        
-        // 청크 시작/끝 위치 계산
-        int targetStart = chunkIndex * chunkSize;
-        int targetEnd = (chunkIndex + 1) * chunkSize;
-        
-        // 오버랩 적용
-        int actualStart = Math.max(0, targetStart - overlapSize);
-        int actualEnd = Math.min(totalLength, targetEnd + overlapSize);
-        
-        // 첫 번째 청크는 앞쪽 오버랩 제외
-        if (chunkIndex == 0) {
-            actualStart = 0;
-        }
-        
-        // 마지막 청크는 뒤쪽 오버랩 제외
-        if (chunkIndex == chunkCount - 1) {
-            actualEnd = totalLength;
-        }
-        
-        // 청크 내용 추출
-        String chunkContent = content.substring(actualStart, actualEnd);
-        
-        log.debug("청크 {} 생성: {}자 ({}~{}), 오버랩: {}자", 
-                 chunkIndex, chunkContent.length(), actualStart, actualEnd, overlapSize);
-        
-        return new EssayChunk(
-            essay.getCoverLetterId(),
-            chunkIndex,
-            chunkContent,
-            actualStart,
-            actualEnd
-        );
-    }
-
-    /**
-     * 청크들에서 특징 추출 (병렬 처리)
-     */
-    private List<FeatureCandidate> extractFeaturesFromChunks(List<EssayChunk> chunks) {
-        List<CompletableFuture<List<FeatureCandidate>>> futures = new ArrayList<>();
-        
-        for (EssayChunk chunk : chunks) {
-            CompletableFuture<List<FeatureCandidate>> future = CompletableFuture.supplyAsync(() -> {
-                try {
-                    return extractFeaturesFromChunk(chunk);
-                } catch (Exception e) {
-                    log.error("청크 {}에서 특징 추출 실패", chunk.chunkIndex(), e);
-                    return new ArrayList<FeatureCandidate>();
-                }
-            }, executorService);
-            
-            futures.add(future);
-        }
-        
-        // 모든 비동기 작업 완료 대기
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        
-        // 결과 수집
+    private List<FeatureCandidate> extractFeaturesFromEssays(List<CrawlCoverLetter> essays) {
         List<FeatureCandidate> allCandidates = new ArrayList<>();
-        for (CompletableFuture<List<FeatureCandidate>> future : futures) {
+        
+        // 배치 크기 설정 (토큰 제한 고려하여 동적 조정)
+        int batchSize = calculateOptimalBatchSize(essays);
+        
+        for (int i = 0; i < essays.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, essays.size());
+            List<CrawlCoverLetter> batch = essays.subList(i, endIndex);
+            
+            log.info("배치 처리 중: {}/{} ({}개 자소서)", 
+                    i + batch.size(), essays.size(), batch.size());
+            
             try {
-                allCandidates.addAll(future.get());
+                // 배치 단위로 특징 추출
+                List<FeatureCandidate> batchFeatures = extractFeaturesFromBatch(batch);
+                allCandidates.addAll(batchFeatures);
+                
+                log.info("배치 처리 완료: {}개 특징 추출", batchFeatures.size());
+                
+                // 배치 간 지연 (API 할당량 초과 방지)
+                if (endIndex < essays.size()) {
+                    addDelayBetweenRequests();
+                }
+                
             } catch (Exception e) {
-                log.error("특징 추출 결과 수집 실패", e);
+                log.error("배치 처리 실패, 개별 처리로 전환", e);
+                
+                // 배치 실패 시 개별 처리로 폴백
+                for (CrawlCoverLetter essay : batch) {
+                    try {
+                        List<FeatureCandidate> features = extractFeaturesFromFullEssay(essay);
+                        allCandidates.addAll(features);
+                        log.info("개별 처리 완료: 자소서 {} - {}개 특징", essay.getCoverLetterId(), features.size());
+                    } catch (Exception individualError) {
+                        log.error("자소서 {} 개별 처리도 실패, 건너뛰기", essay.getCoverLetterId(), individualError);
+                    }
+                }
             }
         }
         
+        log.info("총 {}개 자소서 처리 완료: {}개 특징 추출", essays.size(), allCandidates.size());
         return allCandidates;
     }
 
     /**
-     * 단일 청크에서 특징 추출
+     * 요청 간 지연 시간 추가 (API 할당량 초과 방지)
      */
-    private List<FeatureCandidate> extractFeaturesFromChunk(EssayChunk chunk) {
+    private void addDelayBetweenRequests() {
         try {
-            // LLM 프롬프트 생성
-            String prompt = buildExtractionPrompt(chunk);
+            Thread.sleep(2000); // 2초 대기
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("요청 간 지연이 중단되었습니다.");
+        }
+    }
+
+    /**
+     * 토큰 제한을 고려한 최적 배치 크기 계산
+     */
+    private int calculateOptimalBatchSize(List<CrawlCoverLetter> essays) {
+        if (essays.isEmpty()) return 1;
+        
+        // 평균 자소서 길이 계산
+        double avgLength = essays.stream()
+            .mapToInt(essay -> essay.getText().length())
+            .average()
+            .orElse(1000.0);
+        
+        // 토큰 제한 고려 (Gemini 2.5 Flash: 8192 토큰)
+        // 프롬프트 + 자소서 내용 + 응답을 고려하여 안전 마진 확보
+        int maxTokensPerBatch = 6000; // 8192 - 2000 (안전 마진)
+        int tokensPerEssay = (int) (avgLength * 1.5); // 자소서 + 프롬프트 오버헤드
+        
+        int optimalBatchSize = Math.max(1, maxTokensPerBatch / tokensPerEssay);
+        
+        // 최대 10개, 최소 1개로 제한
+        optimalBatchSize = Math.min(10, Math.max(1, optimalBatchSize));
+        
+        log.info("최적 배치 크기 계산: 평균 자소서 길이 {}자, 배치 크기 {}개", 
+                (int) avgLength, optimalBatchSize);
+        
+        return optimalBatchSize;
+    }
+
+    /**
+     * 배치 단위로 여러 자소서를 한 번에 LLM에 전송하여 특징 추출
+     */
+    private List<FeatureCandidate> extractFeaturesFromBatch(List<CrawlCoverLetter> batch) {
+        try {
+            log.info("배치 처리 시작: {}개 자소서", batch.size());
             
-            // LLM API 호출
-            LlmRequest request = new LlmRequest(
-                "gpt-5-nano",  // 팀원들과 동일한 모델 사용
-                prompt
+            // 1. 배치용 프롬프트 생성
+            String prompt = buildBatchExtractionPrompt(batch);
+            
+            // 2. LLM API 호출
+            GeminiRequest request = new GeminiRequest(
+                List.of(new GeminiRequest.Content(
+                    List.of(new GeminiRequest.Content.Part(prompt))
+                )),
+                new GeminiRequest.GenerationConfig("0.7", "8192")
             );
             
             String response = coverLetterFeatureLlmFeignClient.analyzeRaw(request);
             
-            // 응답 파싱
-            return parseFeatureResponse(response, chunk);
+            // 3. 응답 파싱
+            return parseBatchFeatureResponse(response, batch);
             
         } catch (Exception e) {
-            log.error("청크 {}에서 특징 추출 실패", chunk.chunkIndex(), e);
+            log.error("배치 특징 추출 실패", e);
+            throw new RuntimeException("배치 처리 실패", e);
+        }
+    }
+
+    /**
+     * 배치용 특징 추출 프롬프트 생성
+     */
+    private String buildBatchExtractionPrompt(List<CrawlCoverLetter> batch) {
+        StringBuilder prompt = new StringBuilder();
+        
+        prompt.append("""
+            당신은 합격 자소서의 관찰 가능한 특징을 3축(표현력/구조/스토리)으로 추출하는 전문 분석가입니다.
+            결과는 반드시 유효한 JSON 형식으로만 출력하고, 주어진 스키마를 정확히 준수하세요. 평가나 권고사항, 일반론은 절대 포함하지 마세요.
+            
+            [지침]
+            - 각 자소서마다 각 카테고리에서 정확히 1개씩, 총 3개 특징 추출
+            - 'feature_category'는 "EXPRESSION"(표현력), "STRUCTURE"(구조), "CONTENT"(이야기) 중 하나
+            - 'description'은 특징을 한 문장으로 간결하게 설명 (100자 이내)
+            - 'essay_id'는 해당 특징이 추출된 자소서의 ID
+            - 글 내에서 실제로 관찰되는 패턴만 기술하고, 일반적인 조언은 금지
+            
+            [자소서 목록]
+            """);
+        
+        for (int i = 0; i < batch.size(); i++) {
+            CrawlCoverLetter essay = batch.get(i);
+            prompt.append(String.format("""
+                
+                === 자소서 %d (ID: %d, 길이: %d자) ===
+                %s
+                """, i + 1, essay.getCoverLetterId(), essay.getText().length(), essay.getText()));
+        }
+        
+        prompt.append("""
+            
+            [JSON 스키마]
+            {
+              "features": [
+                {
+                  "essay_id": 자소서_ID,
+                  "feature_category": "EXPRESSION|STRUCTURE|CONTENT",
+                  "description": "특징을 한 문장으로 설명"
+                }
+              ]
+            }
+            """);
+        
+        return prompt.toString();
+    }
+
+    /**
+     * 배치 LLM 응답에서 특징 파싱
+     */
+    private List<FeatureCandidate> parseBatchFeatureResponse(String response, List<CrawlCoverLetter> batch) {
+        try {
+            // Gemini API 응답에서 텍스트 컨텐츠 추출
+            String textContent = geminiResponseParser.extractTextContent(response);
+            log.info("배치에서 텍스트 컨텐츠 추출 완료: {}자", textContent.length());
+            
+            // 추출된 텍스트를 JSON으로 파싱하여 특징 리스트 생성
+            return parseBatchFeaturesFromText(textContent);
+            
+        } catch (Exception e) {
+            log.error("배치 특징 파싱 실패", e);
             return new ArrayList<>();
         }
     }
 
     /**
-     * 특징 추출용 프롬프트 생성
+     * 배치 텍스트에서 특징 리스트 파싱
      */
-    private String buildExtractionPrompt(EssayChunk chunk) {
-        return String.format("""
-            당신은 합격 자소서의 관찰 가능한 특징을 3축(표현력/구조/스토리)으로 추출하는 분석가입니다.
-            결과는 JSON만 출력하고, 스키마를 반드시 지키세요. 평가/권고/일반론 금지.
+    private List<FeatureCandidate> parseBatchFeaturesFromText(String text) {
+        try {
+            // 코드 블록 제거 (```json ... ```)
+            String cleanText = text.trim();
+            if (cleanText.startsWith("```json")) {
+                cleanText = cleanText.substring(7); // "```json" 제거
+            }
+            if (cleanText.startsWith("```")) {
+                cleanText = cleanText.substring(3); // "```" 제거
+            }
+            if (cleanText.endsWith("```")) {
+                cleanText = cleanText.substring(0, cleanText.length() - 3); // "```" 제거
+            }
+            cleanText = cleanText.trim();
             
-            [메타] essay_id=%d, chunk_index=%d, chunk_char_offset=%d
+            // text가 JSON 형식인지 확인
+            if (!cleanText.startsWith("{")) {
+                log.warn("JSON 형식이 아닌 응답: {}", cleanText.substring(0, Math.min(100, cleanText.length())));
+                return new ArrayList<>();
+            }
+
+            var jsonNode = objectMapper.readTree(cleanText);
+            
+            if (!jsonNode.has("features")) {
+                log.warn("features 필드를 찾을 수 없음");
+                return new ArrayList<>();
+            }
+
+            var featuresArray = jsonNode.get("features");
+            if (!featuresArray.isArray()) {
+                log.warn("features가 배열이 아님");
+                return new ArrayList<>();
+            }
+
+            List<FeatureCandidate> candidates = new ArrayList<>();
+            for (var featureNode : featuresArray) {
+                if (featureNode.has("feature_category") && featureNode.has("description")) {
+                    String featureCategory = featureNode.get("feature_category").asText();
+                    String description = featureNode.get("description").asText();
+                    
+                    candidates.add(new FeatureCandidate(featureCategory, description));
+                }
+            }
+
+            log.info("배치에서 {}개의 특징 파싱 완료", candidates.size());
+            return candidates;
+
+        } catch (Exception e) {
+            log.error("배치 특징 JSON 파싱 실패: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 자소서 전체를 한 번에 LLM에 보내서 특징 추출
+     */
+    private List<FeatureCandidate> extractFeaturesFromFullEssay(CrawlCoverLetter essay) {
+        try {
+            log.info("자소서 전체를 LLM에 전송하여 특징 추출 시작");
+            
+            // 1. 자소서 전체 내용으로 프롬프트 생성
+            String prompt = buildFullEssayExtractionPrompt(essay);
+            
+            // 2. LLM API 호출
+            GeminiRequest request = new GeminiRequest(
+                List.of(new GeminiRequest.Content(
+                    List.of(new GeminiRequest.Content.Part(prompt))
+                )),
+                new GeminiRequest.GenerationConfig("0.7", "8192")
+            );
+            
+            String response = coverLetterFeatureLlmFeignClient.analyzeRaw(request);
+            
+            // 3. 응답 파싱
+            return parseFeatureResponse(response, essay);
+            
+        } catch (Exception e) {
+            log.error("자소서 전체 특징 추출 실패", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 자소서 전체 내용으로 특징 추출 프롬프트 생성
+     */
+    private String buildFullEssayExtractionPrompt(CrawlCoverLetter essay) {
+        return String.format("""
+            당신은 합격 자소서의 관찰 가능한 특징을 3축(표현력/구조/스토리)으로 추출하는 전문 분석가입니다.
+            결과는 반드시 유효한 JSON 형식으로만 출력하고, 주어진 스키마를 정확히 준수하세요. 평가나 권고사항, 일반론은 절대 포함하지 마세요.
+            
+            [메타] essay_id=%d, 전체_자소서_길이=%d자
             
             [지침]
-            - 각 카테고리에서 최대 5개, 총 최대 15개
+            - 각 카테고리에서 정확히 1개씩, 총 3개 특징 추출
             - 'feature_category'는 "EXPRESSION"(표현력), "STRUCTURE"(구조), "CONTENT"(이야기) 중 하나
             - 'description'은 특징을 한 문장으로 간결하게 설명 (100자 이내)
             - 글 내에서 실제로 관찰되는 패턴만 기술하고, 일반적인 조언은 금지
             
-            [청크]
+            [자소서 전체 내용]
             %s
             
-                           [JSON 스키마]
-               {
-                 "features": [
-                   {
-                     "feature_category": "EXPRESSION|STRUCTURE|CONTENT",
-                     "description": "특징을 한 문장으로 설명"
-                   }
-                 ]
-               }
-            """, chunk.essayId(), chunk.chunkIndex(), chunk.charStart(), chunk.content());
+            [JSON 스키마]
+            {
+              "features": [
+                {
+                  "feature_category": "EXPRESSION|STRUCTURE|CONTENT",
+                  "description": "특징을 한 문장으로 설명"
+                }
+              ]
+            }
+            """, essay.getCoverLetterId(), essay.getText().length(), essay.getText());
     }
 
     /**
-     * LLM 응답에서 특징 파싱 (팀원들과 동일한 방식)
+     * LLM 응답에서 특징 파싱 (자소서 전체용)
      */
-    private List<FeatureCandidate> parseFeatureResponse(String response, EssayChunk chunk) {
+    private List<FeatureCandidate> parseFeatureResponse(String response, CrawlCoverLetter essay) {
         try {
-            // OpenAI /responses API 응답에서 텍스트 컨텐츠 추출
-            String textContent = openAiResponseParser.extractTextContent(response);
-            log.info("청크 {}에서 텍스트 컨텐츠 추출 완료: {}자", chunk.chunkIndex(), textContent.length());
+            // Gemini API 응답에서 텍스트 컨텐츠 추출
+            String textContent = geminiResponseParser.extractTextContent(response);
+            log.info("자소서 {}에서 텍스트 컨텐츠 추출 완료: {}자", essay.getCoverLetterId(), textContent.length());
             
             // 추출된 텍스트를 JSON으로 파싱하여 특징 리스트 생성
             return parseFeaturesFromText(textContent);
             
         } catch (Exception e) {
-            log.error("청크 {}에서 특징 파싱 실패", chunk.chunkIndex(), e);
+            log.error("자소서 {}에서 특징 파싱 실패", essay.getCoverLetterId(), e);
             return new ArrayList<>();
         }
     }
+
+
+
+
+
 
     /**
      * 텍스트에서 특징 리스트 파싱
