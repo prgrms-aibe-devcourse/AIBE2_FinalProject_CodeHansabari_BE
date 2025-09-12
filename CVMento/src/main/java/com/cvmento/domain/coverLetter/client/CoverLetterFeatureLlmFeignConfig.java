@@ -14,7 +14,7 @@ public class CoverLetterFeatureLlmFeignConfig {
     public RequestInterceptor coverLetterFeatureRequestInterceptor() {
         return template -> {
             template.header("Content-Type", "application/json");
-            template.header("Authorization", "Bearer " + featureExtractionApiKey);
+            template.header("x-goog-api-key", featureExtractionApiKey);
         };
     }
 
