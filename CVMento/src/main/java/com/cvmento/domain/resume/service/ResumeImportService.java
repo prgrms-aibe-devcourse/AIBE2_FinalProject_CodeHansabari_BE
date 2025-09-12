@@ -14,13 +14,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true)
+@Transactional
 public class ResumeImportService {
 
     private final ResumeLlmPromptService resumeLlmPromptService;
     private final ResumeLlmClientService resumeLlmClientService;
     private final LambdaService lambdaService;
     private final ResumeService resumeService;
+    private final TechStackMappingService techStackMappingService;
 
     @Value("${resume.import.strategy:direct}")
     private String importStrategy;
@@ -41,19 +42,15 @@ public class ResumeImportService {
                 response = importWithDirect(file);
             }
             
-            // TODO: 일시적으로 저장 비활성화 - 변환 테스트만 진행
-            log.info("이력서 변환 완료 (저장 비활성화) - 제목: {}", response.title());
-            
-            // 변환 성공 시에만 저장 시도 (나중에 활성화)
-            /*
+            // 변환 성공 시 자동 저장 
             try {
-                saveConvertedResume(response, memberEmail);
+                ResumeImportResponse mappedResponse = mapTechStackIdsToRealIds(response);
+                saveConvertedResume(mappedResponse, memberEmail);
                 log.info("이력서 변환 및 저장 모두 완료 - 제목: {}", response.title());
             } catch (Exception saveException) {
                 log.error("이력서 저장 실패, 하지만 변환 결과는 반환 - 오류: {}", saveException.getMessage());
-                // 저장 실패해도 변환 결과는 반환 (선택사항)
+                // 저장 실패해도 변환 결과는 반환
             }
-            */
             
             return response;
             
@@ -174,5 +171,131 @@ public class ResumeImportService {
             // 저장 실패 시 예외를 다시 던짐
             throw new RuntimeException("이력서 저장 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 기술스택 이름을 실제 ID로 매핑
+     */
+    private ResumeImportResponse mapTechStackIdsToRealIds(ResumeImportResponse response) {
+        MDC.put("spanId", "resume-techstack-mapping");
+        
+        try {
+            log.info("기술스택 ID 매핑 시작 - 메인: {}개", response.techStacks().size());
+            
+            // 메인 기술스택 매핑
+            var mappedTechStacks = response.techStacks().stream()
+                    .map(this::mapResumeTechStack)
+                    .toList();
+
+            // Career 기술스택 매핑  
+            var mappedCareers = response.careers().stream()
+                    .map(career -> new com.cvmento.domain.resume.dto.request.CareerSaveRequest(
+                            career.startDate(), career.endDate(), career.companyName(),
+                            career.companyDescription(), career.departmentPosition(), career.mainTasks(),
+                            career.techStacks().stream().map(this::mapCareerTechStack).toList()
+                    ))
+                    .toList();
+
+            // Project 기술스택 매핑
+            var mappedProjects = response.projects().stream()
+                    .map(project -> new com.cvmento.domain.resume.dto.request.ProjectSaveRequest(
+                            project.startDate(), project.endDate(), project.name(),
+                            project.description(), project.detailedDescription(),
+                            project.repositoryUrl(), project.deployUrl(), project.projectType(),
+                            project.techStacks().stream().map(this::mapProjectTechStack).toList()
+                    ))
+                    .toList();
+
+            // Training 기술스택 매핑
+            var mappedTrainings = response.trainings().stream()
+                    .map(training -> new com.cvmento.domain.resume.dto.request.TrainingSaveRequest(
+                            training.startDate(), training.endDate(),
+                            training.courseName(),
+                            training.institutionName(),
+                            training.detailedContent(),
+                            training.techStacks().stream().map(this::mapTrainingTechStack).toList()
+                    ))
+                    .toList();
+
+            log.info("기술스택 ID 매핑 완료 - 메인: {}개, 경력: {}개, 프로젝트: {}개, 교육: {}개",
+                    mappedTechStacks.size(), mappedCareers.size(), mappedProjects.size(), mappedTrainings.size());
+
+            return new ResumeImportResponse(
+                    response.title(), response.type(), response.name(), response.email(),
+                    response.birthYear(), response.phone(), response.careerType(), response.fieldName(),
+                    response.introduction(), response.githubUrl(), response.blogUrl(), response.notionUrl(),
+                    response.educations(), mappedTechStacks, response.customLinks(),
+                    mappedCareers, mappedProjects, mappedTrainings, response.additionalInfos()
+            );
+            
+        } catch (Exception e) {
+            log.error("기술스택 매핑 실패: {}", e.getMessage(), e);
+            return response; // 매핑 실패 시 원본 반환
+        }
+    }
+
+    private com.cvmento.domain.resume.dto.request.ResumeTechStackSaveRequest mapResumeTechStack(
+            com.cvmento.domain.resume.dto.request.ResumeTechStackSaveRequest techStack) {
+        
+        if (techStack.techStackName() == null || techStack.techStackName().trim().isEmpty()) {
+            log.warn("기술스택 이름이 비어있음 - ID: {}", techStack.techStackId());
+            return techStack;
+        }
+
+        Long realId = techStackMappingService.findTechStackIdByName(techStack.techStackName().trim())
+                .orElse(techStack.techStackId());
+
+        if (!realId.equals(techStack.techStackId())) {
+            log.info("기술스택 ID 매핑: {} -> {} ({})", techStack.techStackId(), realId, techStack.techStackName());
+        }
+
+        return new com.cvmento.domain.resume.dto.request.ResumeTechStackSaveRequest(
+                realId, techStack.techStackName(), techStack.proficiencyLevel()
+        );
+    }
+
+    private com.cvmento.domain.resume.dto.request.CareerTechStackSaveRequest mapCareerTechStack(
+            com.cvmento.domain.resume.dto.request.CareerTechStackSaveRequest techStack) {
+        
+        if (techStack.techStackName() == null || techStack.techStackName().trim().isEmpty()) {
+            return techStack;
+        }
+
+        Long realId = techStackMappingService.findTechStackIdByName(techStack.techStackName().trim())
+                .orElse(techStack.techStackId());
+
+        return new com.cvmento.domain.resume.dto.request.CareerTechStackSaveRequest(
+                realId, techStack.techStackName()
+        );
+    }
+
+    private com.cvmento.domain.resume.dto.request.ProjectTechStackSaveRequest mapProjectTechStack(
+            com.cvmento.domain.resume.dto.request.ProjectTechStackSaveRequest techStack) {
+        
+        if (techStack.techStackName() == null || techStack.techStackName().trim().isEmpty()) {
+            return techStack;
+        }
+
+        Long realId = techStackMappingService.findTechStackIdByName(techStack.techStackName().trim())
+                .orElse(techStack.techStackId());
+
+        return new com.cvmento.domain.resume.dto.request.ProjectTechStackSaveRequest(
+                realId, techStack.techStackName(), techStack.usageType()
+        );
+    }
+
+    private com.cvmento.domain.resume.dto.request.TrainingTechStackSaveRequest mapTrainingTechStack(
+            com.cvmento.domain.resume.dto.request.TrainingTechStackSaveRequest techStack) {
+        
+        if (techStack.techStackName() == null || techStack.techStackName().trim().isEmpty()) {
+            return techStack;
+        }
+
+        Long realId = techStackMappingService.findTechStackIdByName(techStack.techStackName().trim())
+                .orElse(techStack.techStackId());
+
+        return new com.cvmento.domain.resume.dto.request.TrainingTechStackSaveRequest(
+                realId, techStack.techStackName()
+        );
     }
 }

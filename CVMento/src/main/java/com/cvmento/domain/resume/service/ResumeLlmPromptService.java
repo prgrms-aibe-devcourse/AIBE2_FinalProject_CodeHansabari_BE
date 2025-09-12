@@ -294,6 +294,17 @@ public class ResumeLlmPromptService {
           "techStacks": [
             {
               "techStackId": 1,
+              "techStackName": "Java",
+              "proficiencyLevel": "INTERMEDIATE"
+            },
+            {
+              "techStackId": 1,
+              "techStackName": "Spring Boot",
+              "proficiencyLevel": "ADVANCED"
+            },
+            {
+              "techStackId": 1,
+              "techStackName": "MySQL",
               "proficiencyLevel": "INTERMEDIATE"
             }
           ],
@@ -314,6 +325,7 @@ public class ResumeLlmPromptService {
               "techStacks": [
                 {
                   "techStackId": 1,
+                  "techStackName": "React",
                   "proficiencyLevel": "INTERMEDIATE"
                 }
               ]
@@ -321,16 +333,18 @@ public class ResumeLlmPromptService {
           ],
           "projects": [
             {
-              "projectName": "프로젝트명",
-              "projectType": "PERSONAL",
               "startDate": "시작일(YYYY-MM-DD)",
-              "endDate": "종료일(YYYY-MM-DD)",
-              "description": "프로젝트 설명",
-              "projectUrl": "프로젝트 URL (없으면 null)",
-              "githubUrl": "GitHub URL (없으면 null)",
+              "endDate": "종료일(YYYY-MM-DD)", 
+              "name": "프로젝트명",
+              "description": "프로젝트 간단 소개",
+              "detailedDescription": "프로젝트 상세 설명 (없으면 null)",
+              "repositoryUrl": "저장소 URL (없으면 null)",
+              "deployUrl": "배포 URL (없으면 null)",
+              "projectType": "PERSONAL",
               "techStacks": [
                 {
                   "techStackId": 1,
+                  "techStackName": "React",
                   "proficiencyLevel": "INTERMEDIATE"
                 }
               ]
@@ -338,15 +352,15 @@ public class ResumeLlmPromptService {
           ],
           "trainings": [
             {
-              "trainingName": "교육/훈련명",
-              "organization": "교육기관",
               "startDate": "시작일(YYYY-MM-DD)",
               "endDate": "종료일(YYYY-MM-DD)",
-              "description": "교육 내용",
-              "certificateUrl": "수료증 URL (없으면 null)",
+              "courseName": "교육과정명",
+              "institutionName": "교육기관명", 
+              "detailedContent": "교육 상세내용",
               "techStacks": [
                 {
                   "techStackId": 1,
+                  "techStackName": "React",
                   "proficiencyLevel": "INTERMEDIATE"
                 }
               ]
@@ -372,9 +386,30 @@ public class ResumeLlmPromptService {
            - projectType: PERSONAL, TEAM, COMPANY
            - category: AWARD, LANGUAGE, CERTIFICATE, ACTIVITY (ETC 없음!)
         
-        2. 기술스택 처리:
-           - techStackId는 모두 1로 설정 (후처리에서 실제 이름으로 매핑됨)
-           - 실제 기술스택은 description에 기록해주세요
+        2. 기술스택 처리 (중요!):
+           - techStackId는 모두 1로 설정 (서버에서 techStackName으로 실제 ID 자동 매핑)
+           - techStackName에는 반드시 정확한 기술명 입력
+           - 이미지에서 보이는 모든 기술을 개별 항목으로 추출
+           - 각 기술마다 적절한 숙련도 설정 (BEGINNER/INTERMEDIATE/ADVANCED)
+           
+           사용 가능한 정확한 기술스택 이름 (대소문자 구분):
+           Language: JavaScript, TypeScript, Java, Python, C, C++, C#, Go, Rust, Swift, Kotlin, PHP, Ruby, Scala
+           Frontend: HTML5, CSS3, React, Vue.js, Next.js, Angular, Svelte, jQuery, Bootstrap, Tailwind CSS
+           Backend: Node.js, Express.js, Spring, Spring Boot, Django, Flask, FastAPI, Laravel, Ruby on Rails, NestJS
+           Database: MySQL, PostgreSQL, MongoDB, Redis, MariaDB, Oracle, SQLite, Elasticsearch
+           DevOps: Docker, Kubernetes, AWS, GCP, Jenkins, CircleCI, Travis CI, Nginx, Apache
+           Mobile: React Native, Flutter, iOS, Android, Ionic, Xamarin
+           Testing: Jest, JUnit, Cypress, Selenium, Mocha, Jasmine
+           Build: Webpack, Gradle, Maven, npm, Yarn, Gulp, Grunt
+           기타: Git, GitHub, GitLab, Postman, Figma, Jira, Confluence
+           
+           예시: 이미지에 "Java, Spring Boot, React, MySQL"이 있다면
+           [
+             {"techStackId": 1, "techStackName": "Java", "proficiencyLevel": "ADVANCED"},
+             {"techStackId": 1, "techStackName": "Spring Boot", "proficiencyLevel": "INTERMEDIATE"},  
+             {"techStackId": 1, "techStackName": "React", "proficiencyLevel": "INTERMEDIATE"},
+             {"techStackId": 1, "techStackName": "MySQL", "proficiencyLevel": "INTERMEDIATE"}
+           ]
         
         3. 필수 규칙:
            - 모든 날짜는 YYYY-MM-DD 형식
