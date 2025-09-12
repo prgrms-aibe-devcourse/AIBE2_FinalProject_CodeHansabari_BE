@@ -1,91 +1,98 @@
 package com.cvmento.domain.coverLetter.controller;
 
+import com.cvmento.domain.auth.service.AuthService;
+import com.cvmento.domain.coverLetter.controller.interfaces.CoverLetterFeatureControllerInterface;
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
 import com.cvmento.domain.coverLetter.service.CoverLetterFeatureService;
+import com.cvmento.domain.member.entity.Member;
+import com.cvmento.domain.member.enums.Role;
 import com.cvmento.global.common.dto.CommonResponse;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 자소서 특징 추출 API
+ */
 @RestController
 @RequestMapping("/api/cover-letter-feature")
 @RequiredArgsConstructor
-@Tag(name = "Cover Letter Feature", description = "자소서 특징 추출 API")
-public class CoverLetterFeatureController {
+@Slf4j
+public class CoverLetterFeatureController implements CoverLetterFeatureControllerInterface {
 
     private final CoverLetterFeatureService coverLetterFeatureService;
+    private final AuthService authService;
 
+    /**
+     * 크롤링된 자소서에서 특징 추출
+     */
     @PostMapping("/extract")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROOT')")
-    @Operation(
-        summary = "크롤링된 자소서에서 특징 추출", 
-        description = """
-            크롤링된 자소서 데이터를 분석하여 합격 자소서의 특징 100개를 추출합니다.
-            
-            **처리 과정:**
-            1. 크롤링된 자소서 데이터 조회
-            2. 자소서를 청크로 분할 (600-1200자 단위, 15% 오버랩)
-            3. 각 청크에서 LLM을 통해 특징 추출
-            4. 중복 제거 및 병합
-            5. 최종 100개 특징 선정 (표현력 34개, 구조 33개, 스토리 33개)
-            
-            **권한:** 관리자(ADMIN) 또는 최상위 관리자(ROOT)만 접근 가능
-            """
-    )
-    @ApiResponse(
-        responseCode = "200", 
-        description = "특징 추출 성공",
-        content = @io.swagger.v3.oas.annotations.media.Content(
-            mediaType = "application/json",
-            examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                value = """
-                {
-                  "success": true,
-                  "data": [
-                    {
-                      "feature_category": "EXPRESSION",
-                      "description": "성과나 결과를 구체적인 숫자로 표현하여 신뢰성을 높이는 기법"
-                    }
-                  ]
-                }
-                """
-            )
-        )
-    )
-    @ApiResponse(
-        responseCode = "403", 
-        description = "권한 없음 - 관리자 권한이 필요합니다"
-    )
-    @ApiResponse(
-        responseCode = "500", 
-        description = "서버 오류 - 특징 추출 중 오류 발생"
-    )
-    @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> extractFeatures() {
+    @Override
+    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> extractFeatures(@AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "feature-extraction-controller");
+
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
+            log.warn("특징 추출 권한 없는 접근 시도 - memberId: {}, role: {}",
+                    member.getMemberId(), member.getRole());
+            throw new AccessDeniedException("특징 추출을 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        log.info("자소서 특징 추출 실행 요청 - 관리자: {}, role: {}",
+                member.getMemberId(), member.getRole());
+
         try {
             List<FeatureCandidate> features = coverLetterFeatureService.extractFeaturesFromCrawledData();
+            log.info("특징 추출 실행 성공 - 추출된 특징 개수: {}", features.size());
             return ResponseEntity.ok(CommonResponse.success("특징 추출이 완료되었습니다.", features));
         } catch (Exception e) {
+            log.error("특징 추출 컨트롤러 예외 발생", e);
             return ResponseEntity.ok(CommonResponse.error("EXTRACTION_FAILED", "특징 추출 중 오류가 발생했습니다: " + e.getMessage()));
         }
     }
 
-    @GetMapping("/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ROOT')")
-    @Operation(
-        summary = "특징 추출 상태 확인", 
-        description = "현재 특징 추출 작업의 상태를 확인합니다."
-    )
-    @ApiResponse(responseCode = "200", description = "상태 확인 성공")
-    @SecurityRequirement(name = "cookieAuth")
-    public ResponseEntity<CommonResponse<String>> getStatus() {
-        return ResponseEntity.ok(CommonResponse.success("특징 추출 서비스가 정상적으로 작동 중입니다.", "정상"));
+    /**
+     * 테스트용: 단일 자소서 특징 추출
+     */
+    @PostMapping("/test/single")
+    @Override
+    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> extractFeaturesFromSingle(
+            @RequestParam Long essayId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "feature-test-single-controller");
+
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
+            log.warn("테스트용 특징 추출 권한 없는 접근 시도 - memberId: {}, role: {}",
+                    member.getMemberId(), member.getRole());
+            throw new AccessDeniedException("테스트용 특징 추출을 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        log.info("테스트용 자소서 특징 추출 요청 - 자소서ID: {}, 관리자: {}, role: {}",
+                essayId, member.getMemberId(), member.getRole());
+
+        try {
+            List<FeatureCandidate> features = coverLetterFeatureService.extractFeaturesFromSingleEssay(essayId);
+            log.info("테스트용 특징 추출 실행 성공 - 자소서ID: {}, 추출된 특징 개수: {}", essayId, features.size());
+            return ResponseEntity.ok(CommonResponse.success("테스트용 특징 추출이 완료되었습니다.", features));
+        } catch (Exception e) {
+            log.error("테스트용 특징 추출 컨트롤러 예외 발생 - 자소서ID: {}", essayId, e);
+            return ResponseEntity.ok(CommonResponse.error("TEST_EXTRACTION_FAILED", "테스트용 특징 추출 중 오류가 발생했습니다: " + e.getMessage()));
+        }
     }
 }
