@@ -2,6 +2,9 @@ package com.cvmento.domain.resume.enums;
 
 import lombok.Getter;
 
+/**
+ * 프로젝트 타입 enum.
+ */
 @Getter
 public enum ProjectType {
     PERSONAL("개인"),

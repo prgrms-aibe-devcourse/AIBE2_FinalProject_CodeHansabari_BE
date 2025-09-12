@@ -8,6 +8,7 @@ import com.cvmento.domain.resume.enums.*;
 import com.cvmento.domain.resume.repository.TechStackRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +27,15 @@ public class ResumeMetadataService {
      * 이력서 작성에 필요한 모든 메타데이터 조회
      */
     public ResumeMetadataResponse getResumeMetadata() {
+        MDC.put("spanId", "metadata-service");
+
+        log.info("이력서 메타데이터 조회 시작");
+
         // 기술 스택 목록
+        MDC.put("spanId", "techstack-repository");
         List<TechStack> techStacks = techStackRepository.findAllByOrderByNameAsc();
+
+        MDC.put("spanId", "metadata-service");
         List<TechStackResponse> techStackResponses = techStacks.stream()
                 .map(TechStackResponse::from)
                 .toList();
@@ -56,6 +64,8 @@ public class ResumeMetadataService {
         List<EnumOptionResponse> additionalInfoCategories = Arrays.stream(AdditionalInfoCategory.values())
                 .map(category -> new EnumOptionResponse(category.name(), category.getDescription()))
                 .toList();
+
+        log.info("메타데이터 조회 완료 - 기술스택: {}개, Enum 카테고리: 6개", techStackResponses.size());
 
         return new ResumeMetadataResponse(
                 techStackResponses,

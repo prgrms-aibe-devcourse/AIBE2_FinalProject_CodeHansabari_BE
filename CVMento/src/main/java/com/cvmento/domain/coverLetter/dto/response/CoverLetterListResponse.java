@@ -1,47 +1,47 @@
 package com.cvmento.domain.coverLetter.dto.response;
 
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
-import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-@Builder
+/**
+ * 자소서 리스트 응답 DTO (미리보기/전체 뷰 공용)
+ */
 public record CoverLetterListResponse(
         Long coverLetterId,
         String title,
-        String content,  // view 옵션에 따라 전체 내용 또는 미리보기
-        String jobField,  // 지원분야
-        String experience, // 경력 (예: "3년", "신입")
+        String content,
+        String jobField,
+        String experience,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    // 썸네일 뷰 (미리보기)
+    /** 썸네일 뷰 (미리보기 100자) */
     public static CoverLetterListResponse thumbnail(CoverLetter coverLetter) {
-        String preview = coverLetter.getContent().length() > 100
-                ? coverLetter.getContent().substring(0, 100) + "..."
-                : coverLetter.getContent();
+        String raw = coverLetter.getContent();
+        String preview = (raw != null && raw.length() > 100) ? raw.substring(0, 100) + "..." : raw;
 
-        return CoverLetterListResponse.builder()
-                .coverLetterId(coverLetter.getCoverLetterId())
-                .title(coverLetter.getTitle())
-                .content(preview)
-                .jobField(coverLetter.getJobField())
-                .experience(coverLetter.getTotalExperienceString())
-                .createdAt(coverLetter.getCreatedAt())
-                .updatedAt(coverLetter.getUpdatedAt())
-                .build();
+        return new CoverLetterListResponse(
+                coverLetter.getCoverLetterId(),
+                coverLetter.getTitle(),
+                preview,
+                coverLetter.getJobField(),
+                coverLetter.getTotalExperienceString(),
+                coverLetter.getCreatedAt(),
+                coverLetter.getUpdatedAt()
+        );
     }
 
-    // 전체 뷰 (전체 내용)
+    /** 전체 뷰 (전체 내용) */
     public static CoverLetterListResponse full(CoverLetter coverLetter) {
-        return CoverLetterListResponse.builder()
-                .coverLetterId(coverLetter.getCoverLetterId())
-                .title(coverLetter.getTitle())
-                .content(coverLetter.getContent())
-                .jobField(coverLetter.getJobField())
-                .experience(coverLetter.getTotalExperienceString())
-                .createdAt(coverLetter.getCreatedAt())
-                .updatedAt(coverLetter.getUpdatedAt())
-                .build();
+        return new CoverLetterListResponse(
+                coverLetter.getCoverLetterId(),
+                coverLetter.getTitle(),
+                coverLetter.getContent(),
+                coverLetter.getJobField(),
+                coverLetter.getTotalExperienceString(),
+                coverLetter.getCreatedAt(),
+                coverLetter.getUpdatedAt()
+        );
     }
 }
