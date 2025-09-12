@@ -100,12 +100,12 @@ public class UsageTokenService {
                 member.getMemberId(), currentTokens, UsageType.MAX_TOKENS);
 
         // 토큰 정보 반환
-        return TokenUsageInfo.builder()
-                .remainingTokens(currentTokens)
-                .maxTokens(UsageType.MAX_TOKENS)
-                .nextRefillTime(UsageType.getNextRefillTime())
-                .refillAmount(UsageType.REFILL_AMOUNT)
-                .build();
+        return new TokenUsageInfo(
+                currentTokens,
+                UsageType.MAX_TOKENS,
+                UsageType.getNextRefillTime(),
+                UsageType.REFILL_AMOUNT
+        );
     }
 
     /**

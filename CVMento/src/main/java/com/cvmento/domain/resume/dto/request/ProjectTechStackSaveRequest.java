@@ -2,9 +2,14 @@ package com.cvmento.domain.resume.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * 프로젝트 기술스택 저장 요청.
+ *
+ * @param techStackId 기술스택 ID
+ * @param usageType 사용 용도
+ */
 @Schema(description = "프로젝트 기술스택 저장 요청")
 public record ProjectTechStackSaveRequest(
-
         @Schema(description = "기술스택 ID", example = "1")
         Long techStackId,
 

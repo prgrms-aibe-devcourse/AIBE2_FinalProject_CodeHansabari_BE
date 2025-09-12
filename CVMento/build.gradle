@@ -78,16 +78,18 @@ dependencies {
 	// Spring Cloud OpenFeign
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.3.0'
 
-	// AWS SDK for S3, Lambda
-	implementation platform('com.amazonaws:aws-java-sdk-bom:1.12.720')
-	implementation 'com.amazonaws:aws-java-sdk-s3'
-	implementation 'com.amazonaws:aws-java-sdk-lambda'
 
 	// PDF processing
 	implementation 'org.apache.pdfbox:pdfbox:3.0.3'
 
+	// AWS SDK v2로 통일
+	implementation platform('software.amazon.awssdk:bom:2.20.56')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:lambda'
 
 
+	// Logback AWS Logs Appender
+//	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
 
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')

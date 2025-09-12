@@ -12,7 +12,10 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 /**
- * LLM 클라이언트 서비스 - 올바른 파싱
+ * LLM 클라이언트 서비스.
+ * - 요청 유효성 점검
+ * - LLM 호출
+ * - 응답 파싱
  */
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,12 @@ public class CoverLetterLlmClientService {
     private final ObjectMapper objectMapper;
     private final OpenAiResponseParser openAiResponseParser;
 
+    /**
+     * 프롬프트를 분석 요청하고 결과를 파싱한다.
+     *
+     * @param prompt 분석 프롬프트
+     * @return 피드백/개선본문
+     */
     public LlmAnalysisResponse analyze(String prompt) {
         MDC.put("spanId", "llm-client-service");
 

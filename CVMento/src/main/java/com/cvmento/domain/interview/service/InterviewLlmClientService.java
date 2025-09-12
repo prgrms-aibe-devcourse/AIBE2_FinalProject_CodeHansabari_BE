@@ -16,9 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.MDC;
 
-/**
- * Interview LLM 클라이언트 서비스 - 구조화된 파싱
- */
+/** 인터뷰 LLM 호출/파싱 서비스 */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,6 +26,7 @@ public class InterviewLlmClientService {
     private final ObjectMapper objectMapper;
     private final OpenAiResponseParser openAiResponseParser;
 
+    /** Q&A 리스트 생성 */
     public InterviewLlmResponse generateQnaList(String prompt) {
         MDC.put("spanId", "interview-llm-client");
 
@@ -100,13 +99,11 @@ public class InterviewLlmClientService {
         try {
             log.debug("Interview 응답 파싱 시작 - 텍스트길이: {}", text.length());
 
-            // 마크다운 코드 블록 제거
             String cleanText = text.trim()
                     .replaceAll("```json\\s*", "")
                     .replaceAll("\\s*```", "")
                     .trim();
 
-            // JSON 파싱
             if (cleanText.startsWith("{")) {
                 var contentJson = objectMapper.readTree(cleanText);
 
@@ -145,7 +142,7 @@ public class InterviewLlmClientService {
         }
     }
 
-    // ======================== 커스텀 프롬프트 메서드 ========================
+    /** 커스텀 답변 생성 */
     public CustomAnswerResponse generateCustomAnswer(String prompt) {
         MDC.put("spanId", "interview-llm-client");
 
@@ -196,13 +193,11 @@ public class InterviewLlmClientService {
         try {
             log.debug("Custom Answer 파싱 시작 - 텍스트길이: {}", text.length());
 
-            // 마크다운 코드 블록 제거
             String cleanText = text.trim()
                     .replaceAll("```json\\s*", "")
                     .replaceAll("\\s*```", "")
                     .trim();
 
-            // JSON 파싱
             if (cleanText.startsWith("{")) {
                 var contentJson = objectMapper.readTree(cleanText);
 

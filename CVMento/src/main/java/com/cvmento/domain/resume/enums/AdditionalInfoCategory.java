@@ -2,6 +2,9 @@ package com.cvmento.domain.resume.enums;
 
 import lombok.Getter;
 
+/**
+ * 기타사항 카테고리 enum.
+ */
 @Getter
 public enum AdditionalInfoCategory {
     AWARD("수상내역"),

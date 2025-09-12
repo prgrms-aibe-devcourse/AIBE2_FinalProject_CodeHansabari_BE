@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * 신규 사용자 토큰 초기화 (고정 시점 충전 방식)
+ * 신규 사용자 토큰 초기화.
  */
 @Component
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ public class NewUserTokenInitializer {
     private final MemberRepository memberRepository;
 
     /**
-     * 애플리케이션 시작 시 기존 활성 사용자들의 토큰 초기화
+     * 애플리케이션 시작 시 기존 활성 사용자들의 토큰 초기화.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeExistingUsersTokens() {
@@ -40,7 +40,6 @@ public class NewUserTokenInitializer {
             int successCount = 0;
             for (Member member : activeMembers) {
                 try {
-                    // 사용자별 토큰 초기화 시도
                     usageTokenService.initializeUserTokens(member.getMemberId());
                     successCount++;
                 } catch (Exception e) {
@@ -57,8 +56,7 @@ public class NewUserTokenInitializer {
     }
 
     /**
-     * 신규 가입 사용자 토큰 초기화
-     * 회원가입 시점에 호출
+     * 신규 가입 사용자 토큰 초기화.
      */
     public void initializeNewUserTokens(Long userId) {
         MDC.put("spanId", "new-user-token-init");
