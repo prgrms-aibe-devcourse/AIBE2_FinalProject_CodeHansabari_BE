@@ -6,9 +6,18 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * 교육이력 저장 요청.
+ *
+ * @param startDate 시작일
+ * @param endDate 종료일
+ * @param courseName 교육과정명
+ * @param institutionName 교육기관명
+ * @param detailedContent 교육 상세내용
+ * @param techStacks 배운 기술스택 목록
+ */
 @Schema(description = "교육이력 저장 요청")
 public record TrainingSaveRequest(
-
         @Schema(description = "시작일", example = "2023-01-15")
         LocalDate startDate,
 

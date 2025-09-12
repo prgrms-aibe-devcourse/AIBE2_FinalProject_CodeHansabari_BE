@@ -20,26 +20,30 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
 
+/**
+ * AWS Lambda 서비스.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class LambdaService {
 
-    private final LambdaClient lambdaClient;  // 변경됨
+    private final LambdaClient lambdaClient;
     private final ObjectMapper objectMapper;
 
     @Value("${cloud.aws.lambda.function-name}")
     private String functionName;
 
+    /**
+     * Lambda를 통한 OCR 처리.
+     */
     public String invokeLambdaOcr(MultipartFile file) {
         MDC.put("spanId", "lambda-ocr-service");
 
         try {
-            // 파일을 Base64로 변환
             MDC.put("spanId", "file-encoding");
             String base64File = Base64.getEncoder().encodeToString(file.getBytes());
 
-            // null 체크 후 기본값 설정
             String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown";
             String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
 
@@ -47,7 +51,6 @@ public class LambdaService {
             log.info("Lambda OCR 처리 시작 - 함수: {}, 파일크기: {}bytes, 타입: {}",
                     functionName, file.getSize(), contentType);
 
-            // Lambda 페이로드 구성
             Map<String, Object> payload = Map.of(
                     "fileContent", base64File,
                     "fileName", fileName,
@@ -58,7 +61,6 @@ public class LambdaService {
             String payloadJson = objectMapper.writeValueAsString(payload);
 
             MDC.put("spanId", "aws-lambda-api");
-            // Lambda 호출 (v2 방식)
             InvokeRequest invokeRequest = InvokeRequest.builder()
                     .functionName(functionName)
                     .payload(SdkBytes.fromUtf8String(payloadJson))
@@ -68,7 +70,6 @@ public class LambdaService {
             InvokeResponse result = lambdaClient.invoke(invokeRequest);
 
             MDC.put("spanId", "lambda-response-parsing");
-            // 응답 처리
             String ocrResult = parseLambdaResponse(result);
 
             MDC.put("spanId", "lambda-ocr-service");
@@ -85,28 +86,27 @@ public class LambdaService {
         }
     }
 
+    /**
+     * Lambda 응답 파싱 및 처리.
+     */
     private String parseLambdaResponse(InvokeResponse result) throws IOException {
-        // Lambda 실행 오류 체크
         if (result.functionError() != null) {
             String errorMessage = result.payload().asUtf8String();
             log.error("Lambda 실행 오류: {}", result.functionError());
             throw new LambdaException("OCR 처리 실패: " + result.functionError());
         }
 
-        // HTTP 상태 코드 체크
         if (result.statusCode() != 200) {
             log.error("Lambda 응답 상태코드: {}", result.statusCode());
             throw new LambdaException("Lambda 호출 실패");
         }
 
-        // 응답 파싱
         String responseJson = result.payload().asUtf8String();
         log.info("Lambda 응답 수신 완료 - 응답크기: {}chars", responseJson.length());
 
         try {
             JsonNode jsonNode = objectMapper.readTree(responseJson);
 
-            // statusCode 확인
             if (jsonNode.has("statusCode")) {
                 int statusCode = jsonNode.get("statusCode").asInt();
                 if (statusCode != 200) {
@@ -115,19 +115,16 @@ public class LambdaService {
                 }
             }
 
-            // body에서 텍스트 추출
             if (jsonNode.has("body")) {
                 String bodyText = jsonNode.get("body").asText();
                 log.debug("Lambda body 추출 성공 - 길이: {}chars", bodyText.length());
                 return bodyText;
             }
 
-            // 응답 전체가 텍스트인 경우
             log.debug("Lambda 전체 응답을 텍스트로 처리");
             return responseJson;
 
         } catch (JsonProcessingException e) {
-            // JSON이 아닌 경우 그대로 반환
             log.debug("Lambda 응답이 JSON이 아님 - 원본 반환");
             return responseJson;
         }

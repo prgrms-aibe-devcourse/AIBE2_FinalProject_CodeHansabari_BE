@@ -21,6 +21,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 자소서 CRUD API
+ */
 @RestController
 @RequestMapping("/api/v1/cover-letters")
 @RequiredArgsConstructor
@@ -29,6 +32,9 @@ public class CoverLetterController implements CoverLetterControllerInterface {
 
     private final CoverLetterService coverLetterService;
 
+    /**
+     * 자소서 저장
+     */
     @PostMapping
     @Override
     public ResponseEntity<CommonResponse<Void>> saveCoverLetter(
@@ -50,6 +56,9 @@ public class CoverLetterController implements CoverLetterControllerInterface {
                 .body(CommonResponse.success(message, null));
     }
 
+    /**
+     * 자소서 수정
+     */
     @PutMapping("/{coverLetterId}")
     @Override
     public ResponseEntity<CommonResponse<Void>> updateCoverLetter(
@@ -66,6 +75,9 @@ public class CoverLetterController implements CoverLetterControllerInterface {
         return ResponseEntity.ok(CommonResponse.success("자소서가 수정되었습니다.", null));
     }
 
+    /**
+     * 자소서 삭제(소프트 삭제)
+     */
     @DeleteMapping("/{coverLetterId}")
     @Override
     public ResponseEntity<CommonResponse<Void>> deleteCoverLetter(
@@ -81,6 +93,9 @@ public class CoverLetterController implements CoverLetterControllerInterface {
         return ResponseEntity.ok(CommonResponse.success("자소서가 삭제되었습니다.", null));
     }
 
+    /**
+     * 자소서 목록 조회(페이징, 썸네일/전체 보기)
+     */
     @GetMapping
     @Override
     public ResponseEntity<CommonResponse<Page<CoverLetterListResponse>>> getCoverLetters(
@@ -100,6 +115,9 @@ public class CoverLetterController implements CoverLetterControllerInterface {
         return ResponseEntity.ok(CommonResponse.success("자소서 목록 조회 성공", response));
     }
 
+    /**
+     * 자소서 상세 조회
+     */
     @GetMapping("/{coverLetterId}")
     @Override
     public ResponseEntity<CommonResponse<CoverLetterDetailResponse>> getCoverLetter(
@@ -116,6 +134,9 @@ public class CoverLetterController implements CoverLetterControllerInterface {
         return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
     }
 
+    /**
+     * 자소서 복구(관리자 전용)
+     */
     @PatchMapping("/{coverLetterId}/restore")
     @PreAuthorize("hasRole('ADMIN') or hasRole('ROOT')")
     @Override

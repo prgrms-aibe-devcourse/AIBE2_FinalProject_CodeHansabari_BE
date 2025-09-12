@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 크롤링 데이터 관리자 API
+ */
 @RestController
 @RequestMapping("/api/crawl")
 @RequiredArgsConstructor
@@ -30,12 +33,14 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
     private final CrawlCoverLetterService crawlCoverLetterService;
     private final AuthService authService;
 
+    /**
+     * 합격 자소서 크롤링 실행
+     */
     @PostMapping("/cover-letters")
     @Override
     public ResponseEntity<CommonResponse<?>> crawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-execution-controller");
 
-        // 관리자 권한 체크
         if (userDetails == null) {
             throw new AccessDeniedException("인증되지 않은 사용자입니다.");
         }
@@ -68,12 +73,14 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         }
     }
 
+    /**
+     * 크롤링 데이터 전체 조회
+     */
     @GetMapping("/cover-letters")
     @Override
     public ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-list-controller");
 
-        // 관리자 권한 체크
         if (userDetails == null) {
             throw new AccessDeniedException("인증되지 않은 사용자입니다.");
         }
@@ -91,6 +98,9 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         return ResponseEntity.ok(CommonResponse.success(coverLetters));
     }
 
+    /**
+     * 크롤링 데이터 단건 조회
+     */
     @GetMapping("/cover-letters/{id}")
     @Override
     public ResponseEntity<CommonResponse<CrawlCoverLetterData>> getCrawlCoverLetterById(
@@ -98,7 +108,6 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-detail-controller");
 
-        // 관리자 권한 체크
         if (userDetails == null) {
             throw new AccessDeniedException("인증되지 않은 사용자입니다.");
         }
@@ -120,6 +129,9 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         }
     }
 
+    /**
+     * 크롤링 데이터 수정
+     */
     @PutMapping("/cover-letters/{id}")
     @Override
     public ResponseEntity<CommonResponse<CrawlCoverLetterData>> updateCrawlCoverLetter(
@@ -128,7 +140,6 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-update-controller");
 
-        // 관리자 권한 체크
         if (userDetails == null) {
             throw new AccessDeniedException("인증되지 않은 사용자입니다.");
         }
@@ -151,6 +162,9 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         }
     }
 
+    /**
+     * 크롤링 데이터 단건 삭제
+     */
     @DeleteMapping("/cover-letters/{id}")
     @Override
     public ResponseEntity<CommonResponse<Void>> deleteCrawlCoverLetter(
@@ -158,7 +172,6 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-delete-controller");
 
-        // 관리자 권한 체크
         if (userDetails == null) {
             throw new AccessDeniedException("인증되지 않은 사용자입니다.");
         }
@@ -180,12 +193,14 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         }
     }
 
+    /**
+     * 크롤링 데이터 전체 삭제
+     */
     @DeleteMapping("/cover-letters")
     @Override
     public ResponseEntity<CommonResponse<Void>> deleteAllCrawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-delete-all-controller");
 
-        // 관리자 권한 체크
         if (userDetails == null) {
             throw new AccessDeniedException("인증되지 않은 사용자입니다.");
         }

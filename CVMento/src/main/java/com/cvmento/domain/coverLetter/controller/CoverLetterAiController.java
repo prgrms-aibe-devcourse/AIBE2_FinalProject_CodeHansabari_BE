@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 자소서 AI 개선 컨트롤러.
+ */
 @RestController
 @RequestMapping("/api/v1/cover-letters")
 @RequiredArgsConstructor
@@ -29,6 +32,13 @@ public class CoverLetterAiController implements CoverLetterAiControllerInterface
 
     private final CoverLetterAiService coverLetterAiService;
 
+    /**
+     * 자소서 내용을 AI로 첨삭/개선한다.
+     *
+     * @param request      자소서 본문/지원분야/경력/추가요청
+     * @param userDetails  인증 사용자 정보
+     * @return 개선 결과(피드백/개선본문)
+     */
     @PostMapping("/ai-improve")
     @RequireTokens(UsageType.COVERLETTER_REVIEW)
     @Override
@@ -53,8 +63,7 @@ public class CoverLetterAiController implements CoverLetterAiControllerInterface
                     response.feedback().strengths().size() + response.feedback().improvements().size(),
                     response.improvedContent() != null ? response.improvedContent().length() : 0);
 
-            return ResponseEntity.ok(
-                    CommonResponse.success("자소서 AI 개선이 완료되었습니다.", response));
+            return ResponseEntity.ok(CommonResponse.success("자소서 AI 개선이 완료되었습니다.", response));
 
         } catch (CoverLetterAiException e) {
             log.error("AI 첨삭 비즈니스 로직 실패: {}", e.getMessage());

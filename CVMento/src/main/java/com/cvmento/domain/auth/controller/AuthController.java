@@ -30,6 +30,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 인증 관련 API 컨트롤러
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -40,8 +43,9 @@ public class AuthController implements AuthControllerInterface {
     private final AuthService authService;
     private final GoogleOAuthService googleOAuthService;
 
-    // === 구글 OAuth2 로그인 API 구현 ===
-
+    /**
+     * 구글 OAuth2 로그인 URL 생성
+     */
     @Override
     @GetMapping("/google/url")
     public ResponseEntity<CommonResponse<GoogleLoginUrlResponse>> getGoogleLoginUrl(
@@ -52,6 +56,9 @@ public class AuthController implements AuthControllerInterface {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
+    /**
+     * 구글 OAuth2 로그인 처리
+     */
     @Override
     @PostMapping("/google/login")
     public ResponseEntity<CommonResponse<LoginResponse>> loginWithGoogle(
@@ -62,8 +69,7 @@ public class AuthController implements AuthControllerInterface {
         MDC.put("spanId", "google-oauth-controller");
 
         try {
-            // IP 수집 제거
-            LoginResponse loginResponse = googleOAuthService.processGoogleLogin(request, null, httpResponse);
+            LoginResponse loginResponse = googleOAuthService.processGoogleLogin(request, httpResponse);
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
         } catch (InvalidAuthorizationCodeException e) {
@@ -83,6 +89,9 @@ public class AuthController implements AuthControllerInterface {
         }
     }
 
+    /**
+     * 구글 ID 토큰 로그인 처리
+     */
     @Override
     @PostMapping("/google/token")
     public ResponseEntity<CommonResponse<LoginResponse>> loginWithGoogleToken(
@@ -95,9 +104,9 @@ public class AuthController implements AuthControllerInterface {
         try {
             log.info("구글 토큰 로그인 시도");
 
-            LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, null, httpResponse);
+            LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, httpResponse);
 
-            log.info("구글 토큰 로그인 성공 - memberId: {}", loginResponse.getMember().memberId());
+            log.info("구글 토큰 로그인 성공 - memberId: {}", loginResponse.member().memberId());
             return ResponseEntity.ok(CommonResponse.success(loginResponse));
 
         } catch (InvalidTokenException e) {
@@ -112,21 +121,26 @@ public class AuthController implements AuthControllerInterface {
         }
     }
 
+    /**
+     * 구글 로그인 안내
+     */
     @Override
     @GetMapping("/login/google")
     public ResponseEntity<CommonResponse<GoogleLoginGuideResponse>> loginWithGoogle() {
-        GoogleLoginGuideResponse response = GoogleLoginGuideResponse.builder()
-                .message("구글 로그인을 시작하려면 아래 URL로 브라우저에서 직접 접속하세요.")
-                .loginUrl("/oauth2/authorization/google")
-                .fullUrl("http://localhost:8080/oauth2/authorization/google")
-                .note("Swagger에서 API 테스트가 필요하면 /auth/test-login을 사용하세요.")
-                .build();
+
+        GoogleLoginGuideResponse response = new GoogleLoginGuideResponse(
+                "구글 로그인을 시작하려면 아래 URL로 브라우저에서 직접 접속하세요.",
+                "/oauth2/authorization/google",
+                "http://localhost:8080/oauth2/authorization/google",
+                "Swagger에서 API 테스트가 필요하면 /auth/test-login을 사용하세요."
+        );
 
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    // === 토큰 관리 API 구현 ===
-
+    /**
+     * 토큰 갱신
+     */
     @Override
     @PostMapping("/refresh")
     public ResponseEntity<CommonResponse<TokenRefreshResponse>> refreshToken(
@@ -137,9 +151,7 @@ public class AuthController implements AuthControllerInterface {
 
         try {
             authService.refreshAccessToken(request, response);
-            TokenRefreshResponse refreshResponse = TokenRefreshResponse.builder()
-                    .message("Token refreshed successfully")
-                    .build();
+            TokenRefreshResponse refreshResponse = new TokenRefreshResponse("Token refreshed successfully");
 
             return ResponseEntity.ok(CommonResponse.success(refreshResponse));
 
@@ -160,6 +172,9 @@ public class AuthController implements AuthControllerInterface {
         }
     }
 
+    /**
+     * 로그아웃
+     */
     @Override
     @PostMapping("/logout")
     public ResponseEntity<CommonResponse<Void>> logout(
@@ -187,6 +202,9 @@ public class AuthController implements AuthControllerInterface {
         }
     }
 
+    /**
+     * 현재 사용자 정보 조회
+     */
     @Override
     @GetMapping("/me")
     public ResponseEntity<CommonResponse<?>> getCurrentUser(
@@ -209,6 +227,9 @@ public class AuthController implements AuthControllerInterface {
         }
     }
 
+    /**
+     * 인증 상태 확인
+     */
     @Override
     @GetMapping("/status")
     public ResponseEntity<CommonResponse<AuthStatusResponse>> checkAuthStatus(
@@ -219,24 +240,20 @@ public class AuthController implements AuthControllerInterface {
         if (authService.isUserAuthenticatedAndActive(userDetails)) {
             try {
                 Member member = authService.getMemberFromUserDetails(userDetails);
-                AuthStatusResponse statusResponse = AuthStatusResponse.builder()
-                        .authenticated(true)
-                        .member(MemberInfo.from(member))
-                        .build();
+                AuthStatusResponse statusResponse = new AuthStatusResponse(true, MemberInfo.from(member));
                 return ResponseEntity.ok(CommonResponse.success(statusResponse));
             } catch (IllegalArgumentException e) {
                 log.debug("인증 상태 확인 중 오류: {}", e.getMessage());
             }
         }
 
-        AuthStatusResponse statusResponse = AuthStatusResponse.builder()
-                .authenticated(false)
-                .build();
+        AuthStatusResponse statusResponse = new AuthStatusResponse(false, null);
         return ResponseEntity.ok(CommonResponse.success(statusResponse));
     }
 
-    // === 개발용 테스트 엔드포인트들 ===
-
+    /**
+     * 개발용 테스트 로그인
+     */
     @PostMapping("/test-login")
     public ResponseEntity<CommonResponse<TestLoginResponse>> testLogin(
             @RequestParam(defaultValue = "test@example.com") String email,
@@ -248,6 +265,7 @@ public class AuthController implements AuthControllerInterface {
         Member testMember = authService.createOrUpdateTestUser(email, name, Role.USER);
         authService.generateTokensAndSetCookies(testMember, response);
 
+        // record에 of()가 있다면 그대로 사용, 없애셨다면 new TestLoginResponse(...) 로 교체
         TestLoginResponse loginResponse = TestLoginResponse.of(
                 "테스트 로그인이 완료되었습니다.",
                 MemberInfo.from(testMember),
@@ -272,8 +290,9 @@ public class AuthController implements AuthControllerInterface {
         return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
     }
 
-    // === 헬퍼 메서드들 ===
-
+    /**
+     * 빠른 로그인 공통 처리
+     */
     private ResponseEntity<CommonResponse<TestLoginResponse>> performQuickLogin(
             String email, String name, Role role, HttpServletResponse response) {
 
@@ -287,10 +306,5 @@ public class AuthController implements AuthControllerInterface {
         );
 
         return ResponseEntity.ok(CommonResponse.success(loginResponse));
-    }
-
-    // IP 수집 제거
-    private String getClientIpAddress(HttpServletRequest request) {
-        return "removed"; // IP 수집하지 않음
     }
 }

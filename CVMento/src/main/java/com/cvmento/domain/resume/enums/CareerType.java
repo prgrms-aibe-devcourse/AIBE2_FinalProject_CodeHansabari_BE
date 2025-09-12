@@ -2,6 +2,9 @@ package com.cvmento.domain.resume.enums;
 
 import lombok.Getter;
 
+/**
+ * 경력 구분 enum.
+ */
 @Getter
 public enum CareerType {
     FRESHMAN("신입"),

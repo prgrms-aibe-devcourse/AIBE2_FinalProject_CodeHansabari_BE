@@ -1,13 +1,14 @@
 package com.cvmento.domain.auth.dto.response;
 
 import com.cvmento.domain.member.dto.MemberInfo;
-import lombok.Builder;
-import lombok.Getter;
 
-// 인증 상태 응답
-@Getter
-@Builder
-public class AuthStatusResponse {
-    private final boolean authenticated;
-    private final MemberInfo member;
-}
+/**
+ * 인증 상태 응답 DTO
+ *
+ * @param authenticated 인증 여부
+ * @param member        인증된 사용자 정보
+ */
+public record AuthStatusResponse(
+        boolean authenticated,
+        MemberInfo member
+) {}

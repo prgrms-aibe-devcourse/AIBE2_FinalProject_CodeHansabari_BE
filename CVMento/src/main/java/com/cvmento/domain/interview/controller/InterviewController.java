@@ -25,9 +25,7 @@ public class InterviewController implements InterviewControllerInterface {
 
     private final InterviewService interviewService;
 
-    /**
-     * 기존 면접 질문/답변 조회
-     */
+    /** 기존 면접 Q&A 조회 */
     @GetMapping
     @Override
     public ResponseEntity<CommonResponse<InterviewQnaListResponse>> getInterviewQuestions(
@@ -48,9 +46,7 @@ public class InterviewController implements InterviewControllerInterface {
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 조회 성공", response));
     }
 
-    /**
-     * 면접 질문/답변 생성
-     */
+    /** 면접 Q&A 자동 생성 */
     @PostMapping
     @RequireTokens(UsageType.INTERVIEW_AUTO)
     @Override
@@ -71,9 +67,7 @@ public class InterviewController implements InterviewControllerInterface {
         return ResponseEntity.ok(CommonResponse.success("면접 질문/답변 생성 성공", response));
     }
 
-    /**
-     * 사용자 커스텀 질문에 대한 AI 답변 생성
-     */
+    /** 커스텀 질문에 대한 AI 답변 생성 */
     @PostMapping("/custom-answer")
     @RequireTokens(UsageType.INTERVIEW_CUSTOM)
     @Override

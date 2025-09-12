@@ -8,10 +8,31 @@ import jakarta.validation.constraints.*;
 
 import java.util.List;
 
+/**
+ * 이력서 저장 요청.
+ *
+ * @param title 이력서 제목
+ * @param type 이력서 타입
+ * @param name 이름
+ * @param email 이메일
+ * @param birthYear 출생년도
+ * @param phone 전화번호
+ * @param careerType 경력 구분
+ * @param fieldName 지원분야
+ * @param introduction 간단소개
+ * @param githubUrl 깃허브 URL
+ * @param blogUrl 블로그 URL
+ * @param notionUrl 노션 URL
+ * @param educations 학력 정보 목록
+ * @param techStacks 기술스택 목록
+ * @param customLinks 커스텀 링크 목록
+ * @param careers 경력 정보 목록
+ * @param projects 프로젝트 정보 목록
+ * @param trainings 교육이력 목록
+ * @param additionalInfos 기타사항 목록
+ */
 @Schema(description = "이력서 저장 요청")
 public record ResumeSaveRequest(
-
-        // === 기본 정보 ===
         @Schema(description = "이력서 제목", example = "네이버 백엔드 개발자 지원용 이력서")
         @NotBlank(message = "이력서 제목은 필수입니다.")
         @Size(max = 100, message = "이력서 제목은 100자 이하여야 합니다.")
@@ -60,7 +81,6 @@ public record ResumeSaveRequest(
         @Schema(description = "노션 URL", example = "https://notion.so/username")
         String notionUrl,
 
-        // === 상세 정보 ===
         @Schema(description = "학력 정보 목록")
         @Valid
         List<EducationSaveRequest> educations,
