@@ -3,9 +3,15 @@ package com.cvmento.domain.resume.dto.response;
 import com.cvmento.domain.resume.enums.ProficiencyLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * 경력에서 사용한 기술스택 제안.
+ *
+ * @param techStackId 기술스택 ID
+ * @param techStackName 기술스택명
+ * @param proficiencyLevel 숙련도
+ */
 @Schema(description = "경력에서 사용한 기술스택")
 public record SuggestedCareerTechStack(
-
         @Schema(description = "기술스택 ID", example = "1")
         Long techStackId,
 
@@ -14,6 +20,5 @@ public record SuggestedCareerTechStack(
 
         @Schema(description = "숙련도", example = "INTERMEDIATE")
         ProficiencyLevel proficiencyLevel
-
 ) {
 }

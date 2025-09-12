@@ -2,6 +2,9 @@ package com.cvmento.domain.resume.enums;
 
 import lombok.Getter;
 
+/**
+ * 학위 수준 enum.
+ */
 @Getter
 public enum DegreeLevel {
     HIGH_SCHOOL("고졸"),
