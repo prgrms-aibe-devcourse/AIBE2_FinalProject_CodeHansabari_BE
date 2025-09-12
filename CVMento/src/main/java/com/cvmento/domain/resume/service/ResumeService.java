@@ -23,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 이력서 서비스.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,7 +37,7 @@ public class ResumeService {
     private final MemberRepository memberRepository;
 
     /**
-     * 이력서 전체 정보 저장
+     * 이력서 전체 정보 저장.
      */
     @Transactional
     public void saveResume(ResumeSaveRequest request, String memberEmail) {
@@ -42,10 +45,8 @@ public class ResumeService {
 
         Member member = findMemberByEmail(memberEmail);
 
-        // 1. 이력서 기본 정보 저장
         Resume resume = createAndSaveResume(request, member);
 
-        // 2. 상세 정보들 저장 (QueryDSL 구현체 사용)
         MDC.put("spanId", "resume-details-repository");
         resumeRepositoryImpl.saveResumeDetails(request, resume);
 
@@ -55,26 +56,21 @@ public class ResumeService {
     }
 
     /**
-     * 이력서 전체 정보 수정 (덮어쓰기 방식)
+     * 이력서 전체 정보 수정 (덮어쓰기 방식).
      */
     @Transactional
     public void updateResume(Long resumeId, ResumeUpdateRequest request, String memberEmail) {
         MDC.put("spanId", "resume-update-service");
 
         Member member = findMemberByEmail(memberEmail);
-
-        // 1. 기존 이력서 조회 및 권한 확인
         Resume existingResume = findActiveResumeByIdAndMember(resumeId, member);
 
-        // 2. 기존 이력서의 모든 하위 데이터 삭제
         MDC.put("spanId", "resume-details-repository");
         resumeRepositoryImpl.deleteAllResumeDetails(existingResume);
 
         MDC.put("spanId", "resume-update-service");
-        // 3. 기본 정보 업데이트
         updateResumeBasicInfo(existingResume, request);
 
-        // 4. 새로운 상세 정보들 저장
         MDC.put("spanId", "resume-details-repository");
         resumeRepositoryImpl.saveResumeDetails(request.toSaveRequest(), existingResume);
 
@@ -83,25 +79,22 @@ public class ResumeService {
     }
 
     /**
-     * 이력서 소프트 삭제
+     * 이력서 소프트 삭제.
      */
     @Transactional
     public void deleteResume(Long resumeId, String memberEmail) {
         MDC.put("spanId", "resume-delete-service");
 
         Member member = findMemberByEmail(memberEmail);
-
-        // 1. 이력서 조회 및 권한 확인
         Resume resume = findActiveResumeByIdAndMember(resumeId, member);
 
-        // 2. 상태를 DELETED로 변경
         resume.updateStatus(ResumeStatus.DELETED);
 
         log.info("이력서 소프트 삭제 완료 - ID: {}, 제목: {}", resumeId, resume.getTitle());
     }
 
     /**
-     * 이력서 목록 조회 (썸네일, 페이징)
+     * 이력서 목록 조회 (썸네일, 페이징).
      */
     public Page<ResumeThumbnailResponse> getResumeList(String memberEmail, Pageable pageable) {
         MDC.put("spanId", "resume-list-service");
@@ -118,14 +111,13 @@ public class ResumeService {
     }
 
     /**
-     * 이력서 상세 조회 (QueryDSL Projection 활용)
+     * 이력서 상세 조회 (QueryDSL Projection 활용).
      */
     public ResumeDetailResponse getResumeDetail(Long resumeId, String memberEmail) {
         MDC.put("spanId", "resume-detail-service");
 
         Member member = findMemberByEmail(memberEmail);
 
-        // QueryDSL로 DTO 직접 조회
         MDC.put("spanId", "resume-details-repository");
         ResumeDetailResponse result = resumeRepositoryImpl.findResumeDetailByIdAndMember(
                 resumeId, member, ResumeStatus.ACTIVE);
@@ -141,7 +133,7 @@ public class ResumeService {
     }
 
     /**
-     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한
+     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한.
      */
     @Transactional
     public void restoreResume(Long resumeId, String adminEmail) {
@@ -158,9 +150,9 @@ public class ResumeService {
                 resumeId, adminEmail, resume.getMember().getEmail());
     }
 
-
-    // ======================== Private 메서드 ========================
-
+    /**
+     * 이력서 엔티티 생성 및 저장.
+     */
     private Resume createAndSaveResume(ResumeSaveRequest request, Member member) {
         Resume resume = Resume.createResume(
                 request.title(),
@@ -184,6 +176,9 @@ public class ResumeService {
         return saved;
     }
 
+    /**
+     * 이력서 기본 정보 업데이트.
+     */
     private void updateResumeBasicInfo(Resume resume, ResumeUpdateRequest request) {
         resume.updateTitle(request.title());
         resume.updateType(request.type());
@@ -194,6 +189,9 @@ public class ResumeService {
                 request.blogUrl(), request.notionUrl());
     }
 
+    /**
+     * 선택적 정보 업데이트 (소개, URL 등).
+     */
     private void updateOptionalInfo(Resume resume, String introduction, String githubUrl,
                                     String blogUrl, String notionUrl) {
         if (introduction != null && !introduction.trim().isEmpty()) {
@@ -226,6 +224,9 @@ public class ResumeService {
         return member;
     }
 
+    /**
+     * Resume을 썸네일 응답으로 변환.
+     */
     private ResumeThumbnailResponse convertToThumbnailResponse(Resume resume) {
         List<String> completedSections = getCompletedSections(resume);
 
@@ -236,6 +237,10 @@ public class ResumeService {
                 completedSections
         );
     }
+
+    /**
+     * 이력서 완성 섹션 목록 생성.
+     */
     private List<String> getCompletedSections(Resume resume) {
         List<String> sections = new ArrayList<>();
 

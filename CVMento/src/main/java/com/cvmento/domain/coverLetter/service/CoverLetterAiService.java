@@ -78,8 +78,6 @@ public class CoverLetterAiService {
         }
     }
 
-    /* ---------------------------- 보조 유틸리티 ---------------------------- */
-
     /** DB에서 우수 자소서 특징 데이터를 조회 */
     private List<CoverLetterFeatureDto> loadCoverLetterFeatures() {
         MDC.put("spanId", "feature-repository");

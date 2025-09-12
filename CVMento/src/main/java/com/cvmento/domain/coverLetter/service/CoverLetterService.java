@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 자소서 도메인 서비스
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,7 +35,7 @@ public class CoverLetterService {
     private final MemberRepository memberRepository;
 
     /**
-     * 자소서 저장 (원본/AI첨삭 구분)
+     * 자소서 저장(원본/AI 첨삭)
      */
     @Transactional
     public void saveCoverLetter(CoverLetterSaveRequest request, String memberEmail) {
@@ -46,8 +49,8 @@ public class CoverLetterService {
         CoverLetter coverLetter = new CoverLetter(
                 finalTitle,
                 request.content(),
-                request.jobField(),      // 지원분야
-                request.experienceYears(), // 경력 년수
+                request.jobField(),
+                request.experienceYears(),
                 member
         );
 
@@ -66,10 +69,8 @@ public class CoverLetterService {
         MDC.put("spanId", "coverletter-update-service");
         CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
-        // [수정본] 접두사 추가
         String finalTitle = "[수정본] " + request.title();
 
-        // 엔티티 업데이트 (updatedAt은 자동으로 갱신됨)
         coverLetter.updateCoverLetter(
                 finalTitle,
                 request.content(),
@@ -83,14 +84,13 @@ public class CoverLetterService {
     }
 
     /**
-     * 자소서 삭제 (소프트 삭제)
+     * 자소서 삭제(소프트 삭제)
      */
     @Transactional
     public void deleteCoverLetter(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "coverletter-delete-service");
         CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
-        // 소프트 삭제 (상태를 DELETED로 변경)
         coverLetter.delete();
 
         log.info("자소서 삭제 완료 - coverLetterId: {}, memberId: {}",
@@ -98,14 +98,13 @@ public class CoverLetterService {
     }
 
     /**
-     * 자소서 목록 조회 (페이징 + view 옵션) - 활성 상태만
+     * 자소서 목록 조회(활성만, 뷰 옵션 지원)
      */
     public Page<CoverLetterListResponse> getCoverLetters(String memberEmail, Pageable pageable, String view) {
         MDC.put("spanId", "coverletter-list-service");
 
         Member member = findMemberByEmail(memberEmail);
 
-        // 활성 상태의 자소서만 조회
         MDC.put("spanId", "coverletter-repository");
         Page<CoverLetter> coverLetters = coverLetterRepository
                 .findByMemberAndStatusOrderByUpdatedAtDesc(member, CoverLetterStatus.ACTIVE, pageable);
@@ -128,7 +127,7 @@ public class CoverLetterService {
     }
 
     /**
-     * 자소서 단일 조회 - 활성 상태만
+     * 자소서 단건 조회(활성만)
      */
     public CoverLetterDetailResponse getCoverLetter(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "coverletter-detail-service");
@@ -142,15 +141,13 @@ public class CoverLetterService {
     }
 
     /**
-     * 자소서 복구 (관리자 전용)
-     * 삭제된 자소서 ID만으로 복구
+     * 자소서 복구(관리자용)
      */
     @Transactional
     public void restoreCoverLetter(Long coverLetterId, String adminEmail) {
         MDC.put("spanId", "coverletter-restore-service");
         CoverLetter coverLetter = findDeletedCoverLetterById(coverLetterId);
 
-        // 복구 실행
         coverLetter.restore();
 
         log.info("관리자 자소서 복구 완료 - coverLetterId: {}, 관리자: {}, 원소유자ID: {}",
@@ -174,7 +171,7 @@ public class CoverLetterService {
     }
 
     /**
-     * 활성 상태의 자소서만 조회하는 헬퍼 메서드 (이메일 기반)
+     * 활성 자소서 조회(소유자 검증)
      */
     private CoverLetter findActiveCoverLetterByIdAndMember(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "coverletter-repository");
@@ -187,7 +184,7 @@ public class CoverLetterService {
     }
 
     /**
-     * 삭제된 상태의 자소서를 찾는 헬퍼 메서드 (관리자용 - ID만으로)
+     * 삭제된 자소서 조회(관리자용)
      */
     private CoverLetter findDeletedCoverLetterById(Long coverLetterId) {
         MDC.put("spanId", "coverletter-repository");

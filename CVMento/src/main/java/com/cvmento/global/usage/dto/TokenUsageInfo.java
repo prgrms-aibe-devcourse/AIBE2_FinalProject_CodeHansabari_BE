@@ -1,24 +1,25 @@
 package com.cvmento.global.usage.dto;
 
-import lombok.Builder;
-
 import java.time.LocalDateTime;
 
 /**
- * 통합 토큰 사용량 정보 DTO
+ * 통합 토큰 사용량 정보.
+ *
+ * @param remainingTokens 남은 토큰 수
+ * @param maxTokens 최대 토큰 수
+ * @param nextRefillTime 다음 충전 시간
+ * @param refillAmount 충전 시 증가량
  */
-@Builder
 public record TokenUsageInfo(
-        int remainingTokens,      // 남은 토큰 수
-        int maxTokens,           // 최대 토큰 수
-        LocalDateTime nextRefillTime, // 다음 충전 시간
-        int refillAmount         // 충전 시 증가량
+        int remainingTokens,
+        int maxTokens,
+        LocalDateTime nextRefillTime,
+        int refillAmount
 ) {
-
+    /**
+     * 빈 토큰 정보 생성.
+     */
     public static TokenUsageInfo empty() {
-        return TokenUsageInfo.builder()
-                .remainingTokens(0)
-                .maxTokens(0)
-                .build();
+        return new TokenUsageInfo(0, 0, null, 0);
     }
 }

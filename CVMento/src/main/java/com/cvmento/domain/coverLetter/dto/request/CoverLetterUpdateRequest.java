@@ -6,9 +6,16 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * 자소서 수정 요청 DTO
+ *
+ * @param title            수정할 제목
+ * @param content          수정할 본문
+ * @param jobField         지원 분야
+ * @param experienceYears  경력 년수
+ */
 @Schema(description = "자소서 수정 요청 DTO")
 public record CoverLetterUpdateRequest(
-
         @Schema(description = "자소서 제목", example = "네이버 백엔드 개발자 지원")
         @NotBlank(message = "제목은 필수입니다.")
         @Size(max = 200, message = "제목은 200자 이내로 입력해주세요.")
@@ -27,5 +34,4 @@ public record CoverLetterUpdateRequest(
         @Min(value = 0, message = "경력 년수는 0 이상이어야 합니다.")
         @Max(value = 50, message = "경력 년수는 50 이하여야 합니다.")
         Integer experienceYears
-) {
-}
+) {}

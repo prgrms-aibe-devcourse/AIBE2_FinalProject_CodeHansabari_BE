@@ -6,9 +6,19 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * 경력 저장 요청.
+ *
+ * @param startDate 시작일
+ * @param endDate 종료일
+ * @param companyName 회사명
+ * @param companyDescription 회사 소개
+ * @param departmentPosition 부서명/직책
+ * @param mainTasks 주요 업무 및 성과
+ * @param techStacks 사용 기술스택 목록
+ */
 @Schema(description = "경력 저장 요청")
 public record CareerSaveRequest(
-
         @Schema(description = "시작일", example = "2022-01-01")
         LocalDate startDate,
 

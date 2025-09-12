@@ -23,6 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 크롤링 데이터 서비스
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,7 +38,7 @@ public class CrawlCoverLetterService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Linkareer API를 호출하여 IT 직무 합격 자소서를 크롤링하고 DB에 저장
+     * IT 직무 합격 자소서 크롤링 및 저장
      */
     public CrawlCoverLetterResponse crawlAndSaveCoverLetters() {
         MDC.put("spanId", "crawl-execution-service");
@@ -113,7 +116,6 @@ public class CrawlCoverLetterService {
         }
         """;
 
-        // 성공 시에만 간단한 로그
         log.debug("요청 페이로드 길이: {}chars", payload.length());
 
         HttpHeaders headers = new HttpHeaders();
@@ -137,7 +139,6 @@ public class CrawlCoverLetterService {
         log.info("Linkareer API 응답 수신 완료 - 응답길이: {}chars",
                 responseBody != null ? responseBody.length() : 0);
 
-        // 응답 내용은 debug 레벨로만
         log.debug("API 응답 미리보기: {}",
                 responseBody != null && responseBody.length() > 200 ?
                         responseBody.substring(0, 200) + "..." : responseBody);
@@ -146,7 +147,7 @@ public class CrawlCoverLetterService {
     }
 
     /**
-     * API 응답에서 content 필드 추출
+     * API 응답 파싱(content 추출)
      */
     private List<String> parseContentsFromResponse(String responseBody) throws Exception {
         MDC.put("spanId", "json-parsing-service");
@@ -201,9 +202,9 @@ public class CrawlCoverLetterService {
 
         return contents;
     }
-    
+
     /**
-     * 크롤링한 자소서들을 DB에 저장
+     * 크롤링 데이터 저장
      */
     private List<CrawlCoverLetter> saveCoverLetters(List<String> contents) {
         MDC.put("spanId", "crawl-repository");
@@ -224,23 +225,23 @@ public class CrawlCoverLetterService {
 
         return saved;
     }
-    
+
     /**
-     * 텍스트 정리: \n 제거 및 연속 공백 정리
+     * 텍스트 정리(개행·여러 공백 정규화)
      */
     private String cleanText(String text) {
         if (text == null || text.trim().isEmpty()) {
             return "";
         }
-        
+
         return text
-                .replaceAll("\\n", " ")            // 줄바꿈을 공백으로 변경
-                .replaceAll("\\s+", " ")           // 연속된 공백을 하나로 정리
-                .trim();                           // 앞뒤 공백 제거
+                .replaceAll("\\n", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
-    
+
     /**
-     * 모든 크롤링 데이터 조회
+     * 크롤링 데이터 전체 조회
      */
     public List<CrawlCoverLetterData> getAllCrawlCoverLetters() {
         MDC.put("spanId", "crawl-list-service");
@@ -255,9 +256,9 @@ public class CrawlCoverLetterService {
                 .map(CrawlCoverLetterData::from)
                 .collect(Collectors.toList());
     }
-    
+
     /**
-     * 특정 크롤링 데이터 조회
+     * 크롤링 데이터 단건 조회
      */
     public CrawlCoverLetterData getCrawlCoverLetterById(Long id) {
         MDC.put("spanId", "crawl-detail-service");
@@ -276,14 +277,13 @@ public class CrawlCoverLetterService {
 
         return CrawlCoverLetterData.from(coverLetter);
     }
-    
+
     /**
      * 크롤링 데이터 수정
      */
     public CrawlCoverLetterData updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, Member member) {
         MDC.put("spanId", "crawl-update-service");
 
-        // 권한 체크는 이미 컨트롤러에서 수행됨
         if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
             throw new AccessDeniedException("크롤링 데이터를 수정할 권한이 없습니다.");
         }
@@ -305,9 +305,9 @@ public class CrawlCoverLetterService {
 
         return CrawlCoverLetterData.from(savedCoverLetter);
     }
-    
+
     /**
-     * 특정 크롤링 데이터 삭제
+     * 크롤링 데이터 단건 삭제
      */
     public void deleteCrawlCoverLetter(Long id) {
         MDC.put("spanId", "crawl-delete-service");
@@ -326,9 +326,9 @@ public class CrawlCoverLetterService {
         MDC.put("spanId", "crawl-delete-service");
         log.info("크롤링 데이터 개별 삭제 완료 - ID: {}", id);
     }
-    
+
     /**
-     * 모든 크롤링 데이터 삭제
+     * 크롤링 데이터 전체 삭제
      */
     public void deleteAllCrawlCoverLetters() {
         MDC.put("spanId", "crawl-delete-all-service");
@@ -340,5 +340,4 @@ public class CrawlCoverLetterService {
         MDC.put("spanId", "crawl-delete-all-service");
         log.info("크롤링 데이터 전체 삭제 완료 - 삭제된 개수: {}", count);
     }
-    
 }

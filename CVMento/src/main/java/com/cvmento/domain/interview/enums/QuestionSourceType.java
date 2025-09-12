@@ -1,6 +1,9 @@
 package com.cvmento.domain.interview.enums;
 
+/**
+ * 질문 생성 출처.
+ */
 public enum QuestionSourceType {
-    GENERATED,   // AI가 생성
-    CUSTOM       // 사용자가 직접(커스텀) 생성
+    GENERATED,  // AI 생성
+    CUSTOM      // 사용자 생성
 }

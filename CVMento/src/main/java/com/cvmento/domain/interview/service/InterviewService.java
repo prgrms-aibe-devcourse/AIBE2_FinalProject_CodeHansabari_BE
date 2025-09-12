@@ -7,12 +7,10 @@ import com.cvmento.domain.interview.dto.response.*;
 import com.cvmento.domain.interview.entity.CoverLetterQna;
 import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
-import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.InterviewLimitExceededException;
-import com.cvmento.global.exception.customException.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.MDC;
 
+/** 인터뷰 Q&A 생성·조회 서비스 */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,9 +33,7 @@ public class InterviewService {
     private final InterviewLlmPromptService promptService;
     private final InterviewLlmClientService llmClientService;
 
-    /**
-     * 기존 면접 질문/답변 조회 (순수 조회)
-     */
+    /** 기존 Q&A 조회 */
     public InterviewQnaListResponse getExistingInterviewQna(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "interview-list-service");
 
@@ -51,9 +48,7 @@ public class InterviewService {
         return buildQnaListResponse(existingQnaList);
     }
 
-    /**
-     * 면접 질문/답변 생성 (초기/추가 자동 판단)
-     */
+    /** Q&A 생성 (초기/추가 자동 판단, 최대 15개) */
     @Transactional
     public InterviewQnaListResponse createInterviewQuestions(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "interview-generation-service");
@@ -77,9 +72,7 @@ public class InterviewService {
         return generateQuestionsWithPrompt(coverLetter, prompt, type);
     }
 
-    /**
-     * 사용자 커스텀 질문에 대한 AI 답변 생성 및 저장
-     */
+    /** 커스텀 질문 답변 생성 및 저장 */
     @Transactional
     public CustomAnswerResponse createCustomAnswer(Long coverLetterId, String memberEmail, String customQuestion) {
         MDC.put("spanId", "custom-answer-service");
@@ -89,16 +82,13 @@ public class InterviewService {
         log.info("커스텀 답변 생성 시작 - 자소서ID: {}, 질문길이: {}",
                 coverLetterId, customQuestion.length());
 
-        // 프롬프트 생성
         MDC.put("spanId", "prompt-building-service");
         String prompt = promptService.buildCustomAnswerPrompt(coverLetter, customQuestion);
 
         try {
             MDC.put("spanId", "custom-answer-service");
-            // LLM API 호출
             CustomAnswerResponse response = llmClientService.generateCustomAnswer(prompt);
 
-            // DB에 저장
             saveCustomQuestionAndAnswer(customQuestion, response, coverLetter);
 
             log.info("커스텀 답변 생성 완료 - 자소서ID: {}, 답변길이: {}",
@@ -112,8 +102,7 @@ public class InterviewService {
         }
     }
 
-    // ======================== 유틸리티 메서드 ========================
-
+    /** 기존 질문 수에 따라 프롬프트 선택 */
     private String buildPromptByCount(CoverLetter coverLetter, long existingCount) {
         if (existingCount == 0) {
             return promptService.buildQnaGenerationPrompt(coverLetter);
@@ -127,6 +116,7 @@ public class InterviewService {
         }
     }
 
+    /** 프롬프트로 LLM 호출 → 저장 → 리스트 응답 */
     private InterviewQnaListResponse generateQuestionsWithPrompt(CoverLetter coverLetter, String prompt, String type) {
         try {
             InterviewLlmResponse llmResponse = llmClientService.generateQnaList(prompt);
@@ -144,6 +134,7 @@ public class InterviewService {
         }
     }
 
+    /** QnA 리스트 저장 후 반환 */
     private List<CoverLetterQna> saveQnaListToDatabaseAndReturn(List<InterviewQnaDto> qnaDataList, CoverLetter coverLetter) {
         MDC.put("spanId", "interview-repository");
 
@@ -162,6 +153,7 @@ public class InterviewService {
         return savedQnas;
     }
 
+    /** QnA 리스트 → 응답 DTO */
     private InterviewQnaListResponse buildQnaListResponse(List<CoverLetterQna> qnaList) {
         List<InterviewQnaResponse> qnaResponses = qnaList.stream()
                 .map(InterviewQnaResponse::from)
@@ -174,6 +166,7 @@ public class InterviewService {
         return new InterviewQnaListResponse(qnaResponses, qnaList.size(), generatedCount);
     }
 
+    /** 새로 생성된 QnA 리스트 → 응답 DTO */
     private InterviewQnaListResponse buildNewQnaListResponse(List<CoverLetterQna> newQnas) {
         List<InterviewQnaResponse> qnaResponses = newQnas.stream()
                 .map(InterviewQnaResponse::from)
@@ -182,9 +175,7 @@ public class InterviewService {
         return new InterviewQnaListResponse(qnaResponses, newQnas.size(), newQnas.size());
     }
 
-    /**
-     * 활성 상태의 자소서만 조회하는 헬퍼 메서드
-     */
+    /** 활성 상태 자소서 조회 */
     private CoverLetter findActiveCoverLetterByIdAndMember(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "coverletter-repository");
         CoverLetter coverLetter = coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
@@ -195,6 +186,7 @@ public class InterviewService {
         return coverLetter;
     }
 
+    /** 커스텀 질문/답변 저장 */
     private void saveCustomQuestionAndAnswer(String question, CustomAnswerResponse response, CoverLetter coverLetter) {
         MDC.put("spanId", "interview-repository");
         CoverLetterQna qna = new CoverLetterQna(question, coverLetter, QuestionSourceType.CUSTOM);

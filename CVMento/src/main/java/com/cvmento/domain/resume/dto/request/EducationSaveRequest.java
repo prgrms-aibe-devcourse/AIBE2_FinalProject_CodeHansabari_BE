@@ -6,9 +6,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * 학력 저장 요청.
+ *
+ * @param schoolName 학교명
+ * @param major 전공명
+ * @param degreeLevel 학위 수준
+ * @param personalGpa 개인 학점
+ * @param totalGpa 기준 학점
+ * @param graduationDate 졸업(예정)일
+ */
 @Schema(description = "학력 저장 요청")
 public record EducationSaveRequest(
-
         @Schema(description = "학교명", example = "서울대학교")
         String schoolName,
 

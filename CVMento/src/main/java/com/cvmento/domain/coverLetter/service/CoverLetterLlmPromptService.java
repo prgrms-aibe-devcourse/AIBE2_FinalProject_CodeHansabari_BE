@@ -10,11 +10,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * LLM 프롬프트 생성 서비스.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CoverLetterLlmPromptService {
 
+    /**
+     * 자소서 개선 프롬프트를 생성한다.
+     *
+     * @param content         자소서 본문
+     * @param features        우수 자소서 특징 리스트
+     * @param jobField        지원 분야
+     * @param totalExperience 경력(예: "신입", "3년")
+     * @param customPrompt    사용자 추가 요구사항
+     * @return LLM 입력 프롬프트
+     */
     public String buildImprovementPrompt(String content, List<CoverLetterFeatureDto> features,
                                          String jobField, String totalExperience, String customPrompt) {
         MDC.put("spanId", "prompt-building-service");

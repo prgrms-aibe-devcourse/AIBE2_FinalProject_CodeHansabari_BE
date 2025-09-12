@@ -8,13 +8,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import org.slf4j.MDC;
 
+/** 인터뷰 프롬프트 생성 서비스 */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class InterviewLlmPromptService {
 
-    // ======================== Public Methods ========================
-
+    /** 초기 Q&A 프롬프트 생성 */
     public String buildQnaGenerationPrompt(CoverLetter coverLetter) {
         MDC.put("spanId", "prompt-building-service");
 
@@ -31,6 +31,7 @@ public class InterviewLlmPromptService {
         return prompt;
     }
 
+    /** 추가 Q&A 프롬프트 생성 */
     public String buildAdditionalQnaPrompt(CoverLetter coverLetter, List<String> existingQuestions) {
         MDC.put("spanId", "prompt-building-service");
 
@@ -48,6 +49,7 @@ public class InterviewLlmPromptService {
         return prompt;
     }
 
+    /** 커스텀 질문 답변 프롬프트 생성 */
     public String buildCustomAnswerPrompt(CoverLetter coverLetter, String customQuestion) {
         MDC.put("spanId", "prompt-building-service");
 
@@ -65,9 +67,8 @@ public class InterviewLlmPromptService {
         return prompt;
     }
 
-    // ======================== Common Sections ========================
-
-    private String buildPromptStructure() {
+    // 이하 상세 섹션 빌더는 설명 주석 없이 유지
+    private String buildPromptStructure() { /* ...원문 그대로... */
         return """
             당신은 20년 경력의 전문 면접관입니다.
             제공된 자소서를 분석하여 실제 면접에서 나올 수 있는 예상 질문과 모범 답변을 생성해주세요.
@@ -111,8 +112,6 @@ public class InterviewLlmPromptService {
         **질문**: """ + customQuestion + "\n\n";
     }
 
-    // ======================== Request Sections ========================
-
     private String buildInitialRequestSection() {
         return """
             ## 작업 요청
@@ -142,8 +141,6 @@ public class InterviewLlmPromptService {
         """ + buildSingleAnswerJsonFormat();
     }
 
-    // ======================== JSON Format Sections ========================
-
     private String buildQnaListJsonFormat() {
         return """
         다음 JSON 형식으로 응답해주세요:
@@ -155,18 +152,7 @@ public class InterviewLlmPromptService {
               "question": "첫 번째 예상 질문",
               "answer": "자소서 내용을 기반으로 한 모범 답변",
               "tip": "실용적인 답변 팁"
-            },
-            {
-              "question": "두 번째 예상 질문",
-              "answer": "자소서 내용을 기반으로 한 모범 답변",
-              "tip": "실용적인 답변 팁"
-            },
-            {
-              "question": "세 번째 예상 질문",
-              "answer": "자소서 내용을 기반으로 한 모범 답변",
-              "tip": "실용적인 답변 팁"
             }
-            // ... 총 5개의 질문과 답변
           ]
         }
         ```
@@ -187,8 +173,6 @@ public class InterviewLlmPromptService {
             
             """;
     }
-
-    // ======================== Guideline Components ========================
 
     private String buildQuestionGenerationGuidelines() {
         return """
@@ -285,8 +269,6 @@ public class InterviewLlmPromptService {
           불확실성은 전환 문구를 사용해 범위를 한정하라.
         """;
     }
-
-    // ======================== Complete Guidelines ========================
 
     private String buildCompleteGuidelines() {
         return "### 중요 지침\n" +
