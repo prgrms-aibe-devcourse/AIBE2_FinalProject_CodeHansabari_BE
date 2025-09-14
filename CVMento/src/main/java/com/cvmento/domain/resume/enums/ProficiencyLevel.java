@@ -2,6 +2,9 @@ package com.cvmento.domain.resume.enums;
 
 import lombok.Getter;
 
+/**
+ * 기술 숙련도 enum.
+ */
 @Getter
 public enum ProficiencyLevel {
     BEGINNER("초급"),

@@ -2,6 +2,9 @@ package com.cvmento.domain.resume.enums;
 
 import lombok.Getter;
 
+/**
+ * 이력서 타입 enum.
+ */
 @Getter
 public enum ResumeType {
     DEFAULT("기본형"),

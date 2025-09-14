@@ -32,8 +32,9 @@ public class AuthService {
 
     /**
      * UserDetails에서 Member 엔티티를 추출합니다.
-     * @param userDetails Spring Security UserDetails
-     * @return Member 엔티티
+     *
+     * @param userDetails 인증된 사용자 정보
+     * @return DB에서 조회한 Member 엔티티
      * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
      */
     public Member getMemberFromUserDetails(UserDetails userDetails) {
@@ -53,8 +54,9 @@ public class AuthService {
 
     /**
      * 현재 인증된 사용자가 활성 상태인지 확인합니다.
-     * @param userDetails Spring Security UserDetails
-     * @return 사용자가 인증되고 활성 상태이면 true
+     *
+     * @param userDetails 인증된 사용자 정보
+     * @return 활성 상태이면 true
      */
     public boolean isUserAuthenticatedAndActive(UserDetails userDetails) {
         MDC.put("spanId", "auth-service");
@@ -72,6 +74,13 @@ public class AuthService {
         }
     }
 
+    /**
+     * Refresh Token을 사용해 Access Token을 갱신합니다.
+     *
+     * @param request  클라이언트 요청
+     * @param response 클라이언트 응답
+     * @return 갱신된 토큰 DTO
+     */
     @Transactional
     public TokenDto refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
         MDC.put("spanId", "token-refresh-service");
@@ -118,6 +127,9 @@ public class AuthService {
         }
     }
 
+    /**
+     * 사용자 로그아웃 처리 (토큰 무효화 및 쿠키 삭제)
+     */
     @Transactional
     public void logout(Member member, HttpServletRequest request, HttpServletResponse response) {
         MDC.put("spanId", "logout-service");
@@ -135,6 +147,9 @@ public class AuthService {
         log.info("사용자 로그아웃 완료 - memberId: {}", member.getMemberId());
     }
 
+    /**
+     * 테스트 사용자 생성 또는 업데이트
+     */
     @Transactional
     public Member createOrUpdateTestUser(String email, String name, Role role) {
         MDC.put("spanId", "test-user-service");
@@ -171,6 +186,9 @@ public class AuthService {
         return testMember;
     }
 
+    /**
+     * 토큰을 생성하고 쿠키에 설정합니다.
+     */
     public TokenDto generateTokensAndSetCookies(Member member, HttpServletResponse response) {
         MDC.put("spanId", "token-generation-service");
 

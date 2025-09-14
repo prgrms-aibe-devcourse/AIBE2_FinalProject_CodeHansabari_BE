@@ -91,12 +91,12 @@ public class GoogleOAuthService {
      * Authorization Code를 사용한 구글 로그인 처리
      */
     @Transactional
-    public LoginResponse processGoogleLogin(GoogleLoginRequest request, String clientIp, HttpServletResponse response) {
+    public LoginResponse processGoogleLogin(GoogleLoginRequest request, HttpServletResponse response) {
         MDC.put("spanId", "google-oauth-service");
 
         try {
             MDC.put("spanId", "google-token-api");
-            GoogleTokenResponse tokenResponse = exchangeCodeForToken(request.getCode(), request.getRedirectUri());
+            GoogleTokenResponse tokenResponse = exchangeCodeForToken(request.code(), request.redirectUri());
 
             MDC.put("spanId", "google-userinfo-api");
             GoogleUserInfo userInfo = getUserInfoFromGoogle(tokenResponse.getAccessToken());
@@ -112,11 +112,11 @@ public class GoogleOAuthService {
 
             log.info("구글 OAuth 로그인 성공 - memberId: {}", member.getMemberId());
 
-            return LoginResponse.builder()
-                    .message("구글 로그인이 완료되었습니다.")
-                    .member(MemberInfo.from(member))
-                    .note("로그인 상태가 쿠키에 저장되었습니다.")
-                    .build();
+            return new LoginResponse(
+                    "구글 로그인이 완료되었습니다.",
+                    MemberInfo.from(member),
+                    "로그인 상태가 쿠키에 저장되었습니다."
+            );
 
         } catch (GoogleApiException | InvalidAuthorizationCodeException e) {
             throw e;
@@ -130,12 +130,12 @@ public class GoogleOAuthService {
      * Google ID Token을 사용한 로그인 처리 (프론트엔드 SDK용) - 보안 강화
      */
     @Transactional
-    public LoginResponse processGoogleTokenLogin(GoogleTokenRequest request, String clientIp, HttpServletResponse response) {
+    public LoginResponse processGoogleTokenLogin(GoogleTokenRequest request, HttpServletResponse response) {
         MDC.put("spanId", "google-token-service");
 
         try {
             MDC.put("spanId", "google-token-verify-api");
-            GoogleUserInfo userInfo = verifyGoogleIdToken(request.getIdToken());
+            GoogleUserInfo userInfo = verifyGoogleIdToken(request.idToken());
 
             MDC.put("spanId", "google-token-service");
             Member member = findOrCreateMember(userInfo);
@@ -148,11 +148,11 @@ public class GoogleOAuthService {
 
             log.info("구글 토큰 로그인 성공 - memberId: {}", member.getMemberId());
 
-            return LoginResponse.builder()
-                    .message("구글 로그인이 완료되었습니다.")
-                    .member(MemberInfo.from(member))
-                    .note("로그인 상태가 쿠키에 저장되었습니다.")
-                    .build();
+            return new LoginResponse(
+                    "구글 로그인이 완료되었습니다.",
+                    MemberInfo.from(member),
+                    "로그인 상태가 쿠키에 저장되었습니다."
+            );
 
         } catch (InvalidTokenException e) {
             throw e;
@@ -161,6 +161,7 @@ public class GoogleOAuthService {
             throw new InvalidTokenException("Google ID Token 검증에 실패했습니다.");
         }
     }
+
 
     private GoogleTokenResponse exchangeCodeForToken(String code, String redirectUri) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
