@@ -1,5 +1,6 @@
 package com.cvmento.domain.auth.controller;
 
+import com.cvmento.domain.auth.controller.interfaces.AuthControllerInterface;
 import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
 import com.cvmento.domain.auth.dto.request.GoogleTokenRequest;
 import com.cvmento.domain.auth.dto.response.AuthStatusResponse;
