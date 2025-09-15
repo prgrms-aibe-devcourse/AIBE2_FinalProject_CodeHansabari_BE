@@ -1,6 +1,9 @@
 package com.cvmento.domain.resume.service;
 
 import com.cvmento.domain.resume.dto.VisionPromptResult;
+import com.cvmento.domain.resume.entity.TechStack;
+import com.cvmento.domain.resume.repository.TechStackRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -13,10 +16,14 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class ResumeLlmPromptService {
+
+    private final TechStackRepository techStackRepository;
 
     public VisionPromptResult createVisionPrompt(MultipartFile file) {
         MDC.put("spanId", "resume-prompt-service");
@@ -351,15 +358,7 @@ public class ResumeLlmPromptService {
            - 각 기술마다 적절한 숙련도 설정 (BEGINNER/INTERMEDIATE/ADVANCED)
            
            사용 가능한 정확한 기술스택 이름 (대소문자 구분):
-           Language: JavaScript, TypeScript, Java, Python, C, C++, C#, Go, Rust, Swift, Kotlin, PHP, Ruby, Scala
-           Frontend: HTML5, CSS3, React, Vue.js, Next.js, Angular, Svelte, jQuery, Bootstrap, Tailwind CSS
-           Backend: Node.js, Express.js, Spring, Spring Boot, Django, Flask, FastAPI, Laravel, Ruby on Rails, NestJS
-           Database: MySQL, PostgreSQL, MongoDB, Redis, MariaDB, Oracle, SQLite, Elasticsearch
-           DevOps: Docker, Kubernetes, AWS, GCP, Jenkins, CircleCI, Travis CI, Nginx, Apache
-           Mobile: React Native, Flutter, iOS, Android, Ionic, Xamarin
-           Testing: Jest, JUnit, Cypress, Selenium, Mocha, Jasmine
-           Build: Webpack, Gradle, Maven, npm, Yarn, Gulp, Grunt
-           기타: Git, GitHub, GitLab, Postman, Figma, Jira, Confluence
+           """ + getTechStackListFromDatabase() + """
            
            예시: 이미지에 "Java, Spring Boot, React, MySQL"이 있다면
            [
@@ -382,5 +381,44 @@ public class ResumeLlmPromptService {
            - 실제 이름, 이메일, 전화번호, 경력사항 등을 정확히 추출
            - 불분명한 정보는 null 또는 빈 배열로 처리
         """;
+    }
+
+    /**
+     * DB에서 기술스택 목록을 가져와서 프롬프트용 문자열로 변환
+     */
+    private String getTechStackListFromDatabase() {
+        try {
+            List<TechStack> techStacks = techStackRepository.findAllByOrderByNameAsc();
+
+            if (techStacks.isEmpty()) {
+                log.warn("DB에서 기술스택을 찾을 수 없습니다. 기본 목록을 사용합니다.");
+                return getDefaultTechStackList();
+            }
+
+            // 기술스택들을 쉼표로 구분된 문자열로 변환
+            return techStacks.stream()
+                    .map(TechStack::getName)
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("JavaScript, Java, Python, React, Spring Boot");
+
+        } catch (Exception e) {
+            log.error("기술스택 목록 조회 실패: {}", e.getMessage());
+            return getDefaultTechStackList();
+        }
+    }
+
+    /**
+     * DB 조회 실패 시 사용할 기본 기술스택 목록
+     */
+    private String getDefaultTechStackList() {
+        return "JavaScript, TypeScript, Java, Python, C, C++, C#, Go, Rust, Swift, Kotlin, PHP, Ruby, Scala, " +
+               "HTML5, CSS3, React, Vue.js, Next.js, Angular, Svelte, jQuery, Bootstrap, Tailwind CSS, " +
+               "Node.js, Express.js, Spring, Spring Boot, Django, Flask, FastAPI, Laravel, Ruby on Rails, NestJS, " +
+               "MySQL, PostgreSQL, MongoDB, Redis, MariaDB, Oracle, SQLite, Elasticsearch, " +
+               "Docker, Kubernetes, AWS, GCP, Jenkins, CircleCI, Travis CI, Nginx, Apache, " +
+               "React Native, Flutter, iOS, Android, Ionic, Xamarin, " +
+               "Jest, JUnit, Cypress, Selenium, Mocha, Jasmine, " +
+               "Webpack, Gradle, Maven, npm, Yarn, Gulp, Grunt, " +
+               "Git, GitHub, GitLab, Postman, Figma, Jira, Confluence";
     }
 }
