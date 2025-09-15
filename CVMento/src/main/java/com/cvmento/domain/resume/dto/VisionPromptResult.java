@@ -1,4 +1,4 @@
-package com.cvmento.domain.resume.service;
+package com.cvmento.domain.resume.dto;
 
 public record VisionPromptResult(
         String textPrompt,

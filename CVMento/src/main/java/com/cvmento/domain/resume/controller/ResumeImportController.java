@@ -39,28 +39,13 @@ public class ResumeImportController implements ResumeImportControllerInterface {
         log.info("이력서 변환 요청 - 사용자: {}, 파일명: {}, 크기: {}bytes",
                 memberEmail, file.getOriginalFilename(), file.getSize());
 
-        try {
-            ResumeImportResponse response = resumeImportService.importResume(file, memberEmail);
+        ResumeImportResponse response = resumeImportService.importResume(file, memberEmail);
 
-            log.info("이력서 변환 완료 - 사용자: {}, 변환결과: {}",
-                    memberEmail, response.name());
+        log.info("이력서 변환 완료 - 사용자: {}, 변환결과: {}",
+                memberEmail, response.name());
 
-            return ResponseEntity.ok(
-                    CommonResponse.success("이력서가 성공적으로 변환되었습니다.", response)
-            );
-
-        } catch (IllegalArgumentException e) {
-            log.warn("이력서 변환 실패 - 잘못된 요청: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(CommonResponse.error("VALIDATION_ERROR", e.getMessage()));
-
-        } catch (Exception e) {
-            log.error("이력서 변환 중 서버 오류: {}", e.getMessage(), e);
-            log.error("오류 스택 트레이스: ", e);
-            
-            String errorMessage = "이력서 변환 중 오류가 발생했습니다: " + e.getMessage();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.error("SERVER_ERROR", errorMessage));
-        }
+        return ResponseEntity.ok(
+                CommonResponse.success("이력서가 성공적으로 변환되었습니다.", response)
+        );
     }
 }

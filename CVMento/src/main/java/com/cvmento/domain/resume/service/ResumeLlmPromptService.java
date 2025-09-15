@@ -1,5 +1,6 @@
 package com.cvmento.domain.resume.service;
 
+import com.cvmento.domain.resume.dto.VisionPromptResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -19,61 +20,43 @@ public class ResumeLlmPromptService {
 
     public VisionPromptResult createVisionPrompt(MultipartFile file) {
         MDC.put("spanId", "resume-prompt-service");
-        
-        try {
-            String base64Image = convertFileToBase64Image(file);
-            String textPrompt = buildVisionTextPrompt();
-            
-            log.info("이력서 Vision 프롬프트 생성 완료 - 파일크기: {}bytes, Base64길이: {}chars",
-                    file.getSize(), base64Image.length());
-            
-            return new VisionPromptResult(textPrompt, base64Image);
-            
-        } catch (Exception e) {
-            log.error("Vision 프롬프트 생성 중 오류: {}", e.getMessage(), e);
-            throw new RuntimeException("Vision 프롬프트 생성 실패", e);
-        }
+
+        String base64Image = convertFileToBase64Image(file);
+        String textPrompt = buildVisionTextPrompt();
+
+        log.info("이력서 Vision 프롬프트 생성 완료 - 파일크기: {}bytes, Base64길이: {}chars",
+                file.getSize(), base64Image.length());
+
+        return new VisionPromptResult(textPrompt, base64Image);
     }
     
     // 기존 메서드도 유지 (텍스트 기반 처리용)
     public String createResumeConversionPrompt(MultipartFile file) {
         MDC.put("spanId", "resume-prompt-service");
-        
-        try {
-            String fileInfo = extractFileInfo(file);
-            String prompt = buildPromptWithFileInfo(fileInfo);
-            
-            log.info("이력서 변환 프롬프트 생성 완료 - 파일크기: {}bytes, 프롬프트길이: {}",
-                    file.getSize(), prompt.length());
-            
-            return prompt;
-            
-        } catch (Exception e) {
-            log.error("프롬프트 생성 중 오류: {}", e.getMessage(), e);
-            throw new RuntimeException("프롬프트 생성 실패", e);
-        }
+
+        String fileInfo = extractFileInfo(file);
+        String prompt = buildPromptWithFileInfo(fileInfo);
+
+        log.info("이력서 변환 프롬프트 생성 완료 - 파일크기: {}bytes, 프롬프트길이: {}",
+                file.getSize(), prompt.length());
+
+        return prompt;
     }
 
     private String convertFileToBase64Image(MultipartFile file) {
-        try {
-            String contentType = file.getContentType();
-            if (contentType == null) {
-                throw new RuntimeException("파일 타입을 확인할 수 없습니다.");
-            }
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            throw new IllegalArgumentException("파일 타입을 확인할 수 없습니다.");
+        }
 
-            if (contentType.contains("image")) {
-                // 이미지 파일인 경우 바로 Base64 변환
-                return convertImageToBase64(file);
-            } else if (contentType.contains("pdf")) {
-                // PDF 파일인 경우 이미지로 변환 후 Base64 변환
-                return convertPdfToBase64Image(file);
-            } else {
-                throw new RuntimeException("지원하지 않는 파일 형식입니다. 이미지 또는 PDF 파일만 지원됩니다.");
-            }
-
-        } catch (Exception e) {
-            log.error("파일을 Base64 이미지로 변환 실패: {}", e.getMessage(), e);
-            throw new RuntimeException("파일 변환 실패", e);
+        if (contentType.contains("image")) {
+            // 이미지 파일인 경우 바로 Base64 변환
+            return convertImageToBase64(file);
+        } else if (contentType.contains("pdf")) {
+            // PDF 파일인 경우 이미지로 변환 후 Base64 변환
+            return convertPdfToBase64Image(file);
+        } else {
+            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. 이미지 또는 PDF 파일만 지원됩니다.");
         }
     }
 
@@ -82,46 +65,46 @@ public class ResumeLlmPromptService {
             byte[] imageBytes = file.getBytes();
             String base64 = Base64.getEncoder().encodeToString(imageBytes);
             String contentType = file.getContentType();
-            
-            log.info("이미지 파일 Base64 변환 완료 - 타입: {}, 크기: {}bytes", 
+
+            log.info("이미지 파일 Base64 변환 완료 - 타입: {}, 크기: {}bytes",
                     contentType, imageBytes.length);
-            
+
             return "data:" + contentType + ";base64," + base64;
-            
+
         } catch (Exception e) {
             log.error("이미지 Base64 변환 실패: {}", e.getMessage());
-            throw new RuntimeException("이미지 변환 실패", e);
+            throw new IllegalArgumentException("이미지 변환 실패: " + e.getMessage(), e);
         }
     }
 
     private String convertPdfToBase64Image(MultipartFile file) {
         try {
             byte[] pdfBytes = file.getBytes();
-            
+
             try (PDDocument document = Loader.loadPDF(pdfBytes)) {
                 if (document.getNumberOfPages() == 0) {
-                    throw new RuntimeException("PDF 파일에 페이지가 없습니다.");
+                    throw new IllegalArgumentException("PDF 파일에 페이지가 없습니다.");
                 }
-                
+
                 // 첫 번째 페이지만 변환
                 PDFRenderer pdfRenderer = new PDFRenderer(document);
                 BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(0, 150);
-                
+
                 // BufferedImage를 JPEG 바이트 배열로 변환
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(bufferedImage, "jpeg", baos);
                 byte[] imageBytes = baos.toByteArray();
-                
+
                 String base64 = Base64.getEncoder().encodeToString(imageBytes);
-                
+
                 log.info("PDF를 이미지로 변환 후 Base64 변환 완료 - 크기: {}bytes", imageBytes.length);
-                
+
                 return "data:image/jpeg;base64," + base64;
-                
+
             }
         } catch (Exception e) {
             log.error("PDF Base64 변환 실패: {}", e.getMessage(), e);
-            throw new RuntimeException("PDF 변환 실패", e);
+            throw new IllegalArgumentException("PDF 변환 실패: " + e.getMessage(), e);
         }
     }
 
