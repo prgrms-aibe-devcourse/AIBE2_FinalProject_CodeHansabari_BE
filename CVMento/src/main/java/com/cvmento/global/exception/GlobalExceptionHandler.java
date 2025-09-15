@@ -231,4 +231,18 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AiInvalidRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleAiInvalidRequestException(
+            AiInvalidRequestException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("AiInvalidRequestException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.UNPROCESSABLE_ENTITY,  // 422
+                "AI_INVALID_REQUEST",
+                ex.getMessage(),
+                null
+        );
+    }
 }

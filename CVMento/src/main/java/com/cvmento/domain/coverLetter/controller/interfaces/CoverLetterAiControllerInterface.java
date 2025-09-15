@@ -139,6 +139,26 @@ public interface CoverLetterAiControllerInterface {
                             )
                     ),
                     @ApiResponse(
+                            responseCode = "422",
+                            description = "AI가 처리할 수 없는 잘못된 프롬프트나 요청",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "잘못된 프롬프트",
+                                            value = """
+                                {
+                                  "timestamp": "2024-01-15T14:30:00",
+                                  "status": 422,
+                                  "error": "Unprocessable Entity",
+                                  "errorCode": "AI_INVALID_REQUEST",
+                                  "message": "AI는 자소서와 관련된 요청만 처리할 수 있습니다.",
+                                  "errors": {}
+                                }
+                                """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
                             responseCode = "429",
                             description = "사용 한도 초과",
                             content = @Content(
