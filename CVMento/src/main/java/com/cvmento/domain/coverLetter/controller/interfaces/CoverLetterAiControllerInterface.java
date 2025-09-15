@@ -146,15 +146,15 @@ public interface CoverLetterAiControllerInterface {
                                     examples = @ExampleObject(
                                             name = "잘못된 프롬프트",
                                             value = """
-                                {
-                                  "timestamp": "2024-01-15T14:30:00",
-                                  "status": 422,
-                                  "error": "Unprocessable Entity",
-                                  "errorCode": "AI_INVALID_REQUEST",
-                                  "message": "AI는 자소서와 관련된 요청만 처리할 수 있습니다.",
-                                  "errors": {}
-                                }
-                                """
+                                                    {
+                                                      "timestamp": "2024-01-15T14:30:00",
+                                                      "status": 422,
+                                                      "error": "Unprocessable Entity",
+                                                      "errorCode": "AI_INVALID_REQUEST",
+                                                      "message": "AI는 자소서와 관련된 요청만 처리할 수 있습니다.",
+                                                      "errors": {}
+                                                    }
+                                                    """
                                     )
                             )
                     ),
