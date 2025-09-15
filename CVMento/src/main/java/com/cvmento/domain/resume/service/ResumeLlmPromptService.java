@@ -37,18 +37,6 @@ public class ResumeLlmPromptService {
         return new VisionPromptResult(textPrompt, base64Image);
     }
     
-    // 기존 메서드도 유지 (텍스트 기반 처리용)
-    public String createResumeConversionPrompt(MultipartFile file) {
-        MDC.put("spanId", "resume-prompt-service");
-
-        String fileInfo = extractFileInfo(file);
-        String prompt = buildPromptWithFileInfo(fileInfo);
-
-        log.info("이력서 변환 프롬프트 생성 완료 - 파일크기: {}bytes, 프롬프트길이: {}",
-                file.getSize(), prompt.length());
-
-        return prompt;
-    }
 
     private String convertFileToBase64Image(MultipartFile file) {
         String contentType = file.getContentType();
@@ -127,66 +115,7 @@ public class ResumeLlmPromptService {
         return prompt.toString();
     }
 
-    private String extractFileInfo(MultipartFile file) {
-        try {
-            String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown";
-            String contentType = file.getContentType() != null ? file.getContentType() : "unknown";
-            long fileSize = file.getSize();
-            
-            // 파일이 텍스트 형식이면 내용 일부 읽기 시도
-            String fileContent = "";
-            if (contentType.contains("text") || fileName.toLowerCase().endsWith(".txt")) {
-                try {
-                    byte[] bytes = file.getBytes();
-                    fileContent = new String(bytes, "UTF-8");
-                    if (fileContent.length() > 1000) {
-                        fileContent = fileContent.substring(0, 1000) + "...";
-                    }
-                } catch (Exception e) {
-                    log.warn("텍스트 파일 읽기 실패: {}", e.getMessage());
-                }
-            }
-            
-            return String.format("파일명: %s, 타입: %s, 크기: %d bytes%s", 
-                    fileName, contentType, fileSize,
-                    fileContent.isEmpty() ? "" : "\n파일 내용:\n" + fileContent);
-                    
-        } catch (Exception e) {
-            log.error("파일 정보 추출 실패: {}", e.getMessage());
-            return "파일 정보를 읽을 수 없습니다.";
-        }
-    }
 
-    private String buildPromptWithFileInfo(String fileInfo) {
-        return String.format(
-                "다음 파일 정보를 바탕으로 이력서 JSON을 생성해주세요:\n\n" +
-                "%s\n\n" +
-                "아래 JSON 형식으로 반환해주세요 (반드시 유효한 JSON만):\n\n" +
-                "{\n" +
-                "  \"title\": \"백엔드 개발자 이력서\",\n" +
-                "  \"type\": \"DEFAULT\",\n" +
-                "  \"name\": \"김개발\",\n" +
-                "  \"email\": \"kim@example.com\",\n" +
-                "  \"birthYear\": 1995,\n" +
-                "  \"phone\": \"010-1234-5678\",\n" +
-                "  \"careerType\": \"FRESHMAN\",\n" +
-                "  \"fieldName\": \"백엔드 개발자\",\n" +
-                "  \"introduction\": \"열정적인 개발자입니다.\",\n" +
-                "  \"githubUrl\": null,\n" +
-                "  \"blogUrl\": null,\n" +
-                "  \"notionUrl\": null,\n" +
-                "  \"educations\": [],\n" +
-                "  \"techStacks\": [],\n" +
-                "  \"customLinks\": [],\n" +
-                "  \"careers\": [],\n" +
-                "  \"projects\": [],\n" +
-                "  \"trainings\": [],\n" +
-                "  \"additionalInfos\": []\n" +
-                "}\n\n" +
-                "careerType: FRESHMAN 또는 EXPERIENCED만 가능합니다.",
-                fileInfo
-        );
-    }
 
 
 
@@ -201,20 +130,6 @@ public class ResumeLlmPromptService {
         return prompt;
     }
 
-    private String determineFileType(MultipartFile file) {
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            return "unknown";
-        }
-        
-        if (contentType.contains("pdf")) {
-            return "pdf";
-        } else if (contentType.contains("image")) {
-            return "image";
-        } else {
-            return "unknown";
-        }
-    }
 
 
 
