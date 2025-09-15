@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 인터뷰 LLM Feign 설정.
  */
-@Configuration
+
 public class InterviewLlmFeignConfig {
 
     @Value("${llm.api.interview.key}")

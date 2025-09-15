@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 이력서 LLM Feign 설정.
  */
-@Configuration
+
 public class ResumeLlmFeignConfig {
 
     @Value("${llm.api.resume.key}")
