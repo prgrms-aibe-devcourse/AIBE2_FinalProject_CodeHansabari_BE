@@ -2,6 +2,12 @@ package com.cvmento.domain.resume.dto.request;
 
 import java.util.List;
 
+/**
+ * 이력서 Vision API 요청.
+ *
+ * @param model 사용할 Vision 모델명
+ * @param messages Vision API 메시지 목록
+ */
 public record ResumeVisionRequest(
         String model,
         List<VisionMessage> messages

@@ -2,6 +2,12 @@ package com.cvmento.domain.resume.dto.request;
 
 import java.util.List;
 
+/**
+ * Vision API 메시지.
+ *
+ * @param role 메시지 역할 (user, assistant)
+ * @param content 메시지 컨텐츠 목록
+ */
 public record VisionMessage(
         String role,
         List<VisionContent> content
