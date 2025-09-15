@@ -13,13 +13,16 @@ public record ResumeVisionRequest(
         List<VisionMessage> messages
 ) {
     public static ResumeVisionRequest create(String model, String textPrompt, String base64Image) {
-        List<VisionContent> content = List.of(
-                VisionContent.createText(textPrompt),
-                VisionContent.createImage(base64Image)
+        // 시스템 메시지: 고정된 프롬프트 (사용자가 조작할 수 없음)
+        VisionMessage systemMessage = VisionMessage.createSystemMessage(
+                List.of(VisionContent.createText(textPrompt))
         );
-        
-        VisionMessage message = VisionMessage.createUserMessage(content);
-        
-        return new ResumeVisionRequest(model, List.of(message));
+
+        // 유저 메시지: 사용자가 업로드한 이미지 (사용자 입력)
+        VisionMessage userMessage = VisionMessage.createUserMessage(
+                List.of(VisionContent.createImage(base64Image))
+        );
+
+        return new ResumeVisionRequest(model, List.of(systemMessage, userMessage));
     }
 }
