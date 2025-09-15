@@ -80,6 +80,9 @@ public class CoverLetterLlmClientService {
 
             return response;
 
+        } catch (AiInvalidRequestException e) {
+            log.warn("부적절한 요청 감지 - {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("LLM API 호출 실패 - 모델: {}, 오류: {}", request.model(), e.getMessage(), e);
             throw new CoverLetterAiException("LLM 서비스 호출에 실패했습니다.", e);

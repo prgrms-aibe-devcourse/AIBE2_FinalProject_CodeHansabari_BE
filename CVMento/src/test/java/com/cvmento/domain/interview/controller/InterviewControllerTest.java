@@ -476,7 +476,6 @@ class InterviewControllerTest {
         }
     }
 
-    // ================ 테스트 헬퍼 메서드들 ================
 
     private List<InterviewQnaResponse> createMockQnaResponseList(int count) {
         log.debug("가짜 질문 응답 목록 생성 시작: {}개", count);
@@ -484,13 +483,13 @@ class InterviewControllerTest {
         LocalDateTime now = LocalDateTime.now();
 
         for (int i = 1; i <= count; i++) {
-            InterviewQnaResponse response = InterviewQnaResponse.builder()
-                    .qnaId((long) i)
-                    .question("질문 " + i)
-                    .answer("답변 " + i)
-                    .tip("팁 " + i)
-                    .createdAt(now.plusMinutes(i))
-                    .build();
+            InterviewQnaResponse response = new InterviewQnaResponse(
+                    (long) i,
+                    "질문 " + i,
+                    "답변 " + i,
+                    "팁 " + i,
+                    now.plusMinutes(i)
+            );
 
             qnaList.add(response);
             log.debug("가짜 질문 응답 {}번 생성: qnaId={}, question='{}', answer='{}', tip='{}'",
