@@ -41,7 +41,7 @@ public class ResumeLlmClientService {
 
     private void validatePrompt(String prompt) {
         if (prompt == null || prompt.trim().isEmpty()) {
-            throw new IllegalArgumentException("프롬프트가 비어있습니다.");
+            throw new com.cvmento.global.exception.customException.ResumeValidationException("프롬프트가 비어있습니다.");
         }
     }
 
@@ -159,10 +159,10 @@ public class ResumeLlmClientService {
 
     private void validateBase64Image(String base64Image) {
         if (base64Image == null || base64Image.trim().isEmpty()) {
-            throw new IllegalArgumentException("Base64 이미지 데이터가 비어있습니다.");
+            throw new com.cvmento.global.exception.customException.ResumeValidationException("Base64 이미지 데이터가 비어있습니다.");
         }
         if (!base64Image.startsWith("data:")) {
-            throw new IllegalArgumentException("올바르지 않은 Base64 이미지 형식입니다.");
+            throw new com.cvmento.global.exception.customException.ResumeValidationException("올바르지 않은 Base64 이미지 형식입니다.");
         }
     }
 

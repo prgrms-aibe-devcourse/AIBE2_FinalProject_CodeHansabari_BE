@@ -46,7 +46,7 @@ public class ResumeLlmPromptService {
     private String convertFileToBase64Image(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null) {
-            throw new IllegalArgumentException("파일 타입을 확인할 수 없습니다.");
+            throw new com.cvmento.global.exception.customException.ResumeValidationException("파일 타입을 확인할 수 없습니다.");
         }
 
         if (contentType.contains("image")) {
@@ -56,7 +56,7 @@ public class ResumeLlmPromptService {
             // PDF 파일인 경우 이미지로 변환 후 Base64 변환
             return convertPdfToBase64Image(file);
         } else {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다. 이미지 또는 PDF 파일만 지원됩니다.");
+            throw new com.cvmento.global.exception.customException.UnsupportedFileTypeException("지원하지 않는 파일 형식입니다. 이미지 또는 PDF 파일만 지원됩니다.");
         }
     }
 
@@ -73,7 +73,7 @@ public class ResumeLlmPromptService {
 
         } catch (Exception e) {
             log.error("이미지 Base64 변환 실패: {}", e.getMessage());
-            throw new IllegalArgumentException("이미지 변환 실패: " + e.getMessage(), e);
+            throw new com.cvmento.global.exception.customException.ResumeConversionException("이미지 변환 실패: " + e.getMessage(), e);
         }
     }
 
@@ -104,7 +104,7 @@ public class ResumeLlmPromptService {
             }
         } catch (Exception e) {
             log.error("PDF Base64 변환 실패: {}", e.getMessage(), e);
-            throw new IllegalArgumentException("PDF 변환 실패: " + e.getMessage(), e);
+            throw new com.cvmento.global.exception.customException.ResumeConversionException("PDF 변환 실패: " + e.getMessage(), e);
         }
     }
 
@@ -209,31 +209,6 @@ public class ResumeLlmPromptService {
         }
     }
 
-    private String buildSimplePrompt() {
-        return "업로드된 파일을 분석하여 다음 JSON 형식으로 변환해주세요. 반드시 유효한 JSON만 반환하세요:\n\n" +
-               "{\n" +
-               "  \"title\": \"이력서 제목\",\n" +
-               "  \"type\": \"DEFAULT\",\n" +
-               "  \"name\": \"이름\",\n" +
-               "  \"email\": \"이메일\",\n" +
-               "  \"birthYear\": 1990,\n" +
-               "  \"phone\": \"전화번호\",\n" +
-               "  \"careerType\": \"FRESHMAN\",\n" +
-               "  \"fieldName\": \"직무분야\",\n" +
-               "  \"introduction\": \"자기소개\",\n" +
-               "  \"githubUrl\": null,\n" +
-               "  \"blogUrl\": null,\n" +
-               "  \"notionUrl\": null,\n" +
-               "  \"educations\": [],\n" +
-               "  \"techStacks\": [],\n" +
-               "  \"customLinks\": [],\n" +
-               "  \"careers\": [],\n" +
-               "  \"projects\": [],\n" +
-               "  \"trainings\": [],\n" +
-               "  \"additionalInfos\": []\n" +
-               "}\n\n" +
-               "careerType은 FRESHMAN 또는 EXPERIENCED 중 하나입니다.";
-    }
 
 
     private String buildPromptForText(String extractedText) {
