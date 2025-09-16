@@ -18,6 +18,10 @@ configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
+	// 모든 의존성에서 commons-logging 제외
+	all {
+		exclude group: 'commons-logging', module: 'commons-logging'
+	}
 }
 
 repositories {
@@ -86,10 +90,6 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.20.56')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:lambda'
-
-
-	// Logback AWS Logs Appender
-//	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
 
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')

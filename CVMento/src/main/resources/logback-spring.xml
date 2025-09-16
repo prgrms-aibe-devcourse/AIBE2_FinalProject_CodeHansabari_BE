@@ -11,28 +11,14 @@
         </root>
     </springProfile>
 
-<!--    <springProfile name="production">-->
-<!--        <appender name="CLOUDWATCH" class="ca.pjer.logback.AwsLogsAppender">-->
-<!--            <logGroupName>/aws/elasticbeanstalk/aibe2-team2-backend</logGroupName>-->
-<!--            <logStreamName>app</logStreamName>-->
-<!--            <logRegion>ap-northeast-2</logRegion>-->
-<!--            <retentionInDays>30</retentionInDays>-->
-<!--        </appender>-->
-<!--        <root level="INFO">-->
-<!--            <appender-ref ref="CLOUDWATCH"/>-->
-<!--        </root>-->
-<!--    </springProfile>-->
-
-    <configuration>
-        <springProfile name="production">
-            <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-                <encoder>
-                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail}] %logger{36} - %msg%n</pattern>
-                </encoder>
-            </appender>
-            <root level="INFO">
-                <appender-ref ref="CONSOLE"/>
-            </root>
-        </springProfile>
-    </configuration>
+    <springProfile name="production">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 </configuration>
