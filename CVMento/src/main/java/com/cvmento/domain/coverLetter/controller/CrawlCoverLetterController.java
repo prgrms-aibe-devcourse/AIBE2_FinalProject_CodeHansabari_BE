@@ -4,6 +4,7 @@ import com.cvmento.domain.auth.service.AuthService;
 import com.cvmento.domain.coverLetter.controller.interfaces.CrawlCoverLetterControllerInterface;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterPageResponse;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
 import com.cvmento.domain.coverLetter.service.CrawlCoverLetterService;
 import com.cvmento.domain.member.entity.Member;
@@ -74,7 +75,7 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
     }
 
     /**
-     * 크롤링 데이터 전체 조회
+     * 크롤링 데이터 전체 조회 (페이징 없음 - 기존 호환성 유지)
      */
     @GetMapping("/cover-letters")
     @Override
@@ -96,6 +97,41 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
 
         log.info("크롤링 데이터 조회 완료 - 총 개수: {}", coverLetters.size());
         return ResponseEntity.ok(CommonResponse.success(coverLetters));
+    }
+
+    /**
+     * 크롤링 데이터 페이징 조회
+     */
+    @GetMapping("/cover-letters/paged")
+    public ResponseEntity<CommonResponse<CrawlCoverLetterPageResponse>> getCrawlCoverLettersWithPagination(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "crawl-pagination-controller");
+
+        if (userDetails == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+
+        Member member = authService.getMemberFromUserDetails(userDetails);
+        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
+            throw new AccessDeniedException("크롤링 데이터를 조회할 권한이 없습니다. 관리자 권한이 필요합니다.");
+        }
+
+        // 페이지 크기 제한 (최대 100개)
+        if (size > 100) {
+            size = 100;
+        }
+
+        log.info("크롤링 데이터 페이징 조회 요청 - 관리자: {}, 페이지: {}, 크기: {}", 
+                member.getMemberId(), page, size);
+
+        CrawlCoverLetterPageResponse response = crawlCoverLetterService.getCrawlCoverLettersWithPagination(page, size);
+
+        log.info("크롤링 데이터 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}", 
+                response.totalElements(), response.totalPages());
+        
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     /**
