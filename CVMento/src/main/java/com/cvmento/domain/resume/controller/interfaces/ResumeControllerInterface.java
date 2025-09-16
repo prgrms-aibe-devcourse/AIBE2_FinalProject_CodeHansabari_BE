@@ -450,44 +450,4 @@ public interface ResumeControllerInterface {
             @Parameter(description = "이력서 ID", example = "1") @PathVariable Long resumeId,
             @AuthenticationPrincipal UserDetails userDetails
     );
-
-    @Operation(
-            summary = "이력서 복구 (관리자 전용)",
-            description = "소프트 삭제된 이력서를 관리자 권한으로 복구합니다. 실제 데이터는 삭제되지 않고 상태만 ACTIVE로 변경됩니다.",
-            security = @SecurityRequirement(name = "cookieAuth"),
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "이력서 복구 성공",
-                            content = @Content(
-                                    schema = @Schema(implementation = CommonResponse.class),
-                                    examples = @ExampleObject(
-                                            name = "이력서 복구 성공 응답",
-                                            value = """
-                                                    {
-                                                      "success": true,
-                                                      "message": "이력서가 복구되었습니다.",
-                                                      "data": null,
-                                                      "timestamp": "2024-01-15T14:30:00"
-                                                    }
-                                                    """
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "관리자 권한 필요",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "복구할 이력서를 찾을 수 없음",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    )
-            }
-    )
-    ResponseEntity<CommonResponse<Void>> restoreResume(
-            @Parameter(description = "복구할 이력서 ID") @PathVariable Long resumeId,
-            @AuthenticationPrincipal UserDetails userDetails
-    );
 }
