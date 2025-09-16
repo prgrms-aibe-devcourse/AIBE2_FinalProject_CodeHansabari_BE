@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-verification:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: '17'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        working-directory: CVMento
+
+      - name: Build with Gradle (same as your original)
+        run: ./gradlew clean build -Dspring.profiles.active=test -x test
+        working-directory: CVMento
+
+      - name: Check if JAR was created (enhanced version of yours)
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Build directory contents ==="
+          ls -la build/ || echo "No build directory"
+          echo "=== Looking for JAR files ==="
+          find . -name "*.jar" || echo "No JAR files found"
+          
+          # 기존 코드 + JAR 파일 검증 추가
+          if [ -f "build/libs/cvmento-0.0.1-SNAPSHOT.jar" ]; then
+            echo "✅ JAR built successfully: cvmento-0.0.1-SNAPSHOT.jar"
+          else
+            echo "❌ JAR build failed"
+            exit 1
+          fi
+        working-directory: CVMento
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        if: success()
+        with:
+          name: cvmento-build-${{ github.sha }}
+          path: CVMento/build/libs/cvmento-0.0.1-SNAPSHOT.jar
+          retention-days: 30
