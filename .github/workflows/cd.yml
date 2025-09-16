@@ -3,6 +3,10 @@ name: CD
 on:
   workflow_dispatch:
     inputs:
+      artifact_run_id:
+        description: 'CI run ID to deploy'
+        required: true
+        type: string
       deploy_message:
         description: 'Deployment message'
         required: false
@@ -16,7 +20,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Validate confirmation
         run: |
@@ -25,33 +29,25 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Java
-        uses: actions/setup-java@v3
+      - name: Download artifact from CI (by pattern + run-id)
+        uses: actions/download-artifact@v4
         with:
-          distribution: 'corretto'
-          java-version: '17'
+          pattern: cvmento-production*
+          run-id: ${{ github.event.inputs.artifact_run_id }}
+          path: ./artifacts
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-        working-directory: CVMento
-
-      # 배포용은 production 프로필로 빌드
-      - name: Build with Gradle for deployment
-        run: ./gradlew clean build -Dspring.profiles.active=production -x test
-        working-directory: CVMento
-
-      - name: Check if JAR was created
+      - name: Verify downloaded artifact
         run: |
-          echo "=== Current directory ==="
-          pwd
-          echo "=== Build directory contents ==="
-          ls -la build/ || echo "No build directory"
-          echo "=== Looking for JAR files ==="
-          find . -name "*.jar" || echo "No JAR files found"
-        working-directory: CVMento
+          ls -la ./artifacts || true
+          JAR=$(find ./artifacts -name "*.jar" -type f | head -n1 || true)
+          if [ -z "$JAR" ]; then
+            echo "❌ No JAR found under ./artifacts"
+            exit 1
+          fi
+          echo "✅ Artifact: $JAR"
+          echo "JAR_PATH=$JAR" >> $GITHUB_ENV
 
       - name: Get current time
         uses: josStorer/get-current-time@v2.0.2
@@ -60,10 +56,6 @@ jobs:
           format: YYYY-MM-DDTHH-mm-ss
           utcOffset: "+09:00"
 
-      - name: Set artifact name
-        run: echo "artifact=cvmento-0.0.1-SNAPSHOT.jar" >> $GITHUB_ENV
-        working-directory: CVMento
-
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v20
         with:
@@ -71,6 +63,14 @@ jobs:
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: ${{ secrets.APPLICATION_NAME }}
           environment_name: ${{ secrets.ENVIRONMENT_NAME }}
-          version_label: manual-deploy-${{ steps.current-time.outputs.formattedTime }}
+          version_label: production-deploy-${{ steps.current-time.outputs.formattedTime }}
           region: ${{ secrets.AWS_REGION }}
-          deployment_package: ./CVMento/build/libs/${{ env.artifact }}
+          deployment_package: ${{ env.JAR_PATH }}
+
+      - name: Deployment Success
+        if: success()
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "📦 Deployed artifact path: ${{ env.JAR_PATH }}"
+          echo "🏷️  Version: production-deploy-${{ steps.current-time.outputs.formattedTime }}"
+          echo "💬 Message: ${{ github.event.inputs.deploy_message }}"
