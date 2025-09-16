@@ -1,0 +1,29 @@
+package com.cvmento.domain.coverLetter.dto.response;
+
+import org.springframework.data.domain.Page;
+
+import java.util.List;
+
+public record RawCoverLetterFeaturePageResponse(
+    List<RawCoverLetterFeatureData> content,
+    long totalElements,
+    int totalPages,
+    int currentPage,
+    int pageSize,
+    boolean hasNext,
+    boolean hasPrevious
+) {
+    public static RawCoverLetterFeaturePageResponse from(Page<RawCoverLetterFeatureData> page) {
+        return new RawCoverLetterFeaturePageResponse(
+            page.getContent(),
+            page.getTotalElements(),
+            page.getTotalPages(),
+            page.getNumber(),
+            page.getSize(),
+            page.hasNext(),
+            page.hasPrevious()
+        );
+    }
+}
+
+
