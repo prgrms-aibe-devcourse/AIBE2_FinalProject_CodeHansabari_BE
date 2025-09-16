@@ -158,7 +158,7 @@ public class CoverLetterController implements CoverLetterControllerInterface {
     /**
      * 삭제된 자소서 목록 조회 (관리자 전용)
      */
-    @GetMapping("/status")
+    @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN') or hasRole('ROOT')")
     @Override
     public ResponseEntity<CommonResponse<Page<CoverLetterStatusListResponse>>> getDeletedCoverLetters(

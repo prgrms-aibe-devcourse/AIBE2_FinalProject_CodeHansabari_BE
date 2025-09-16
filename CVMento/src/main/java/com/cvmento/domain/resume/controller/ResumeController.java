@@ -164,7 +164,7 @@ public class ResumeController implements ResumeControllerInterface {
     /**
      * 상태별 이력서 목록 조회 (관리자 전용)
      */
-    @GetMapping("/status")
+    @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN') or hasRole('ROOT')")
     @Override
     public ResponseEntity<CommonResponse<Page<ResumeStatusListResponse>>> getResumesByStatus(
