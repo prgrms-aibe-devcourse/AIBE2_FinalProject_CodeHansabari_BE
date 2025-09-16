@@ -1,15 +1,20 @@
 package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
+import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.client.CoverLetterLlmFeignClient;
 import com.cvmento.global.common.util.OpenAiResponseParser;
+import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
+import com.cvmento.global.common.util.LlmParsingUtil;
+
+import java.util.List;
 
 /**
  * LLM 클라이언트 서비스.
@@ -27,36 +32,36 @@ public class CoverLetterLlmClientService {
     private final OpenAiResponseParser openAiResponseParser;
 
     /**
-     * 프롬프트를 분석 요청하고 결과를 파싱한다.
+     * 입력 배열을 분석 요청하고 결과를 파싱한다 (Responses API)
      *
-     * @param prompt 분석 프롬프트
+     * @param inputItems 시스템/유저 입력 배열
      * @return 피드백/개선본문
      */
-    public LlmAnalysisResponse analyze(String prompt) {
+    public LlmAnalysisResponse analyze(List<InputItem> inputItems) {
         MDC.put("spanId", "llm-client-service");
 
-        validatePrompt(prompt);
-        LlmRequest request = createLlmRequest(prompt);
+        validateInputItems(inputItems);
+        LlmRequest request = createLlmRequest(inputItems);
         return callLlmApi(request);
     }
 
-    private void validatePrompt(String prompt) {
-        if (prompt == null || prompt.trim().isEmpty()) {
-            throw new IllegalArgumentException("프롬프트가 비어있습니다.");
+    private void validateInputItems(List<InputItem> inputItems) {
+        if (inputItems == null || inputItems.isEmpty()) {
+            throw new IllegalArgumentException("입력 배열이 비어있습니다.");
         }
     }
 
-    private LlmRequest createLlmRequest(String prompt) {
+    private LlmRequest createLlmRequest(List<InputItem> inputItems) {
         return new LlmRequest(
-                "gpt-5-nano",
-                prompt
+                "gpt-5",
+                inputItems
         );
     }
 
     private LlmAnalysisResponse callLlmApi(LlmRequest request) {
         try {
-            log.info("LLM API 요청 시작 - 모델: {}, 프롬프트길이: {}",
-                    request.model(), request.input().length());
+            log.info("LLM API 요청 시작 - 모델: {}, 입력항목수: {}",
+                    request.model(), request.input().size());
 
             MDC.put("spanId", "openai-llm-api");
             String rawResponse = getRawResponse(request);
@@ -71,12 +76,116 @@ public class CoverLetterLlmClientService {
                     response.feedback() != null ? response.feedback().length() : 0,
                     response.improvedContent() != null ? response.improvedContent().length() : 0);
 
+            validateResponse(response);
+
             return response;
 
+        } catch (AiInvalidRequestException e) {
+            log.warn("부적절한 요청 감지 - {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("LLM API 호출 실패 - 모델: {}, 오류: {}", request.model(), e.getMessage(), e);
             throw new CoverLetterAiException("LLM 서비스 호출에 실패했습니다.", e);
         }
+    }
+
+    /**
+     * 응답 검증 - 거절/품질 미달 체크 (단일 책임)
+     */
+    private void validateResponse(LlmAnalysisResponse response) {
+        if (isInvalidResponse(response)) {
+            log.warn("부적절한 응답 감지 - 거절 또는 품질 미달");
+            throw new AiInvalidRequestException(
+                    "AI 요청이 잘못되었습니다. 자소서 내용과 관련된 요청만 가능합니다."
+            );
+        }
+    }
+
+    /**
+     * 응답이 유효하지 않은지 통합 판단
+     */
+    private boolean isInvalidResponse(LlmAnalysisResponse response) {
+        // 1. 품질 미달 체크
+        if (isLowQualityResponse(response)) {
+            log.debug("품질 미달 응답 감지");
+            return true;
+        }
+
+        // 2. 거절 키워드 체크 (feedback과 improvedContent 모두)
+        if (containsRejectionKeywords(response)) {
+            log.debug("거절 키워드 감지");
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 응답 품질이 낮은지 판단
+     */
+    private boolean isLowQualityResponse(LlmAnalysisResponse response) {
+        // 1. 개선된 내용이 비어있거나 너무 짧음
+        if (response.improvedContent() == null ||
+                response.improvedContent().trim().length() < 50) {
+            return true;
+        }
+
+        // 2. 피드백이 완전히 비어있음
+        if (response.feedback() == null || response.feedback().trim().isEmpty()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 거절 키워드가 포함되어 있는지 확인 (feedback.summary 우선 체크)
+     */
+    private boolean containsRejectionKeywords(LlmAnalysisResponse response) {
+        String[] rejectionKeywords = {
+                "자소서 첨삭 서비스만",
+                "자소서와 관련되지 않은",
+                "자소서 첨삭과 관련되지",
+                "제공할 수 없습니다",
+                "거절합니다",
+                "관련되지 않은 요청",
+                "자소서와 무관한"
+        };
+
+        // feedback.summary 우선 체크
+        if (response.feedback() != null) {
+            try {
+                var feedbackJson = objectMapper.readTree(response.feedback());
+                if (feedbackJson.has("summary")) {
+                    String summary = feedbackJson.get("summary").asText().toLowerCase();
+                    for (String keyword : rejectionKeywords) {
+                        if (summary.contains(keyword.toLowerCase())) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // JSON 파싱 실패 시 전체 feedback 문자열에서 검색 (기존 로직)
+                String lowerFeedback = response.feedback().toLowerCase();
+                for (String keyword : rejectionKeywords) {
+                    if (lowerFeedback.contains(keyword.toLowerCase())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // improvedContent 체크
+        if (response.improvedContent() != null) {
+            String lowerContent = response.improvedContent().toLowerCase();
+            for (String keyword : rejectionKeywords) {
+                if (lowerContent.contains(keyword.toLowerCase())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private String getRawResponse(LlmRequest request) {
@@ -103,11 +212,20 @@ public class CoverLetterLlmClientService {
         }
     }
 
+    /**
+     * 실제 컨텐츠 파싱 (단순히 파싱만 담당, 검증은 별도 수행)
+     */
     private LlmAnalysisResponse parseActualContent(String text) {
         try {
-            // text가 JSON 형식인지 확인하고 파싱
-            if (text.trim().startsWith("{")) {
-                var contentJson = objectMapper.readTree(text);
+            // 1. 마크다운 코드 블록 제거
+            String cleanedText = LlmParsingUtil.removeMarkdownCodeBlocks(text);
+
+            log.debug("텍스트 정제 완료 - 원본: {}chars, 정제후: {}chars",
+                    text.length(), cleanedText.length());
+
+            // 2. JSON 파싱 시도
+            if (cleanedText.startsWith("{")) {
+                var contentJson = objectMapper.readTree(cleanedText);
 
                 String feedback = "";
                 String improvedContent = "";
@@ -129,7 +247,7 @@ public class CoverLetterLlmClientService {
             } else {
                 // JSON이 아닌 경우 전체를 improvedContent로 사용
                 log.warn("JSON 형식이 아닌 응답 - 전체를 improvedContent로 처리");
-                return new LlmAnalysisResponse("", text);
+                return new LlmAnalysisResponse("", cleanedText);
             }
         } catch (Exception e) {
             log.error("실제 content 파싱 실패 - 텍스트길이: {}, 오류: {}",

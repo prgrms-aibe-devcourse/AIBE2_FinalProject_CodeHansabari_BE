@@ -30,6 +30,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="com.cvmento.cvmento.main" options="-parameters" />
       <module name="cvmento" options="-parameters" />
       <module name="cvmento.main" options="-parameters" />
       <module name="cvmento.test" options="-parameters" />
