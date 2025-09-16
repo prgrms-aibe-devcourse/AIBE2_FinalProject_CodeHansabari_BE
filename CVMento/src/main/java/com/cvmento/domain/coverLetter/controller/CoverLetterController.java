@@ -16,7 +16,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -132,23 +131,5 @@ public class CoverLetterController implements CoverLetterControllerInterface {
         CoverLetterDetailResponse response = coverLetterService.getCoverLetter(coverLetterId, memberEmail);
 
         return ResponseEntity.ok(CommonResponse.success("자소서 조회 성공", response));
-    }
-
-    /**
-     * 자소서 복구(관리자 전용)
-     */
-    @PatchMapping("/{coverLetterId}/restore")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('ROOT')")
-    @Override
-    public ResponseEntity<CommonResponse<Void>> restoreCoverLetter(
-            @PathVariable Long coverLetterId,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        MDC.put("spanId", "coverletter-restore-controller");
-        String adminEmail = userDetails.getUsername();
-        log.info("관리자 자소서 복구 요청 - coverLetterId: {}", coverLetterId);
-        coverLetterService.restoreCoverLetter(coverLetterId, adminEmail);
-
-        return ResponseEntity.ok(CommonResponse.success("자소서가 복구되었습니다.", null));
     }
 }
