@@ -2,6 +2,7 @@ package com.cvmento.domain.coverLetter.controller.interfaces;
 
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterPageResponse;
 import com.cvmento.global.common.dto.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -95,8 +97,16 @@ public interface CrawlCoverLetterControllerInterface {
     ResponseEntity<CommonResponse<?>> crawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails);
 
     @Operation(
-            summary = "크롤링 데이터 전체 조회",
-            description = "크롤링된 모든 자소서 데이터를 조회합니다. (관리자 권한 필요)",
+            summary = "크롤링 데이터 전체 조회 (페이징 없음)",
+            description = """
+                    크롤링된 모든 자소서 데이터를 한 번에 조회합니다. (기존 호환성 유지)
+                    
+                    **주의사항:**
+                    - 모든 데이터를 한 번에 반환하므로 데이터가 많을 경우 응답이 느릴 수 있습니다.
+                    - 대용량 데이터 조회 시에는 페이징 API 사용을 권장합니다.
+                    
+                    **권한:** 관리자(ADMIN) 또는 최상위 관리자(ROOT)만 접근 가능
+                    """,
             security = @SecurityRequirement(name = "cookieAuth"),
             responses = {
                     @ApiResponse(
@@ -132,6 +142,79 @@ public interface CrawlCoverLetterControllerInterface {
             }
     )
     ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(
+            @AuthenticationPrincipal UserDetails userDetails
+    );
+
+    @Operation(
+            summary = "크롤링 데이터 페이징 조회",
+            description = """
+                    크롤링된 자소서 데이터를 페이징으로 조회합니다. (권장 방식)
+                    
+                    **페이징 파라미터:**
+                    - page: 페이지 번호 (0부터 시작, 기본값: 0)
+                    - size: 페이지 크기 (기본값: 20, 최대: 100)
+                    
+                    **응답 정보:**
+                    - content: 현재 페이지의 데이터 목록
+                    - totalElements: 전체 데이터 개수
+                    - totalPages: 전체 페이지 수
+                    - currentPage: 현재 페이지 번호
+                    - pageSize: 페이지 크기
+                    - hasNext: 다음 페이지 존재 여부
+                    - hasPrevious: 이전 페이지 존재 여부
+                    
+                    **사용 예시:**
+                    - 첫 번째 페이지: ?page=0&size=20
+                    - 두 번째 페이지: ?page=1&size=20
+                    - 큰 페이지 크기: ?page=0&size=50
+                    
+                    **권한:** 관리자(ADMIN) 또는 최상위 관리자(ROOT)만 접근 가능
+                    """,
+            security = @SecurityRequirement(name = "cookieAuth"),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "페이징 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "페이징 응답",
+                                            value = """
+                                                    {
+                                                      "success": true,
+                                                      "message": "요청이 성공적으로 처리되었습니다.",
+                                                      "data": {
+                                                        "content": [
+                                                          {
+                                                            "coverLetterId": 1,
+                                                            "text": "저는 소프트웨어 개발에 대한 깊은 열정을 바탕으로...",
+                                                            "createdAt": "2024-01-15T10:00:00",
+                                                            "updatedAt": "2024-01-15T10:00:00"
+                                                          }
+                                                        ],
+                                                        "totalElements": 314,
+                                                        "totalPages": 16,
+                                                        "currentPage": 0,
+                                                        "pageSize": 20,
+                                                        "hasNext": true,
+                                                        "hasPrevious": false
+                                                      },
+                                                      "timestamp": "2024-01-15T14:30:00"
+                                                    }
+                                                    """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "권한 없음",
+                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
+                    )
+            }
+    )
+    ResponseEntity<CommonResponse<CrawlCoverLetterPageResponse>> getCrawlCoverLettersWithPagination(
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기 (최대 100)", example = "20") @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserDetails userDetails
     );
 
