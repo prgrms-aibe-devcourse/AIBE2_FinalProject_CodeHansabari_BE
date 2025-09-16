@@ -38,7 +38,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
-    // Validation 오류 핸들링
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationError(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
@@ -56,8 +55,6 @@ public class GlobalExceptionHandler {
                 fieldErrors
         );
     }
-
-    // ===== Google OAuth 관련 예외 핸들러들 =====
 
     @ExceptionHandler(InvalidAuthorizationCodeException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidAuthorizationCodeException(
@@ -98,7 +95,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // AI 자소서 서비스 관련 예외
     @ExceptionHandler(CoverLetterAiException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterAiException(CoverLetterAiException ex, HttpServletRequest request) {
         log.error("CoverLetterAiException: {}", ex.getMessage(), ex);
@@ -111,7 +107,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 회원을 찾을 수 없을 때
     @ExceptionHandler(MemberNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleMemberNotFoundException(MemberNotFoundException ex, HttpServletRequest request) {
         log.warn("MemberNotFoundException: {}", ex.getMessage());
@@ -124,7 +119,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 자소서 관련 예외
     @ExceptionHandler(CoverLetterException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterException(CoverLetterException ex, HttpServletRequest request) {
         log.warn("CoverLetterException: {}", ex.getMessage());
@@ -169,7 +163,6 @@ public class GlobalExceptionHandler {
         );
     }
   
-    // ===== 이력서 관련 예외 핸들러들 =====
     @ExceptionHandler(ResumeException.class)
     public ResponseEntity<Map<String, Object>> handleResumeException(ResumeException ex, HttpServletRequest request) {
         log.warn("ResumeException: {}", ex.getMessage());
@@ -177,6 +170,18 @@ public class GlobalExceptionHandler {
                 request,
                 HttpStatus.BAD_REQUEST,
                 "RESUME_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("IllegalArgumentException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
                 ex.getMessage(),
                 null
         );
@@ -241,6 +246,71 @@ public class GlobalExceptionHandler {
                 request,
                 HttpStatus.UNPROCESSABLE_ENTITY,  // 422
                 "AI_INVALID_REQUEST",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(UnsupportedFileTypeException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedFileTypeException(
+            UnsupportedFileTypeException ex, HttpServletRequest request) {
+        log.warn("UnsupportedFileTypeException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "UNSUPPORTED_FILE_TYPE",
+                ex.getMessage(),
+                null
+        );
+    }
+  
+    @ExceptionHandler(FileSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleFileSizeExceededException(
+            FileSizeExceededException ex, HttpServletRequest request) {
+        log.warn("FileSizeExceededException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "FILE_SIZE_EXCEEDED",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(InvalidFileException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidFileException(
+            InvalidFileException ex, HttpServletRequest request) {
+        log.warn("InvalidFileException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_FILE",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(ResumeValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleResumeValidationException(
+            ResumeValidationException ex, HttpServletRequest request) {
+        log.warn("ResumeValidationException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "RESUME_VALIDATION_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(ResumeConversionException.class)
+    public ResponseEntity<Map<String, Object>> handleResumeConversionException(
+            ResumeConversionException ex, HttpServletRequest request) {
+        log.error("ResumeConversionException: {}", ex.getMessage(), ex);
+        return buildErrorResponse(
+                request,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "RESUME_CONVERSION_ERROR",
                 ex.getMessage(),
                 null
         );
