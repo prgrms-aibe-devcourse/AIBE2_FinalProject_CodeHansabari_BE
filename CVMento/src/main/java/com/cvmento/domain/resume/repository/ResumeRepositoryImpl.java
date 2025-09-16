@@ -41,8 +41,6 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
     private final JPAQueryFactory queryFactory;
     private final EntityManager entityManager;
 
-    // ======================== 공개 메서드 ========================
-
     /**
      * 이력서 상세 정보 일괄 저장
      * 모든 하위 엔티티들을 순차적으로 저장
@@ -138,8 +136,6 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
                 findAdditionalInfosByResumeId(resumeId)
         );
     }
-
-    // ======================== 저장 메서드 ========================
 
     /**
      * 학력 정보 저장
@@ -371,8 +367,6 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
         log.debug("기타사항 {} 건 저장", additionalInfos.size());
     }
 
-    // ======================== 삭제 메서드 ========================
-
     private void deleteCareerTechStacks(Long resumeId) {
         queryFactory
                 .delete(careerTechStack)
@@ -442,8 +436,6 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
                 .where(additionalInfo.resume.id.eq(resumeId))
                 .execute();
     }
-
-    // ======================== DTO 조회 메서드 ========================
 
     /**
      * 학력 정보를 DTO로 조회
@@ -718,16 +710,12 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
                 .fetch();
     }
 
-    // ======================== 유틸리티 메서드 ========================
-
     /**
      * 기술스택 ID로 엔티티 조회
      */
     private TechStack findTechStackById(Long techStackId) {
         return entityManager.find(TechStack.class, techStackId);
     }
-
-// ======================== 검증 메서드 ========================
 
     private boolean isValidEducation(EducationSaveRequest request) {
         return request != null &&

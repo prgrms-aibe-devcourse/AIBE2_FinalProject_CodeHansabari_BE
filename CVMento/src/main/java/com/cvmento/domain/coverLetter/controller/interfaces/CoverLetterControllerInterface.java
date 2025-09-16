@@ -4,6 +4,7 @@ import com.cvmento.domain.coverLetter.dto.request.CoverLetterSaveRequest;
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterUpdateRequest;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterDetailResponse;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterListResponse;
+import com.cvmento.domain.coverLetter.dto.response.CoverLetterStatusListResponse;
 import com.cvmento.global.common.dto.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -332,6 +334,112 @@ public interface CoverLetterControllerInterface {
     )
     ResponseEntity<CommonResponse<Void>> restoreCoverLetter(
             @Parameter(description = "복구할 자소서 ID") @PathVariable Long coverLetterId,
+            @AuthenticationPrincipal UserDetails userDetails
+    );
+
+    /**
+     * 자소서 소프트 삭제 리스트 조회 (관리자 전용)
+     */
+    @Operation(
+            summary = "삭제된 자소서 목록 조회 (관리자 전용)",
+            description = "소프트 삭제된 자소서들을 페이징과 필터링으로 조회합니다. 삭제 예정일 임박순으로 정렬됩니다.",
+            security = @SecurityRequirement(name = "cookieAuth"),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "삭제된 자소서 목록 조회 성공",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "삭제된 자소서 목록 조회 응답",
+                                            value = """
+                                                {
+                                                  "success": true,
+                                                  "message": "삭제된 자소서 목록 조회 성공",
+                                                  "data": {
+                                                    "content": [
+                                                      {
+                                                        "coverLetterId": 15,
+                                                        "authorEmail": "user@example.com",
+                                                        "title": "[원본] 네이버 백엔드 개발자 지원",
+                                                        "createdAt": "2025-09-01T10:30:00",
+                                                        "deletedAt": "2025-09-15T14:20:00",
+                                                        "scheduledDeletionDate": "2025-10-15T14:20:00"
+                                                      }
+                                                    ],
+                                                    "totalElements": 45,
+                                                    "totalPages": 3
+                                                  },
+                                                  "timestamp": "2025-09-16T14:30:00"
+                                                }
+                                                """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "잘못된 요청 데이터",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = {
+                                            @ExampleObject(
+                                                    name = "상태값 검증 실패",
+                                                    value = """
+                                        {
+                                          "timestamp": "2025-09-16T14:30:00",
+                                          "status": 400,
+                                          "error": "Bad Request",
+                                          "errorCode": "INVALID_STATUS",
+                                          "message": "올바르지 않은 상태값입니다.",
+                                          "errors": {}
+                                        }
+                                        """
+                                            ),
+                                            @ExampleObject(
+                                                    name = "필드 검증 실패",
+                                                    value = """
+                                        {
+                                          "timestamp": "2025-09-16T14:30:00",
+                                          "status": 400,
+                                          "error": "Bad Request",
+                                          "errorCode": "VALIDATION_ERROR",
+                                          "message": "입력값이 올바르지 않습니다.",
+                                          "errors": {
+                                            "email": "이메일은 320자를 초과할 수 없습니다.",
+                                            "title": "제목은 100자를 초과할 수 없습니다."
+                                          }
+                                        }
+                                        """
+                                            )
+                                    }
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "관리자 권한 필요",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "권한 없음 응답",
+                                            value = """
+                                                {
+                                                  "success": false,
+                                                  "message": "관리자 권한이 필요합니다.",
+                                                  "errorCode": "ACCESS_DENIED",
+                                                  "timestamp": "2025-09-16T14:30:00"
+                                                }
+                                                """
+                                    )
+                            )
+                    )
+            }
+    )
+    ResponseEntity<CommonResponse<Page<CoverLetterStatusListResponse>>> getDeletedCoverLetters(
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기 (기본값: 20)") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "자소서 상태 (기본값: DELETED)") @RequestParam(defaultValue = "DELETED") String status,
+            @Parameter(description = "작성자 이메일 필터링 (부분 검색, 최대 320자)") @RequestParam(required = false) @Size(max = 320, message = "이메일은 320자를 초과할 수 없습니다.") String email,
+            @Parameter(description = "글 제목 필터링 (부분 검색, 최대 100자)") @RequestParam(required = false) @Size(max = 100, message = "제목은 100자를 초과할 수 없습니다.") String title,
             @AuthenticationPrincipal UserDetails userDetails
     );
 }
