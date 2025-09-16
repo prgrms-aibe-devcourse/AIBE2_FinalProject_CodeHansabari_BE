@@ -84,6 +84,16 @@ dependencies {
 	implementation 'software.amazon.awssdk:lambda'
 	implementation 'software.amazon.awssdk:cloudwatchlogs'
 
+	// DJL (Deep Java Library) for embedding models
+	implementation platform("ai.djl:bom:0.34.0")
+	
+	implementation "ai.djl:api"
+	implementation "ai.djl.pytorch:pytorch-engine"
+	implementation "ai.djl.huggingface:tokenizers"
+	
+	// 네이티브 라이브러리
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:2.5.1"
+
 	// Logback AWS Logs Appender
 //	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
 
