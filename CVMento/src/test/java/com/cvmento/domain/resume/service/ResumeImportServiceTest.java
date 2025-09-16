@@ -1,5 +1,6 @@
 package com.cvmento.domain.resume.service;
 
+import com.cvmento.domain.resume.dto.VisionPromptResult;
 import com.cvmento.domain.resume.dto.response.ResumeImportResponse;
 import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;

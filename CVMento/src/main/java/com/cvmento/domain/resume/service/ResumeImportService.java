@@ -188,7 +188,6 @@ public class ResumeImportService {
         }
     }
 
-    @Transactional
     private void saveConvertedResume(ResumeImportResponse response, String memberEmail) {
         MDC.put("spanId", "resume-save-after-import");
 
