@@ -3,6 +3,9 @@ package com.cvmento.domain.resume.service;
 import com.cvmento.domain.resume.dto.VisionPromptResult;
 import com.cvmento.domain.resume.entity.TechStack;
 import com.cvmento.domain.resume.repository.TechStackRepository;
+import com.cvmento.global.exception.customException.ResumeConversionException;
+import com.cvmento.global.exception.customException.ResumeValidationException;
+import com.cvmento.global.exception.customException.UnsupportedFileTypeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
@@ -41,7 +44,7 @@ public class ResumeLlmPromptService {
     private String convertFileToBase64Image(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null) {
-            throw new com.cvmento.global.exception.customException.ResumeValidationException("파일 타입을 확인할 수 없습니다.");
+            throw new ResumeValidationException("파일 타입을 확인할 수 없습니다.");
         }
 
         if (contentType.contains("image")) {
@@ -51,7 +54,7 @@ public class ResumeLlmPromptService {
             // PDF 파일인 경우 이미지로 변환 후 Base64 변환
             return convertPdfToBase64Image(file);
         } else {
-            throw new com.cvmento.global.exception.customException.UnsupportedFileTypeException("지원하지 않는 파일 형식입니다. 이미지 또는 PDF 파일만 지원됩니다.");
+            throw new UnsupportedFileTypeException("지원하지 않는 파일 형식입니다. 이미지 또는 PDF 파일만 지원됩니다.");
         }
     }
 
@@ -68,7 +71,7 @@ public class ResumeLlmPromptService {
 
         } catch (Exception e) {
             log.error("이미지 Base64 변환 실패: {}", e.getMessage());
-            throw new com.cvmento.global.exception.customException.ResumeConversionException("이미지 변환 실패: " + e.getMessage(), e);
+            throw new ResumeConversionException("이미지 변환 실패: " + e.getMessage(), e);
         }
     }
 
@@ -99,7 +102,7 @@ public class ResumeLlmPromptService {
             }
         } catch (Exception e) {
             log.error("PDF Base64 변환 실패: {}", e.getMessage(), e);
-            throw new com.cvmento.global.exception.customException.ResumeConversionException("PDF 변환 실패: " + e.getMessage(), e);
+            throw new ResumeConversionException("PDF 변환 실패: " + e.getMessage(), e);
         }
     }
 

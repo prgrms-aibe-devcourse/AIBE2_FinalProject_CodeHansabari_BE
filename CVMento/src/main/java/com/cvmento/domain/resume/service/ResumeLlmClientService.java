@@ -4,8 +4,12 @@ import com.cvmento.domain.resume.client.ResumeLlmFeignClient;
 import com.cvmento.domain.resume.dto.request.ResumeLlmRequest;
 import com.cvmento.domain.resume.dto.request.ResumeVisionRequest;
 import com.cvmento.domain.resume.dto.response.ResumeImportResponse;
+import com.cvmento.domain.resume.enums.CareerType;
+import com.cvmento.domain.resume.enums.ResumeType;
 import com.cvmento.global.common.util.OpenAiResponseParser;
+import com.cvmento.global.exception.customException.ResumeConversionException;
 import com.cvmento.global.exception.customException.ResumeException;
+import com.cvmento.global.exception.customException.ResumeValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +45,7 @@ public class ResumeLlmClientService {
 
     private void validatePrompt(String prompt) {
         if (prompt == null || prompt.trim().isEmpty()) {
-            throw new com.cvmento.global.exception.customException.ResumeValidationException("프롬프트가 비어있습니다.");
+            throw new ResumeValidationException("프롬프트가 비어있습니다.");
         }
     }
 
@@ -80,7 +84,7 @@ public class ResumeLlmClientService {
             return parseActualContent(textContent);
         } catch (Exception e) {
             log.error("OpenAI 응답 파싱 실패: {}", e.getMessage());
-            throw new com.cvmento.global.exception.customException.ResumeException("LLM 응답 파싱에 실패했습니다.", e);
+            throw new ResumeException("LLM 응답 파싱에 실패했습니다.", e);
         }
     }
 
@@ -97,10 +101,10 @@ public class ResumeLlmClientService {
             log.info("Vision API 원본 응답: {}", rawResponse);
 
             // /chat/completions 응답에서 content 추출
-            com.fasterxml.jackson.databind.JsonNode responseNode = objectMapper.readTree(rawResponse);
+            var responseNode = objectMapper.readTree(rawResponse);
 
             if (responseNode.has("choices") && responseNode.get("choices").isArray()) {
-                com.fasterxml.jackson.databind.JsonNode firstChoice = responseNode.get("choices").get(0);
+                var firstChoice = responseNode.get("choices").get(0);
                 if (firstChoice.has("message") && firstChoice.get("message").has("content")) {
                     String content = firstChoice.get("message").get("content").asText();
                     log.info("Vision API에서 추출한 content: {}", content);
@@ -159,10 +163,10 @@ public class ResumeLlmClientService {
 
     private void validateBase64Image(String base64Image) {
         if (base64Image == null || base64Image.trim().isEmpty()) {
-            throw new com.cvmento.global.exception.customException.ResumeValidationException("Base64 이미지 데이터가 비어있습니다.");
+            throw new ResumeValidationException("Base64 이미지 데이터가 비어있습니다.");
         }
         if (!base64Image.startsWith("data:")) {
-            throw new com.cvmento.global.exception.customException.ResumeValidationException("올바르지 않은 Base64 이미지 형식입니다.");
+            throw new ResumeValidationException("올바르지 않은 Base64 이미지 형식입니다.");
         }
     }
 
@@ -209,14 +213,14 @@ public class ResumeLlmClientService {
         
         return new ResumeImportResponse(
                 "변환된 이력서 (자동생성)",
-                com.cvmento.domain.resume.enums.ResumeType.DEFAULT,
+                ResumeType.DEFAULT,
                 "홍길동",
                 "sample@example.com",
                 1990,
                 "010-1234-5678",
-                com.cvmento.domain.resume.enums.CareerType.FRESHMAN,
+                CareerType.FRESHMAN,
                 "소프트웨어 개발자",
-                "LLM 응답을 파싱할 수 없어 기본값으로 생성된 이력서입니다. 원본 응답: " + 
+                "LLM 응답을 파싱할 수 없어 기본값으로 생성된 이력서입니다. 원본 응답: " +
                 (originalText.length() > 200 ? originalText.substring(0, 200) + "..." : originalText),
                 null, null, null,
                 java.util.List.of(), java.util.List.of(), java.util.List.of(),

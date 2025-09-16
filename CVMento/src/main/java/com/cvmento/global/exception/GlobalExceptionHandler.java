@@ -282,13 +282,27 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
-        log.error("RuntimeException: {}", ex.getMessage(), ex);
+    @ExceptionHandler(ResumeValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleResumeValidationException(
+            ResumeValidationException ex, HttpServletRequest request) {
+        log.warn("ResumeValidationException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "RESUME_VALIDATION_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(ResumeConversionException.class)
+    public ResponseEntity<Map<String, Object>> handleResumeConversionException(
+            ResumeConversionException ex, HttpServletRequest request) {
+        log.error("ResumeConversionException: {}", ex.getMessage(), ex);
         return buildErrorResponse(
                 request,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "RUNTIME_ERROR",
+                "RESUME_CONVERSION_ERROR",
                 ex.getMessage(),
                 null
         );
