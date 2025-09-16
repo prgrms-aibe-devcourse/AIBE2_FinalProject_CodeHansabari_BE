@@ -1,17 +1,24 @@
 package com.cvmento.domain.resume.repository;
 
 import com.cvmento.domain.member.entity.Member;
+import com.cvmento.domain.member.entity.QMember;
 import com.cvmento.domain.resume.dto.request.*;
 import com.cvmento.domain.resume.dto.response.*;
 import com.cvmento.domain.resume.entity.*;
 import com.cvmento.domain.resume.enums.ResumeStatus;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import static com.cvmento.domain.resume.entity.QAdditionalInfo.additionalInfo;
 import static com.cvmento.domain.resume.entity.QCareer.career;
@@ -40,6 +47,69 @@ public class ResumeRepositoryImpl implements ResumeRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
     private final EntityManager entityManager;
+
+    /**
+     * 상태별 이력서 목록을 필터링과 페이징으로 조회 (관리자용)
+     * 자소서와 동일한 패턴으로 구현
+     */
+    @Override
+    public Page<ResumeStatusListResponse> findResumesWithFilters(
+            ResumeStatus status,
+            String email,
+            String title,
+            Pageable pageable
+    ) {
+        // 동적 조건 생성
+        BooleanBuilder builder = new BooleanBuilder();
+
+        // 기본 조건: 상태
+        builder.and(QResume.resume.status.eq(status));
+
+        // 이메일 필터링 (부분 검색)
+        if (StringUtils.hasText(email)) {
+            builder.and(QMember.member.email.containsIgnoreCase(email));
+        }
+
+        // 제목 필터링 (부분 검색)
+        if (StringUtils.hasText(title)) {
+            builder.and(QResume.resume.title.containsIgnoreCase(title));
+        }
+
+        // 정렬 기준 결정 (삭제된 상태일 때만 삭제 예정일 임박순)
+        var orderBy = status == ResumeStatus.DELETED
+                ? QResume.resume.updatedAt.asc()  // 삭제 예정일 임박순
+                : QResume.resume.updatedAt.desc(); // 최신 수정일순
+
+        // 메인 쿼리 - 데이터 조회
+        JPAQuery<ResumeStatusListResponse> query = queryFactory
+                .select(Projections.constructor(
+                        ResumeStatusListResponse.class,
+                        QResume.resume.id,
+                        QMember.member.email,
+                        QResume.resume.title,
+                        QResume.resume.createdAt,
+                        QResume.resume.updatedAt,
+                        QResume.resume.status
+                ))
+                .from(QResume.resume)
+                .join(QResume.resume.member, QMember.member)
+                .where(builder)
+                .orderBy(orderBy)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize());
+
+        List<ResumeStatusListResponse> content = query.fetch();
+
+        // 카운트 쿼리 - 전체 개수 조회
+        Long total = queryFactory
+                .select(QResume.resume.count())
+                .from(QResume.resume)
+                .join(QResume.resume.member, QMember.member)
+                .where(builder)
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total != null ? total : 0L);
+    }
 
     /**
      * 이력서 상세 정보 일괄 저장

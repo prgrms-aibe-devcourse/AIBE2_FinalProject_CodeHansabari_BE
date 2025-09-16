@@ -3,6 +3,7 @@ package com.cvmento.domain.resume.service;
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeDetailResponse;
+import com.cvmento.domain.resume.dto.response.ResumeStatusListResponse;
 import com.cvmento.domain.resume.dto.response.ResumeThumbnailResponse;
 import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.domain.resume.enums.ResumeStatus;
@@ -148,6 +149,30 @@ public class ResumeService {
 
         log.info("관리자 권한으로 이력서 복구 완료 - ID: {}, 관리자: {}, 원 소유자: {}",
                 resumeId, adminEmail, resume.getMember().getEmail());
+    }
+
+    /**
+     * 상태별 이력서 목록 조회 (관리자용)
+     */
+    public Page<ResumeStatusListResponse> getResumesByStatus(
+            ResumeStatus status,
+            String email,
+            String title,
+            Pageable pageable,
+            String adminEmail
+    ) {
+        MDC.put("spanId", "resume-status-list-service");
+
+        log.info("관리자 상태별 이력서 목록 조회 요청 - 관리자: {}, 상태: {}, 이메일필터: {}, 제목필터: {}, 페이지: {}",
+                adminEmail, status, email, title, pageable.getPageNumber());
+
+        Page<ResumeStatusListResponse> result = resumeRepositoryImpl
+                .findResumesWithFilters(status, email, title, pageable);
+
+        log.info("상태별 이력서 목록 조회 완료 - 상태: {}, 총 개수: {}, 현재 페이지 개수: {}",
+                status, result.getTotalElements(), result.getNumberOfElements());
+
+        return result;
     }
 
     /**

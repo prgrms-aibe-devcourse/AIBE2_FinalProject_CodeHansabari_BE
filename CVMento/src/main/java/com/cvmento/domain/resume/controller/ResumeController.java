@@ -4,10 +4,14 @@ import com.cvmento.domain.resume.controller.interfaces.ResumeControllerInterface
 import com.cvmento.domain.resume.dto.request.ResumeSaveRequest;
 import com.cvmento.domain.resume.dto.request.ResumeUpdateRequest;
 import com.cvmento.domain.resume.dto.response.ResumeDetailResponse;
+import com.cvmento.domain.resume.dto.response.ResumeStatusListResponse;
 import com.cvmento.domain.resume.dto.response.ResumeThumbnailResponse;
+import com.cvmento.domain.resume.enums.ResumeStatus;
 import com.cvmento.domain.resume.service.ResumeService;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.exception.customException.InvalidStatusException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -16,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -154,5 +159,44 @@ public class ResumeController implements ResumeControllerInterface {
         resumeService.restoreResume(resumeId, adminEmail);
 
         return ResponseEntity.ok(CommonResponse.success("이력서가 복구되었습니다.", null));
+    }
+
+    /**
+     * 상태별 이력서 목록 조회 (관리자 전용)
+     */
+    @GetMapping("/status")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ROOT')")
+    @Override
+    public ResponseEntity<CommonResponse<Page<ResumeStatusListResponse>>> getResumesByStatus(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "DELETED") String status,
+            @RequestParam(required = false) @Size(max = 320, message = "이메일은 320자를 초과할 수 없습니다.") String email,
+            @RequestParam(required = false) @Size(max = 100, message = "제목은 100자를 초과할 수 없습니다.") String title,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        MDC.put("spanId", "resume-status-list-controller");
+
+        // 상태값 검증 및 변환
+        ResumeStatus resumeStatus;
+        try {
+            resumeStatus = ResumeStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException("올바르지 않은 상태값입니다. ACTIVE 또는 DELETED만 허용됩니다.");
+        }
+
+        String adminEmail = userDetails.getUsername();
+        log.info("관리자 이력서 목록 조회 요청 - 상태: {}, page: {}, size: {}, email: {}, title: {}",
+                status, page, size, email, title);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ResumeStatusListResponse> response = resumeService
+                .getResumesByStatus(resumeStatus, email, title, pageable, adminEmail);
+
+        String message = resumeStatus == ResumeStatus.DELETED
+                ? "삭제된 이력서 목록 조회 성공"
+                : "이력서 목록 조회 성공";
+
+        return ResponseEntity.ok(CommonResponse.success(message, response));
     }
 }
