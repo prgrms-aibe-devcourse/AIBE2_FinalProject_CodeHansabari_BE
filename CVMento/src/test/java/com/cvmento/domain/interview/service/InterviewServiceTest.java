@@ -1,5 +1,7 @@
 package com.cvmento.domain.interview.service;
 
+import com.cvmento.domain.coverLetter.dto.request.ContentItem;
+import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
@@ -99,7 +101,6 @@ class InterviewServiceTest {
             List<CoverLetterQna> existingQnas = createMockQnaList(5);
             log.info("생성된 가짜 질문 개수: {}", existingQnas.size());
 
-            // 수정된 Mock 설정: 상태 조건 추가
             given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
                     coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
                     .willReturn(Optional.of(testCoverLetter));
@@ -203,13 +204,14 @@ class InterviewServiceTest {
                     .willReturn(0L);
             log.info("Mock 설정: 기존 질문 개수 = 0개");
 
-            String mockPrompt = "초기 프롬프트";
-            given(promptService.buildQnaGenerationPrompt(testCoverLetter))
-                    .willReturn(mockPrompt);
-            log.info("Mock 설정: 생성된 프롬프트 = '{}'", mockPrompt);
+            // InputItem 목록 생성
+            List<InputItem> mockInputItems = createMockInputItems();
+            given(promptService.buildQnaGenerationInputItems(testCoverLetter))
+                    .willReturn(mockInputItems);
+            log.info("Mock 설정: 생성된 InputItems 개수 = {}", mockInputItems.size());
 
             InterviewLlmResponse mockResponse = createMockLlmResponse();
-            given(llmClientService.generateQnaList(mockPrompt))
+            given(llmClientService.generateQnaList(mockInputItems))
                     .willReturn(mockResponse);
             log.info("Mock 설정: LLM 응답 질문 개수 = {}개", mockResponse.qnaList().size());
 
@@ -242,11 +244,11 @@ class InterviewServiceTest {
 
             // 메서드 호출 검증
             log.info("=== 메서드 호출 검증 ===");
-            verify(promptService).buildQnaGenerationPrompt(testCoverLetter);
-            log.info("✅ promptService.buildQnaGenerationPrompt() 호출 확인");
+            verify(promptService).buildQnaGenerationInputItems(testCoverLetter);
+            log.info("✅ promptService.buildQnaGenerationInputItems() 호출 확인");
 
-            verify(llmClientService).generateQnaList(mockPrompt);
-            log.info("✅ llmClientService.generateQnaList('{}') 호출 확인", mockPrompt);
+            verify(llmClientService).generateQnaList(mockInputItems);
+            log.info("✅ llmClientService.generateQnaList(inputItems) 호출 확인");
 
             verify(coverLetterQnaRepository, times(5)).save(any(CoverLetterQna.class));
             log.info("✅ coverLetterQnaRepository.save() 5번 호출 확인");
@@ -271,13 +273,13 @@ class InterviewServiceTest {
                     .willReturn(existingQuestions);
             log.info("Mock 설정: 기존 질문 목록 반환");
 
-            String additionalPrompt = "추가 프롬프트";
-            given(promptService.buildAdditionalQnaPrompt(testCoverLetter, existingQuestions))
-                    .willReturn(additionalPrompt);
-            log.info("Mock 설정: 추가 질문용 프롬프트 = '{}'", additionalPrompt);
+            List<InputItem> additionalInputItems = createMockInputItems();
+            given(promptService.buildAdditionalQnaInputItems(testCoverLetter, existingQuestions))
+                    .willReturn(additionalInputItems);
+            log.info("Mock 설정: 추가 질문용 InputItems 개수 = {}", additionalInputItems.size());
 
             InterviewLlmResponse mockResponse = createMockLlmResponse();
-            given(llmClientService.generateQnaList(additionalPrompt))
+            given(llmClientService.generateQnaList(additionalInputItems))
                     .willReturn(mockResponse);
             log.info("Mock 설정: LLM 추가 응답 질문 개수 = {}개", mockResponse.qnaList().size());
 
@@ -297,11 +299,11 @@ class InterviewServiceTest {
             assertThat(result.totalCount()).isEqualTo(5);
             assertThat(result.generatedCount()).isEqualTo(5);
 
-            verify(promptService).buildAdditionalQnaPrompt(testCoverLetter, existingQuestions);
-            log.info("✅ buildAdditionalQnaPrompt() 호출 확인");
+            verify(promptService).buildAdditionalQnaInputItems(testCoverLetter, existingQuestions);
+            log.info("✅ buildAdditionalQnaInputItems() 호출 확인");
 
-            verify(llmClientService).generateQnaList(additionalPrompt);
-            log.info("✅ generateQnaList('{}') 호출 확인", additionalPrompt);
+            verify(llmClientService).generateQnaList(additionalInputItems);
+            log.info("✅ generateQnaList(inputItems) 호출 확인");
 
             verify(coverLetterQnaRepository, times(5)).save(any(CoverLetterQna.class));
             log.info("✅ save() 5번 호출 확인");
@@ -345,13 +347,13 @@ class InterviewServiceTest {
                     .willReturn(0L);
             log.info("Mock 설정: 기존 질문 개수 = 0개");
 
-            String prompt = "프롬프트";
-            given(promptService.buildQnaGenerationPrompt(testCoverLetter))
-                    .willReturn(prompt);
-            log.info("Mock 설정: 생성된 프롬프트 = '{}'", prompt);
+            List<InputItem> inputItems = createMockInputItems();
+            given(promptService.buildQnaGenerationInputItems(testCoverLetter))
+                    .willReturn(inputItems);
+            log.info("Mock 설정: 생성된 InputItems");
 
             RuntimeException llmException = new RuntimeException("LLM API 호출 실패");
-            given(llmClientService.generateQnaList(prompt))
+            given(llmClientService.generateQnaList(inputItems))
                     .willThrow(llmException);
             log.info("Mock 설정: LLM 서비스에서 예외 발생 - '{}'", llmException.getMessage());
 
@@ -392,13 +394,13 @@ class InterviewServiceTest {
             String customQuestion = "면접에서 가장 중요하게 생각하는 가치는 무엇인가요?";
             log.info("커스텀 질문: '{}'", customQuestion);
 
-            String mockPrompt = "커스텀 답변 프롬프트";
-            given(promptService.buildCustomAnswerPrompt(testCoverLetter, customQuestion))
-                    .willReturn(mockPrompt);
-            log.info("Mock 설정: 생성된 프롬프트 = '{}'", mockPrompt);
+            List<InputItem> mockInputItems = createMockInputItems();
+            given(promptService.buildCustomAnswerInputItems(testCoverLetter, customQuestion))
+                    .willReturn(mockInputItems);
+            log.info("Mock 설정: 생성된 InputItems 개수 = {}", mockInputItems.size());
 
             CustomAnswerResponse mockResponse = createMockCustomAnswerResponse();
-            given(llmClientService.generateCustomAnswer(mockPrompt))
+            given(llmClientService.generateCustomAnswer(mockInputItems))
                     .willReturn(mockResponse);
             log.info("Mock 설정: LLM 응답 answer='{}', tip='{}'",
                     mockResponse.answer(), mockResponse.tip());
@@ -441,11 +443,11 @@ class InterviewServiceTest {
 
             // 메서드 호출 검증
             log.info("=== 메서드 호출 검증 ===");
-            verify(promptService).buildCustomAnswerPrompt(testCoverLetter, customQuestion);
-            log.info("✅ promptService.buildCustomAnswerPrompt() 호출 확인");
+            verify(promptService).buildCustomAnswerInputItems(testCoverLetter, customQuestion);
+            log.info("✅ promptService.buildCustomAnswerInputItems() 호출 확인");
 
-            verify(llmClientService).generateCustomAnswer(mockPrompt);
-            log.info("✅ llmClientService.generateCustomAnswer('{}') 호출 확인", mockPrompt);
+            verify(llmClientService).generateCustomAnswer(mockInputItems);
+            log.info("✅ llmClientService.generateCustomAnswer(inputItems) 호출 확인");
 
             verify(coverLetterQnaRepository).save(any(CoverLetterQna.class));
             log.info("✅ coverLetterQnaRepository.save() 호출 확인");
@@ -460,14 +462,14 @@ class InterviewServiceTest {
 
             // given
             String customQuestion = "테스트 질문";
-            String mockPrompt = "프롬프트";
+            List<InputItem> mockInputItems = createMockInputItems();
 
-            given(promptService.buildCustomAnswerPrompt(testCoverLetter, customQuestion))
-                    .willReturn(mockPrompt);
-            log.info("Mock 설정: 프롬프트 생성");
+            given(promptService.buildCustomAnswerInputItems(testCoverLetter, customQuestion))
+                    .willReturn(mockInputItems);
+            log.info("Mock 설정: InputItems 생성");
 
             RuntimeException llmException = new RuntimeException("LLM 서비스 실패");
-            given(llmClientService.generateCustomAnswer(mockPrompt))
+            given(llmClientService.generateCustomAnswer(mockInputItems))
                     .willThrow(llmException);
             log.info("Mock 설정: LLM 서비스에서 예외 발생 - '{}'", llmException.getMessage());
 
@@ -516,6 +518,22 @@ class InterviewServiceTest {
         InterviewLlmResponse response = new InterviewLlmResponse(qnaList);
         log.debug("가짜 LLM 응답 생성 완료: 총 {}개 질문", qnaList.size());
         return response;
+    }
+
+    private List<InputItem> createMockInputItems() {
+        log.debug("가짜 InputItem 목록 생성");
+        List<InputItem> inputItems = new ArrayList<>();
+
+        // 시스템 메시지
+        inputItems.add(new InputItem("system",
+                List.of(ContentItem.text("면접 질문을 생성하는 AI 어시스턴트입니다."))));
+
+        // 사용자 메시지 (자소서 내용 포함)
+        inputItems.add(new InputItem("user",
+                List.of(ContentItem.text("다음 자소서를 바탕으로 면접 질문을 생성해주세요: " + testCoverLetter.getContent()))));
+
+        log.debug("가짜 InputItem 목록 생성 완료: {}개", inputItems.size());
+        return inputItems;
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {

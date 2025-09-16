@@ -260,6 +260,26 @@ public interface InterviewControllerInterface {
                             )
                     ),
                     @ApiResponse(
+                            responseCode = "422",
+                            description = "AI 요청 거절/품질 미달",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "AI 요청 거절/품질 미달",
+                                            value = """
+                                                    {
+                                                      "timestamp": "2025-09-05T14:30:00",
+                                                      "status": 422,
+                                                      "error": "Unprocessable Entity",
+                                                      "errorCode": "AI_INVALID_REQUEST",
+                                                      "message": "면접과 관련되지 않은 요청입니다. 면접 준비와 관련된 요청만 가능합니다.",
+                                                      "errors": {}
+                                                    }
+                                                    """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
                             responseCode = "429",
                             description = "사용 한도 초과",
                             content = @Content(

@@ -476,7 +476,6 @@ class InterviewControllerTest {
         }
     }
 
-    // ================ 테스트 헬퍼 메서드들 ================
 
     private List<InterviewQnaResponse> createMockQnaResponseList(int count) {
         log.debug("가짜 질문 응답 목록 생성 시작: {}개", count);

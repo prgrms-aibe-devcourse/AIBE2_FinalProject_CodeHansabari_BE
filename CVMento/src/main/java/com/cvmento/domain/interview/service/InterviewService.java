@@ -1,5 +1,6 @@
 package com.cvmento.domain.interview.service;
 
+import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
@@ -7,7 +8,7 @@ import com.cvmento.domain.interview.dto.response.*;
 import com.cvmento.domain.interview.entity.CoverLetterQna;
 import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
-import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.InterviewLimitExceededException;
@@ -28,7 +29,6 @@ import org.slf4j.MDC;
 public class InterviewService {
 
     private final CoverLetterRepository coverLetterRepository;
-    private final MemberRepository memberRepository;
     private final CoverLetterQnaRepository coverLetterQnaRepository;
     private final InterviewLlmPromptService promptService;
     private final InterviewLlmClientService llmClientService;
@@ -68,8 +68,8 @@ public class InterviewService {
         String type = existingCount == 0 ? "초기" : "추가";
         log.info("면접 Q&A {} 생성 시작 - 자소서ID: {}, 기존개수: {}", type, coverLetterId, existingCount);
 
-        String prompt = buildPromptByCount(coverLetter, existingCount);
-        return generateQuestionsWithPrompt(coverLetter, prompt, type);
+        List<InputItem> inputItems = buildInputItemsByCount(coverLetter, existingCount);
+        return generateQuestionsWithInputItems(coverLetter, inputItems, type);
     }
 
     /** 커스텀 질문 답변 생성 및 저장 */
@@ -83,11 +83,11 @@ public class InterviewService {
                 coverLetterId, customQuestion.length());
 
         MDC.put("spanId", "prompt-building-service");
-        String prompt = promptService.buildCustomAnswerPrompt(coverLetter, customQuestion);
+        List<InputItem> inputItems = promptService.buildCustomAnswerInputItems(coverLetter, customQuestion);
 
         try {
             MDC.put("spanId", "custom-answer-service");
-            CustomAnswerResponse response = llmClientService.generateCustomAnswer(prompt);
+            CustomAnswerResponse response = llmClientService.generateCustomAnswer(inputItems);
 
             saveCustomQuestionAndAnswer(customQuestion, response, coverLetter);
 
@@ -96,6 +96,9 @@ public class InterviewService {
 
             return response;
 
+        } catch (AiInvalidRequestException e) {
+            log.warn("부적절한 커스텀 질문 요청 - 자소서ID: {}, 오류: {}", coverLetterId, e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("커스텀 답변 생성 실패 - 자소서ID: {}, 오류: {}", coverLetterId, e.getMessage(), e);
             throw new InterviewException("커스텀 질문 답변 생성에 실패했습니다.", e);
@@ -103,23 +106,23 @@ public class InterviewService {
     }
 
     /** 기존 질문 수에 따라 프롬프트 선택 */
-    private String buildPromptByCount(CoverLetter coverLetter, long existingCount) {
+    private List<InputItem> buildInputItemsByCount(CoverLetter coverLetter, long existingCount) {
         if (existingCount == 0) {
-            return promptService.buildQnaGenerationPrompt(coverLetter);
+            return promptService.buildQnaGenerationInputItems(coverLetter);
         } else {
             MDC.put("spanId", "interview-repository");
             List<String> existingQuestions = coverLetterQnaRepository.findQuestionsByCoverLetterAndSourceType(
                     coverLetter, QuestionSourceType.GENERATED);
 
             MDC.put("spanId", "interview-generation-service");
-            return promptService.buildAdditionalQnaPrompt(coverLetter, existingQuestions);
+            return promptService.buildAdditionalQnaInputItems(coverLetter, existingQuestions);
         }
     }
 
     /** 프롬프트로 LLM 호출 → 저장 → 리스트 응답 */
-    private InterviewQnaListResponse generateQuestionsWithPrompt(CoverLetter coverLetter, String prompt, String type) {
+    private InterviewQnaListResponse generateQuestionsWithInputItems(CoverLetter coverLetter, List<InputItem> inputItems, String type) {
         try {
-            InterviewLlmResponse llmResponse = llmClientService.generateQnaList(prompt);
+            InterviewLlmResponse llmResponse = llmClientService.generateQnaList(inputItems);
             List<CoverLetterQna> newQnas = saveQnaListToDatabaseAndReturn(llmResponse.qnaList(), coverLetter);
 
             log.info("{} Q&A 생성 완료 - 자소서ID: {}, 생성개수: {}",
