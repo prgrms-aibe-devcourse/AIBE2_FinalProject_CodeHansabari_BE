@@ -4,11 +4,13 @@ import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
 import com.cvmento.domain.coverLetter.repository.CoverLetterFeatureRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class CoverLetterFeatureSeeder implements CommandLineRunner {
 
     private final CoverLetterFeatureRepository repository;
@@ -16,7 +18,7 @@ public class CoverLetterFeatureSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (repository.count() > 0) {
-            System.out.println("이미 CoverLetterFeature 데이터가 존재합니다.");
+            log.info("CoverLetterFeature 테이블이 이미 채워져 있습니다. 시딩을 건너뜁니다.");
             return;
         }
 
@@ -144,6 +146,7 @@ public class CoverLetterFeatureSeeder implements CommandLineRunner {
             repository.save(new CoverLetterFeature(FeaturesCategory.EXPRESSION, desc));
         }
 
-        System.out.println("CoverLetterFeature 100개 시딩 완료!");
+        log.info("CoverLetterFeature 테이블 시딩 완료: 총 {}개 항목 추가됨",
+                repository.count());
     }
 }

@@ -135,24 +135,4 @@ public class ResumeController implements ResumeControllerInterface {
 
         return ResponseEntity.ok(CommonResponse.success("이력서를 성공적으로 조회했습니다.", resumeDetail));
     }
-
-    /**
-     * 이력서 복구 (소프트 삭제된 이력서만) - 관리자 권한
-     */
-    @PatchMapping("/{resumeId}/restore")
-    @Override
-    public ResponseEntity<CommonResponse<Void>> restoreResume(
-            @PathVariable Long resumeId,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        MDC.put("spanId", "resume-restore-controller");
-
-        String adminEmail = userDetails.getUsername();
-
-        log.info("이력서 복구 요청 - ID: {}", resumeId);
-
-        resumeService.restoreResume(resumeId, adminEmail);
-
-        return ResponseEntity.ok(CommonResponse.success("이력서가 복구되었습니다.", null));
-    }
 }

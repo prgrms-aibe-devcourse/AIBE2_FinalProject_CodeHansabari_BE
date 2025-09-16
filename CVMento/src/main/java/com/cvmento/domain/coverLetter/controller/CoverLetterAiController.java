@@ -65,12 +65,7 @@ public class CoverLetterAiController implements CoverLetterAiControllerInterface
 
             return ResponseEntity.ok(CommonResponse.success("자소서 AI 개선이 완료되었습니다.", response));
 
-        } catch (CoverLetterAiException e) {
-            log.error("AI 첨삭 비즈니스 로직 실패: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(CommonResponse.error("AI_ANALYSIS_FAILED", e.getMessage(), true));
-
-        } catch (Exception e) {
+        }catch (Exception e) {
             log.error("AI 첨삭 처리 중 예상치 못한 오류", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(CommonResponse.error("UNEXPECTED_ERROR", "처리 중 오류가 발생했습니다.", true));

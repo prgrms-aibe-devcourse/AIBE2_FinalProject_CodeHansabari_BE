@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface CoverLetterRepository extends JpaRepository<CoverLetter, Long> {
+public interface CoverLetterRepository extends JpaRepository<CoverLetter, Long>, CoverLetterRepositoryCustom {
     List<CoverLetter> findByMember(Member member);
     List<CoverLetter> findAllByOrderByUpdatedAtDesc();
 

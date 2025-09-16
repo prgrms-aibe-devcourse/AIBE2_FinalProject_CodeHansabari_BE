@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-verification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        working-directory: CVMento
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -Dspring.profiles.active=production -x test
+        working-directory: CVMento
+
+      - name: Verify JAR(s)
+        run: |
+          ls -la CVMento/build/libs || true
+          JAR=$(find CVMento/build/libs -name "*.jar" -type f | head -n1 || true)
+          if [ -z "$JAR" ]; then
+            echo "❌ No JAR found under CVMento/build/libs"
+            exit 1
+          fi
+          echo "✅ Built JAR: $JAR"
+          echo "JAR_PATH=$JAR" >> $GITHUB_ENV
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cvmento-production
+          path: ${{ env.JAR_PATH }}
+          retention-days: 30

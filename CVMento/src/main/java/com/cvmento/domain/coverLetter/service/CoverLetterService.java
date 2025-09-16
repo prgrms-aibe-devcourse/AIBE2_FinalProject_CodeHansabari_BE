@@ -4,6 +4,7 @@ import com.cvmento.domain.coverLetter.dto.request.CoverLetterSaveRequest;
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterUpdateRequest;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterDetailResponse;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterListResponse;
+import com.cvmento.domain.coverLetter.dto.response.CoverLetterStatusListResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
@@ -154,7 +155,29 @@ public class CoverLetterService {
                 coverLetterId, adminEmail, coverLetter.getMember().getMemberId());
     }
 
-    // ======================== 유틸리티 메서드 ========================
+    /**
+     * 상태별 자소서 목록 조회 (관리자용)
+     */
+    public Page<CoverLetterStatusListResponse> getCoverLettersByStatus(
+            CoverLetterStatus status,
+            String email,
+            String title,
+            Pageable pageable,
+            String adminEmail
+    ) {
+        MDC.put("spanId", "coverletter-status-list-service");
+
+        log.info("관리자 상태별 자소서 목록 조회 요청 - 관리자: {}, 상태: {}, 이메일필터: {}, 제목필터: {}, 페이지: {}",
+                adminEmail, status, email, title, pageable.getPageNumber());
+
+        Page<CoverLetterStatusListResponse> result = coverLetterRepository
+                .findCoverLettersWithFilters(status, email, title, pageable);
+
+        log.info("상태별 자소서 목록 조회 완료 - 상태: {}, 총 개수: {}, 현재 페이지 개수: {}",
+                status, result.getTotalElements(), result.getNumberOfElements());
+
+        return result;
+    }
 
     private String buildTitleWithPrefix(String originalTitle, boolean isAiImproved) {
         String prefix = isAiImproved ? "[AI첨삭] " : "[원본] ";

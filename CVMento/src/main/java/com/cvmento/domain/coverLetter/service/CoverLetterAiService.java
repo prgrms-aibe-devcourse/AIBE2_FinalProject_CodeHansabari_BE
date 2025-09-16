@@ -2,12 +2,14 @@ package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.internal.CoverLetterFeatureDto;
 import com.cvmento.domain.coverLetter.dto.request.CoverLetterAiRequest;
+import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterAiResponse;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterFeedback;
 import com.cvmento.domain.coverLetter.dto.response.FeedbackItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.repository.CoverLetterFeatureRepository;
+import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,9 +43,9 @@ public class CoverLetterAiService {
             // 1. 특징 데이터 로드
             List<CoverLetterFeatureDto> featuresDtoList = loadCoverLetterFeatures();
 
-            // 2. LLM 프롬프트 생성 (경력 정보 포함)
+            // 2. 입력 배열 생성 (Responses API 형식)
             MDC.put("spanId", "prompt-generation-service");
-            String prompt = llmPromptService.buildImprovementPrompt(
+            List<InputItem> inputItems = llmPromptService.buildInputItems(
                     request.content(),
                     featuresDtoList,
                     request.jobField(),
@@ -52,13 +54,12 @@ public class CoverLetterAiService {
             );
 
             MDC.put("spanId", "coverletter-ai-service");
-            // 개인정보 제거: 이메일 대신 요청 정보만 로깅
-            log.info("자소서 AI 첨삭 처리 시작 - 지원분야: {}, 경력: {}, 특징데이터수: {}, 프롬프트길이: {}",
+            log.info("자소서 AI 첨삭 처리 시작 - 지원분야: {}, 경력: {}, 특징데이터수: {}, 입력항목수: {}",
                     request.jobField(), request.getTotalExperience(),
-                    featuresDtoList.size(), prompt.length());
+                    featuresDtoList.size(), inputItems.size());
 
-            // 3. LLM API 호출
-            LlmAnalysisResponse llmResponse = llmClientService.analyze(prompt);
+            // 3. LLM API 호출 (Responses API)
+            LlmAnalysisResponse llmResponse = llmClientService.analyze(inputItems);
 
             // 4. 피드백 파싱 및 검증
             CoverLetterFeedback feedback = parseFeedback(llmResponse.feedback());
@@ -71,6 +72,9 @@ public class CoverLetterAiService {
                     result.improvedContent().length());
 
             return result;
+
+        } catch (AiInvalidRequestException e) {
+            throw e;
 
         } catch (Exception e) {
             logError(e, request);
