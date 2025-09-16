@@ -1,8 +1,6 @@
 name: CD
 
-permissions:
-  contents: read
-  actions: read
+permissions: read-all
 
 on:
   workflow_dispatch:
