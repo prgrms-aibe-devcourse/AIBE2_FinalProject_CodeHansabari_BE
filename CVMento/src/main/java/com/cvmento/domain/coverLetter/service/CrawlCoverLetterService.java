@@ -1,6 +1,7 @@
 package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
+import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterPageResponse;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
@@ -13,6 +14,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -247,7 +251,7 @@ public class CrawlCoverLetterService {
     }
 
     /**
-     * 크롤링 데이터 전체 조회
+     * 크롤링 데이터 전체 조회 (페이징 없음 - 기존 호환성 유지)
      */
     public List<CrawlCoverLetterData> getAllCrawlCoverLetters() {
         MDC.put("spanId", "crawl-list-service");
@@ -261,6 +265,28 @@ public class CrawlCoverLetterService {
         return coverLetters.stream()
                 .map(CrawlCoverLetterData::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 크롤링 데이터 페이징 조회
+     */
+    public CrawlCoverLetterPageResponse getCrawlCoverLettersWithPagination(int page, int size) {
+        MDC.put("spanId", "crawl-pagination-service");
+
+        // 페이지 번호는 0부터 시작하므로 조정
+        Pageable pageable = PageRequest.of(page, size);
+        
+        MDC.put("spanId", "crawl-repository");
+        Page<CrawlCoverLetter> coverLetterPage = crawlCoverLetterRepository.findAllByOrderByCreatedAtDesc(pageable);
+
+        MDC.put("spanId", "crawl-pagination-service");
+        log.info("크롤링 데이터 페이징 조회 완료 - 페이지: {}, 크기: {}, 총 개수: {}", 
+                page, size, coverLetterPage.getTotalElements());
+
+        // Page<CrawlCoverLetter>를 Page<CrawlCoverLetterData>로 변환
+        Page<CrawlCoverLetterData> dataPage = coverLetterPage.map(CrawlCoverLetterData::from);
+        
+        return CrawlCoverLetterPageResponse.from(dataPage);
     }
 
     /**
