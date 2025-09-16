@@ -60,7 +60,8 @@ public class SecurityConfig {
                                 "/health",
                                 "/error",
                                 "/auth/google/url",
-                                "/auth/quick-login/**" // 개발용
+                                "/auth/quick-login/**", // 개발용
+                                "/actuator/**"          // Actuator 엔드포인트 허용 추가
                         ).permitAll()
 
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
