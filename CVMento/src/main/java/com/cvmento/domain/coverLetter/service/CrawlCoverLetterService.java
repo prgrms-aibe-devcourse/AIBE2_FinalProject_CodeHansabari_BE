@@ -311,12 +311,8 @@ public class CrawlCoverLetterService {
     /**
      * 크롤링 데이터 수정
      */
-    public CrawlCoverLetterData updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, Member member) {
+    public CrawlCoverLetterData updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, String userEmail) {
         MDC.put("spanId", "crawl-update-service");
-
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
-            throw new AccessDeniedException("크롤링 데이터를 수정할 권한이 없습니다.");
-        }
 
         MDC.put("spanId", "crawl-repository");
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
@@ -329,7 +325,7 @@ public class CrawlCoverLetterService {
 
         MDC.put("spanId", "crawl-update-service");
         log.info("크롤링 데이터 수정 완료 - ID: {}, 수정자: {}, 새로운텍스트길이: {}",
-                id, member.getMemberId(), request.text() != null ? request.text().length() : 0);
+                id, userEmail, request.text() != null ? request.text().length() : 0);
 
         return CrawlCoverLetterData.from(savedCoverLetter);
     }

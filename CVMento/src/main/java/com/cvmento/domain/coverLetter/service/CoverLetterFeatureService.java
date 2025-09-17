@@ -23,21 +23,6 @@ public class CoverLetterFeatureService {
 
     private final FeatureExtractionService featureExtractionService;
 
-    /**
-     * 테스트용: 배치 특징 추출
-     */
-    @Transactional(readOnly = true)
-    public List<FeatureCandidate> testBatchExtraction(int batchSize) {
-        return featureExtractionService.testBatchExtraction(batchSize);
-    }
-
-    /**
-     * 테스트용: 단일 자소서에서 특징 추출
-     */
-    @Transactional(readOnly = true)
-    public List<FeatureCandidate> extractFeaturesFromSingleCoverLetter(Long coverLetterId) {
-        return featureExtractionService.extractFeaturesFromSingleCoverLetter(coverLetterId);
-    }
 
     /**
      * 크롤링된 자소서 데이터에서 특징 추출하여 raw_features 테이블에 저장

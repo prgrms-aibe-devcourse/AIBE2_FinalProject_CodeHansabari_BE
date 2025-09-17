@@ -1,6 +1,5 @@
 package com.cvmento.domain.coverLetter.controller;
 
-import com.cvmento.domain.auth.service.AuthService;
 import com.cvmento.domain.coverLetter.controller.interfaces.CoverLetterFeatureControllerInterface;
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
@@ -8,14 +7,11 @@ import com.cvmento.domain.coverLetter.entity.RawCoverLetterFeature;
 import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
 import com.cvmento.domain.coverLetter.service.CoverLetterFeatureService;
 import com.cvmento.domain.coverLetter.service.FarthestFirstClusteringService;
-import com.cvmento.domain.member.entity.Member;
-import com.cvmento.domain.member.enums.Role;
 import com.cvmento.global.common.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +31,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
 
     private final CoverLetterFeatureService coverLetterFeatureService;
     private final FarthestFirstClusteringService farthestFirstClusteringService;
-    private final AuthService authService;
 
     /**
      * 크롤링된 자소서에서 특징 추출
@@ -45,19 +40,8 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     public ResponseEntity<CommonResponse<List<RawCoverLetterFeature>>> extractFeatures(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "feature-extraction-controller");
 
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            log.warn("특징 추출 권한 없는 접근 시도 - memberId: {}, role: {}",
-                    member.getMemberId(), member.getRole());
-            throw new AccessDeniedException("특징 추출을 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
-        log.info("자소서 특징 추출 실행 요청 - 관리자: {}, role: {}",
-                member.getMemberId(), member.getRole());
+        String userEmail = userDetails.getUsername();
+        log.info("자소서 특징 추출 실행 요청 - 사용자: {}", userEmail);
 
         try {
             // 새로운 방식: raw_features 테이블에 저장
@@ -70,73 +54,7 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         }
     }
 
-    /**
-     * 테스트용: 단일 자소서 특징 추출
-     */
-    @PostMapping("/test/single")
-    @Override
-    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> extractFeaturesFromSingle(
-            @RequestParam Long coverLetterId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        MDC.put("spanId", "feature-test-single-controller");
 
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            log.warn("테스트용 특징 추출 권한 없는 접근 시도 - memberId: {}, role: {}",
-                    member.getMemberId(), member.getRole());
-            throw new AccessDeniedException("테스트용 특징 추출을 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
-        log.info("테스트용 자소서 특징 추출 요청 - 자소서ID: {}, 관리자: {}, role: {}",
-                coverLetterId, member.getMemberId(), member.getRole());
-
-        try {
-            List<FeatureCandidate> features = coverLetterFeatureService.extractFeaturesFromSingleCoverLetter(coverLetterId);
-            log.info("테스트용 특징 추출 실행 성공 - 자소서ID: {}, 추출된 특징 개수: {}", coverLetterId, features.size());
-            return ResponseEntity.ok(CommonResponse.success("테스트용 특징 추출이 완료되었습니다.", features));
-        } catch (Exception e) {
-            log.error("테스트용 특징 추출 컨트롤러 예외 발생 - 자소서ID: {}", coverLetterId, e);
-            return ResponseEntity.ok(CommonResponse.error("TEST_EXTRACTION_FAILED", "테스트용 특징 추출 중 오류가 발생했습니다: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 테스트용: 배치 특징 추출
-     */
-    @PostMapping("/test/batch")
-    @Override
-    public ResponseEntity<CommonResponse<List<FeatureCandidate>>> testBatchExtraction(
-            @RequestParam(defaultValue = "5") int batchSize,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        MDC.put("spanId", "feature-test-batch-controller");
-
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            log.warn("배치 테스트 권한 없는 접근 시도 - memberId: {}, role: {}",
-                    member.getMemberId(), member.getRole());
-            throw new AccessDeniedException("배치 테스트를 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
-        log.info("배치 테스트 요청 - 배치 크기: {}, 관리자: {}, role: {}",
-                batchSize, member.getMemberId(), member.getRole());
-
-        try {
-            List<FeatureCandidate> features = coverLetterFeatureService.testBatchExtraction(batchSize);
-            log.info("배치 테스트 완료 - 추출된 특징 개수: {}", features.size());
-            return ResponseEntity.ok(CommonResponse.success("배치 테스트가 완료되었습니다.", features));
-        } catch (Exception e) {
-            log.error("배치 테스트 중 오류 발생", e);
-            return ResponseEntity.ok(CommonResponse.error("BATCH_TEST_FAILED", "배치 테스트 중 오류가 발생했습니다: " + e.getMessage()));
-        }
-    }
 
 
     /**
@@ -147,19 +65,8 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "feature-deduplication-controller");
 
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            log.warn("특징 중복제거 권한 없는 접근 시도 - memberId: {}, role: {}",
-                    member.getMemberId(), member.getRole());
-            throw new AccessDeniedException("특징 중복제거를 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
-        log.info("임베딩 기반 특징 중복제거 실행 요청 - 관리자: {}, role: {}",
-                member.getMemberId(), member.getRole());
+        String userEmail = userDetails.getUsername();
+        log.info("임베딩 기반 특징 중복제거 실행 요청 - 사용자: {}", userEmail);
 
         try {
             List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
@@ -180,19 +87,9 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "feature-deduplication-category-controller");
 
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            log.warn("카테고리별 특징 중복제거 권한 없는 접근 시도 - memberId: {}, role: {}",
-                    member.getMemberId(), member.getRole());
-            throw new AccessDeniedException("카테고리별 특징 중복제거를 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
-        log.info("{} 카테고리 특징 중복제거 실행 요청 - 관리자: {}, role: {}",
-                category, member.getMemberId(), member.getRole());
+        String userEmail = userDetails.getUsername();
+        log.info("{} 카테고리 특징 중복제거 실행 요청 - 사용자: {}",
+                category, userEmail);
 
         try {
             List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
@@ -249,19 +146,9 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "feature-deduplication-farthest-first-controller");
 
-        if (userDetails == null) {
-            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
-        }
-
-        Member member = authService.getMemberFromUserDetails(userDetails);
-        if (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT) {
-            log.warn("Farthest-First 중복제거 권한 없는 접근 시도 - memberId: {}, role: {}",
-                    member.getMemberId(), member.getRole());
-            throw new AccessDeniedException("Farthest-First 중복제거를 실행할 권한이 없습니다. 관리자 권한이 필요합니다.");
-        }
-
-        log.info("Farthest-First 클러스터링 기반 중복제거 실행 요청 - 관리자: {}, role: {}",
-                member.getMemberId(), member.getRole());
+        String userEmail = userDetails.getUsername();
+        log.info("Farthest-First 클러스터링 기반 중복제거 실행 요청 - 사용자: {}",
+                userEmail);
 
         try {
             List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
