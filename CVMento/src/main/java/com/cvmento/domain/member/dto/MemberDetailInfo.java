@@ -19,7 +19,7 @@ public record MemberDetailInfo(
                 member.getEmail(),
                 member.getName(),
                 member.getPicture(),
-                member.getRole().toString(), // Role enum을 String으로
+                member.getRole().toString(),
                 member.getStatus().toString(),
                 member.getCreatedAt(),
                 member.getLastLoginAt()

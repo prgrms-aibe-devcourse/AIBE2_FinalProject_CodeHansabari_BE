@@ -342,12 +342,10 @@ public class MemberService {
     private void forceLogoutMember(Member member) {
         MDC.put("spanId", "token-service");
         try {
-            // 해당 사용자의 모든 토큰 무효화
             tokenService.logout(member.getMemberId().toString(), null, null);
             log.debug("회원 강제 로그아웃 처리 완료: memberId={}", member.getMemberId());
         } catch (Exception e) {
             log.warn("강제 로그아웃 중 오류 발생: memberId={}, error={}", member.getMemberId(), e.getMessage());
-            // 로그아웃 실패해도 상태 변경은 진행
         }
         MDC.put("spanId", "member-force-logout-service");
     }
