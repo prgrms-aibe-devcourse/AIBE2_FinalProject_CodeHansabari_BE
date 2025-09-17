@@ -241,7 +241,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         }
     }
 
-
     /**
      * Farthest-First 클러스터링 기반 중복제거
      */
@@ -273,5 +272,4 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
             return ResponseEntity.ok(CommonResponse.error("FARTHEST_FIRST_DEDUPLICATION_FAILED", "Farthest-First 중복제거 중 오류가 발생했습니다: " + e.getMessage()));
         }
     }
-
 }

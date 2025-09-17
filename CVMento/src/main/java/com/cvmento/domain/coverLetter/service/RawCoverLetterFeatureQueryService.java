@@ -34,8 +34,6 @@ public class RawCoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("Raw 특징 페이징 조회 실패", e);
             throw new FeatureExtractionException("Raw 특징 페이징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -52,10 +50,10 @@ public class RawCoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("Raw 특징 카테고리별 페이징 조회 실패 - {}", category, e);
             throw new FeatureExtractionException("Raw 특징 카테고리별 페이징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 }
+
+
 
 
