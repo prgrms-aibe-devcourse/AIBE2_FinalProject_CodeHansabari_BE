@@ -241,7 +241,7 @@ public class AuthController implements AuthControllerInterface {
         if (authService.isUserAuthenticatedAndActive(userDetails)) {
             try {
                 Member member = authService.getMemberFromUserDetails(userDetails);
-                AuthStatusResponse statusResponse = new AuthStatusResponse(true, MemberInfo.from(member));
+                AuthStatusResponse statusResponse = new AuthStatusResponse(true, MemberDetailInfo.from(member));
                 return ResponseEntity.ok(CommonResponse.success(statusResponse));
             } catch (IllegalArgumentException e) {
                 log.debug("인증 상태 확인 중 오류: {}", e.getMessage());
