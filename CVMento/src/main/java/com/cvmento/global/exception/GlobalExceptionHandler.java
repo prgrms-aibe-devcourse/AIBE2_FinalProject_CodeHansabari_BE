@@ -108,31 +108,19 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
-            IllegalArgumentException ex, HttpServletRequest request) {
-        log.warn("Illegal argument: {}", ex.getMessage());
+    @ExceptionHandler(SelfActionNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleSelfActionNotAllowed(
+            SelfActionNotAllowedException ex, HttpServletRequest request) {
+        log.warn("SelfActionNotAllowedException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
                 HttpStatus.BAD_REQUEST,
-                "INVALID_ARGUMENT",
+                "SELF_ACTION_NOT_ALLOWED",
                 ex.getMessage(),
                 null
         );
     }
 
-    @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<Map<String, Object>> handleSecurityException(
-            SecurityException ex, HttpServletRequest request) {
-        log.warn("Security exception: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.FORBIDDEN,
-                "SECURITY_ERROR",
-                ex.getMessage(),
-                null
-        );
-    }
 
     @ExceptionHandler(CoverLetterAiException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterAiException(CoverLetterAiException ex, HttpServletRequest request) {

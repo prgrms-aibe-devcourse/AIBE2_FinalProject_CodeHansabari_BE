@@ -12,6 +12,7 @@ import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
+import com.cvmento.global.exception.customException.SelfActionNotAllowedException;
 import com.cvmento.global.security.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,20 +43,6 @@ public class MemberService {
     private final ResumeRepository resumeRepository;
     private final TokenService tokenService;
 
-
-    /**
-     * 이메일로 회원 조회
-     */
-    public Member findByEmail(String email) {
-        MDC.put("spanId", "member-service");
-
-        MDC.put("spanId", "member-repository");
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new MemberNotFoundException("회원을 찾을 수 없습니다: " + email));
-
-        MDC.put("spanId", "member-service");
-        return member;
-    }
 
     /**
      * ID로 회원 조회
@@ -166,7 +153,7 @@ public class MemberService {
         Member targetMember = findById(memberId);
 
         if (targetMember.getMemberId().equals(admin.getMemberId())) {
-            throw new IllegalArgumentException("자기 자신의 상태는 변경할 수 없습니다.");
+            throw new SelfActionNotAllowedException("자기 자신의 상태는 변경할 수 없습니다.");
         }
 
         if (targetMember.getRole() == Role.ROOT && admin.getRole() != Role.ROOT) {
@@ -203,7 +190,7 @@ public class MemberService {
         Member targetMember = findById(memberId);
 
         if (targetMember.getMemberId().equals(admin.getMemberId())) {
-            throw new IllegalArgumentException("자기 자신의 역할은 변경할 수 없습니다.");
+            throw new SelfActionNotAllowedException("자기 자신의 역할은 변경할 수 없습니다.");
         }
 
         if (request.role() == Role.ROOT && admin.getRole() != Role.ROOT) {
@@ -285,7 +272,7 @@ public class MemberService {
 
         // 자기 자신은 강제 로그아웃할 수 없음
         if (targetMember.getMemberId().equals(admin.getMemberId())) {
-            throw new IllegalArgumentException("자기 자신을 강제 로그아웃할 수 없습니다.");
+            throw new SelfActionNotAllowedException("자기 자신을 강제 로그아웃할 수 없습니다.");
         }
 
         // ROOT 관리자는 강제 로그아웃할 수 없음 (ROOT가 아닌 경우)
