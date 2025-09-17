@@ -14,6 +14,11 @@ public interface CoverLetterFeatureRepository extends JpaRepository<CoverLetterF
      * 특정 카테고리의 특징들 조회
      */
     List<CoverLetterFeature> findByFeaturesCategory(FeaturesCategory featuresCategory);
+
+    /**
+     * 특정 카테고리의 특징들을 페이징으로 조회
+     */
+    Page<CoverLetterFeature> findByFeaturesCategory(FeaturesCategory featuresCategory, Pageable pageable);
     
     /**
      * 중복횟수 기준 내림차순 정렬 조회

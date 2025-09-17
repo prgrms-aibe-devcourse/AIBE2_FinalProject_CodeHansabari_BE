@@ -3,36 +3,39 @@ package com.cvmento.domain.coverLetter.controller;
 import com.cvmento.domain.coverLetter.controller.interfaces.CrawlCoverLetterControllerInterface;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
-import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterPageResponse;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
 import com.cvmento.domain.coverLetter.service.CrawlCoverLetterService;
+import com.cvmento.domain.coverLetter.service.CrawlCoverLetterQueryService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.customException.CrawlCoverLetterException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * 크롤링 데이터 관리자 API
  */
 @RestController
-@RequestMapping("/api/crawl")
+@RequestMapping("/api/crawled-cover-letters")
 @RequiredArgsConstructor
 @Slf4j
 public class CrawlCoverLetterController implements CrawlCoverLetterControllerInterface {
 
     private final CrawlCoverLetterService crawlCoverLetterService;
+    private final CrawlCoverLetterQueryService crawlCoverLetterQueryService;
 
     /**
      * 합격 자소서 크롤링 실행
      */
-    @PostMapping("/cover-letters")
+    @PostMapping("/")
     @Override
     public ResponseEntity<CommonResponse<?>> crawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-execution-controller");
@@ -40,65 +43,38 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("자소서 크롤링 실행 요청 - 사용자: {}", userEmail);
 
-        try {
-            CrawlCoverLetterResponse response =
-                    crawlCoverLetterService.crawlAndSaveCoverLetters();
+        CrawlCoverLetterResponse response = crawlCoverLetterService.crawlAndSaveCoverLetters();
 
-            if (response.success()) {
-                log.info("크롤링 실행 성공 - 수집개수: {}", response.crawledCount());
-                return ResponseEntity.ok(CommonResponse.success(response));
-            } else {
-                log.error("크롤링 실행 실패 - 메시지: {}", response.message());
-                return ResponseEntity.ok(CommonResponse.error("CRAWLING_FAILED", response.message()));
-            }
-
-        } catch (Exception e) {
-            log.error("크롤링 컨트롤러 예외 발생", e);
-            return ResponseEntity.ok(CommonResponse.error("CRAWLING_ERROR", "크롤링 중 오류가 발생했습니다: " + e.getMessage()));
+        if (response.success()) {
+            log.info("크롤링 실행 성공 - 수집개수: {}", response.crawledCount());
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } else {
+            log.error("크롤링 실행 실패 - 메시지: {}", response.message());
+            // 실패 시에도 성공 응답으로 감싸서 보내되, 내용은 에러 DTO를 담는 것이 일관성 있을 수 있습니다.
+            // 여기서는 기존 로직을 유지하되, 예외를 던지는 방식으로 변경합니다.
+            throw new CrawlCoverLetterException(response.message());
         }
-    }
-
-    /**
-     * 크롤링 데이터 전체 조회 (페이징 없음 - 기존 호환성 유지)
-     */
-    @GetMapping("/cover-letters")
-    @Override
-    public ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
-        MDC.put("spanId", "crawl-list-controller");
-
-        String userEmail = userDetails.getUsername();
-        log.info("크롤링 데이터 전체 조회 요청 - 사용자: {}", userEmail);
-
-        List<CrawlCoverLetterData> coverLetters = crawlCoverLetterService.getAllCrawlCoverLetters();
-
-        log.info("크롤링 데이터 조회 완료 - 총 개수: {}", coverLetters.size());
-        return ResponseEntity.ok(CommonResponse.success(coverLetters));
     }
 
     /**
      * 크롤링 데이터 페이징 조회
      */
-    @GetMapping("/cover-letters/paged")
-    public ResponseEntity<CommonResponse<CrawlCoverLetterPageResponse>> getCrawlCoverLettersWithPagination(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+    @GetMapping("/")
+    @Override
+    public ResponseEntity<CommonResponse<Page<CrawlCoverLetterData>>> getCrawlCoverLettersWithPagination(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-pagination-controller");
 
         String userEmail = userDetails.getUsername();
-        
-        // 페이지 크기 제한 (최대 100개)
-        if (size > 100) {
-            size = 100;
-        }
 
-        log.info("크롤링 데이터 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}", 
-                userEmail, page, size);
+        log.info("크롤링 데이터 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}",
+                userEmail, pageable.getPageNumber(), pageable.getPageSize());
 
-        CrawlCoverLetterPageResponse response = crawlCoverLetterService.getCrawlCoverLettersWithPagination(page, size);
+        Page<CrawlCoverLetterData> response = crawlCoverLetterQueryService.getCrawlCoverLettersWithPagination(pageable);
 
-        log.info("크롤링 데이터 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}", 
-                response.totalElements(), response.totalPages());
+        log.info("크롤링 데이터 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
+                response.getTotalElements(), response.getTotalPages());
         
         return ResponseEntity.ok(CommonResponse.success(response));
     }
@@ -106,7 +82,7 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
     /**
      * 크롤링 데이터 단건 조회
      */
-    @GetMapping("/cover-letters/{id}")
+    @GetMapping("/{id}")
     @Override
     public ResponseEntity<CommonResponse<CrawlCoverLetterData>> getCrawlCoverLetterById(
             @PathVariable Long id,
@@ -116,19 +92,14 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("크롤링 데이터 개별 조회 요청 - ID: {}, 사용자: {}", id, userEmail);
 
-        try {
-            CrawlCoverLetterData coverLetter = crawlCoverLetterService.getCrawlCoverLetterById(id);
-            return ResponseEntity.ok(CommonResponse.success(coverLetter));
-        } catch (CrawlCoverLetterException e) {
-            log.warn("크롤링 데이터 조회 실패 - ID: {}, 오류: {}", id, e.getMessage());
-            throw e; // GlobalExceptionHandler가 처리하도록 위임
-        }
+        CrawlCoverLetterData coverLetter = crawlCoverLetterQueryService.getCrawlCoverLetterById(id);
+        return ResponseEntity.ok(CommonResponse.success(coverLetter));
     }
 
     /**
      * 크롤링 데이터 수정
      */
-    @PutMapping("/cover-letters/{id}")
+    @PutMapping("/{id}")
     @Override
     public ResponseEntity<CommonResponse<CrawlCoverLetterData>> updateCrawlCoverLetter(
             @PathVariable Long id,
@@ -140,19 +111,14 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         log.info("크롤링 데이터 수정 요청 - ID: {}, 사용자: {}, 텍스트길이: {}",
                 id, userEmail, request.text() != null ? request.text().length() : 0);
 
-        try {
-            CrawlCoverLetterData updatedCoverLetter = crawlCoverLetterService.updateCrawlCoverLetter(id, request, userEmail);
-            return ResponseEntity.ok(CommonResponse.success(updatedCoverLetter));
-        } catch (CrawlCoverLetterException e) {
-            log.error("크롤링 데이터 수정 실패 - ID: {}, 오류: {}", id, e.getMessage());
-            throw e; // GlobalExceptionHandler가 처리하도록 위임
-        }
+        CrawlCoverLetterData updatedCoverLetter = crawlCoverLetterService.updateCrawlCoverLetter(id, request, userEmail);
+        return ResponseEntity.ok(CommonResponse.success(updatedCoverLetter));
     }
 
     /**
      * 크롤링 데이터 단건 삭제
      */
-    @DeleteMapping("/cover-letters/{id}")
+    @DeleteMapping("/{id}")
     @Override
     public ResponseEntity<CommonResponse<Void>> deleteCrawlCoverLetter(
             @PathVariable Long id,
@@ -162,19 +128,14 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("크롤링 데이터 개별 삭제 요청 - ID: {}, 사용자: {}", id, userEmail);
 
-        try {
-            crawlCoverLetterService.deleteCrawlCoverLetter(id);
-            return ResponseEntity.ok(CommonResponse.success("크롤링 데이터가 삭제되었습니다."));
-        } catch (CrawlCoverLetterException e) {
-            log.error("크롤링 데이터 삭제 실패 - ID: {}, 오류: {}", id, e.getMessage());
-            throw e; // GlobalExceptionHandler가 처리하도록 위임
-        }
+        crawlCoverLetterService.deleteCrawlCoverLetter(id);
+        return ResponseEntity.ok(CommonResponse.success("크롤링 데이터가 삭제되었습니다."));
     }
 
     /**
      * 크롤링 데이터 전체 삭제
      */
-    @DeleteMapping("/cover-letters")
+    @DeleteMapping("/")
     @Override
     public ResponseEntity<CommonResponse<Void>> deleteAllCrawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-delete-all-controller");

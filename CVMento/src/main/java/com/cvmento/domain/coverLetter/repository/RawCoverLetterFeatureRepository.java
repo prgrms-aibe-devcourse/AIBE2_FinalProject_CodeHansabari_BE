@@ -16,6 +16,11 @@ public interface RawCoverLetterFeatureRepository extends JpaRepository<RawCoverL
      * 특정 카테고리의 모든 특징 조회
      */
     List<RawCoverLetterFeature> findByFeaturesCategory(FeaturesCategory featuresCategory);
+
+    /**
+     * 특정 카테고리의 모든 특징 페이징 조회
+     */
+    Page<RawCoverLetterFeature> findByFeaturesCategory(FeaturesCategory featuresCategory, Pageable pageable);
     
     /**
      * 특정 자소서에서 추출된 특징들 조회
