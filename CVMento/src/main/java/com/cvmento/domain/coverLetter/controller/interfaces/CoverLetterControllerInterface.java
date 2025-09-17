@@ -294,44 +294,4 @@ public interface CoverLetterControllerInterface {
             @Parameter(description = "자소서 ID") @PathVariable Long coverLetterId,
             @AuthenticationPrincipal UserDetails userDetails
     );
-
-    @Operation(
-            summary = "자소서 복구 (관리자 전용)",
-            description = "삭제된 자소서 ID를 받아서 복구합니다. 관리자만 사용 가능한 기능입니다.",
-            security = @SecurityRequirement(name = "cookieAuth"),
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "자소서 복구 성공",
-                            content = @Content(
-                                    schema = @Schema(implementation = CommonResponse.class),
-                                    examples = @ExampleObject(
-                                            name = "자소서 복구 성공 응답",
-                                            value = """
-                                                    {
-                                                      "success": true,
-                                                      "message": "자소서가 복구되었습니다.",
-                                                      "data": null,
-                                                      "timestamp": "2024-01-15T14:30:00"
-                                                    }
-                                                    """
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "관리자 권한 필요",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "복구할 수 있는 자소서를 찾을 수 없음",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    )
-            }
-    )
-    ResponseEntity<CommonResponse<Void>> restoreCoverLetter(
-            @Parameter(description = "복구할 자소서 ID") @PathVariable Long coverLetterId,
-            @AuthenticationPrincipal UserDetails userDetails
-    );
 }

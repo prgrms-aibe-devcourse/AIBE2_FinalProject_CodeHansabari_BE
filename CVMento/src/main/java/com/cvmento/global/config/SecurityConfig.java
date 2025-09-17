@@ -63,13 +63,10 @@ public class SecurityConfig {
                                 "/auth/quick-login/**", // 개발용
                                 "/actuator/**"          // Actuator 엔드포인트 허용 추가
                         ).permitAll()
-
-                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
-                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
-                        .requestMatchers("/api/v1/resumes/*/restore").hasAnyRole("ADMIN", "ROOT")
-                        .requestMatchers("/api/v1/cover-letters/*/restore").hasAnyRole("ADMIN", "ROOT")
-
-                        .anyRequest().authenticated()
+                                .anyRequest().hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
+//                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)

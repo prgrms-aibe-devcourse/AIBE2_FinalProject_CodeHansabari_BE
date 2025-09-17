@@ -214,18 +214,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
-        log.warn("IllegalArgumentException: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.BAD_REQUEST,
-                "VALIDATION_ERROR",
-                ex.getMessage(),
-                null
-        );
-    }
-
     @ExceptionHandler(ResumeNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResumeNotFoundException(ResumeNotFoundException ex, HttpServletRequest request) {
         log.warn("ResumeNotFoundException: {}", ex.getMessage());
@@ -354,4 +342,18 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
+    @ExceptionHandler(InvalidStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidStatusException(
+            InvalidStatusException ex, HttpServletRequest request) {
+        log.warn("InvalidStatusException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_STATUS",
+                ex.getMessage(),
+                null
+        );
+    }
+
 }

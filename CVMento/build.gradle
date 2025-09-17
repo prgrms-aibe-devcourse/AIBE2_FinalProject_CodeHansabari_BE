@@ -88,15 +88,6 @@ dependencies {
 	implementation 'software.amazon.awssdk:lambda'
 
 
-	// Actuator for metrics
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
-	// Micrometer for Prometheus metrics
-	implementation 'io.micrometer:micrometer-registry-prometheus'
-
-	// Custom metrics
-	implementation 'io.micrometer:micrometer-core'
-
 	// Logback AWS Logs Appender
 //	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
 

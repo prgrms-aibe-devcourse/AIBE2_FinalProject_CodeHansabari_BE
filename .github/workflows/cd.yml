@@ -1,0 +1,80 @@
+name: CD
+
+permissions:
+  contents: read
+  actions: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: 'CI run ID to deploy'
+        required: true
+        type: string
+      deploy_message:
+        description: 'Deployment message'
+        required: false
+        type: string
+        default: 'Manual deployment'
+      confirm_deploy:
+        description: 'Type "DEPLOY" to confirm'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [[ "${{ github.event.inputs.confirm_deploy }}" != "DEPLOY" ]]; then
+            echo "❌ Deployment cancelled - confirmation required"
+            exit 1
+          fi
+
+      - name: Download artifact from CI (by pattern + run-id)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cvmento-production*
+          run-id: ${{ github.event.inputs.artifact_run_id }}
+          path: ./artifacts
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify downloaded artifact
+        run: |
+          ls -la ./artifacts || true
+          JAR=$(find ./artifacts -name "*.jar" -type f | head -n1 || true)
+          if [ -z "$JAR" ]; then
+            echo "❌ No JAR found under ./artifacts"
+            exit 1
+          fi
+          echo "✅ Artifact: $JAR"
+          echo "JAR_PATH=$JAR" >> $GITHUB_ENV
+
+      - name: Get current time
+        uses: josStorer/get-current-time@v2.0.2
+        id: current-time
+        with:
+          format: YYYY-MM-DDTHH-mm-ss
+          utcOffset: "+09:00"
+
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v20
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: ${{ secrets.APPLICATION_NAME }}
+          environment_name: ${{ secrets.ENVIRONMENT_NAME }}
+          version_label: production-deploy-${{ steps.current-time.outputs.formattedTime }}
+          region: ${{ secrets.AWS_REGION }}
+          deployment_package: ${{ env.JAR_PATH }}
+
+      - name: Deployment Success
+        if: success()
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "📦 Deployed artifact path: ${{ env.JAR_PATH }}"
+          echo "🏷️  Version: production-deploy-${{ steps.current-time.outputs.formattedTime }}"
+          echo "💬 Message: ${{ github.event.inputs.deploy_message }}"
