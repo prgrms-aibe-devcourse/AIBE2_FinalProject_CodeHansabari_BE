@@ -12,7 +12,6 @@ import com.cvmento.global.exception.customException.FeatureExtractionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +43,6 @@ public class FeatureExtractionBatchService {
      * - 배치마다 DB 저장으로 중단 시에도 데이터 보존
      * - 250회 제한 고려한 부분 처리
      */
-    @Transactional
     public List<RawCoverLetterFeature> extractFeaturesWithRealtimeAPIAndSave(List<CrawlCoverLetter> coverLetters) {
         log.info("실시간 API를 사용한 특징 추출 시작 - 총 {}개 자소서", coverLetters.size());
         

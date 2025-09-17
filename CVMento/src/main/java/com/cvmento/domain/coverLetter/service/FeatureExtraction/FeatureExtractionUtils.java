@@ -46,29 +46,6 @@ public class FeatureExtractionUtils {
     }
 
     /**
-     * 토큰 제한 고려한 배치 크기 계산
-     */
-    public int calculateOptimalBatchSize(List<CrawlCoverLetter> coverLetters) {
-        if (coverLetters.isEmpty()) return 1;
-
-        double avgLength = coverLetters.stream()
-                .mapToInt(coverLetter -> coverLetter.getText().length())
-                .average()
-                .orElse(1000.0);
-
-        int maxTokensPerBatch = 6000; // 8192 - 안전 마진
-        int tokensPerCoverLetter = (int) (avgLength * 1.5);
-
-        int optimalBatchSize = Math.max(1, maxTokensPerBatch / tokensPerCoverLetter);
-        optimalBatchSize = Math.min(10, Math.max(1, optimalBatchSize));
-
-        log.info("최적 배치 크기 계산: 평균 자소서 길이 {}자, 배치 크기 {}개",
-                (int) avgLength, optimalBatchSize);
-
-        return optimalBatchSize;
-    }
-
-    /**
      * 요청 간 지연 추가
      */
     public void addDelayBetweenRequests() {

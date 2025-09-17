@@ -30,7 +30,7 @@ public class FarthestFirstClusteringService {
     private static final int EXPRESSION_CLUSTER_COUNT = 34;
     private static final int STRUCTURE_CLUSTER_COUNT = 33;
     private static final int CONTENT_CLUSTER_COUNT = 33;
-    private static final double INITIAL_DEDUPLICATION_THRESHOLD = 0.98;
+    private static final double INITIAL_DEDUPLICATION_THRESHOLD = 0.97;
 
     private final RawCoverLetterFeatureRepository rawFeatureRepository;
     private final CoverLetterFeatureRepository featureRepository;

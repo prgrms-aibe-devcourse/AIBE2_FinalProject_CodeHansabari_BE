@@ -1,7 +1,6 @@
 package com.cvmento.domain.coverLetter.service;
 
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterFeatureData;
-import com.cvmento.domain.coverLetter.dto.response.CoverLetterFeaturePageResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
 import com.cvmento.domain.coverLetter.repository.CoverLetterFeatureRepository;
@@ -10,12 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * 추출된 특징 조회 서비스
@@ -34,18 +30,16 @@ public class CoverLetterFeatureQueryService {
      * 모든 특징을 페이징으로 조회 (생성일 기준 내림차순)
      */
     @Transactional(readOnly = true)
-    public CoverLetterFeaturePageResponse getAllFeaturesWithPagination(int page, int size) {
+    public Page<CoverLetterFeatureData> getAllFeaturesWithPagination(Pageable pageable) {
         MDC.put("spanId", "feature-query-all");
         
         try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository.findAllByOrderByCreatedAtDesc(pageable);
+            Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository.findAll(pageable);
             
-            log.info("모든 특징 페이징 조회 완료 - 페이지: {}, 크기: {}, 총 개수: {}", 
-                    page, size, featurePage.getTotalElements());
+            log.info("모든 특징 페이징 조회 완료 - 페이지: {}, 크기: {}, 총 개수: {}",
+                    pageable.getPageNumber(), pageable.getPageSize(), featurePage.getTotalElements());
             
-            Page<CoverLetterFeatureData> dataPage = featurePage.map(CoverLetterFeatureData::from);
-            return CoverLetterFeaturePageResponse.from(dataPage);
+            return featurePage.map(CoverLetterFeatureData::from);
             
         } catch (Exception e) {
             log.error("모든 특징 페이징 조회 중 오류 발생", e);
@@ -57,20 +51,18 @@ public class CoverLetterFeatureQueryService {
      * 특정 카테고리의 특징들을 페이징으로 조회 (생성일 기준 내림차순)
      */
     @Transactional(readOnly = true)
-    public CoverLetterFeaturePageResponse getFeaturesByCategoryWithPagination(
-            FeaturesCategory category, int page, int size) {
+    public Page<CoverLetterFeatureData> getFeaturesByCategoryWithPagination(
+            FeaturesCategory category, Pageable pageable) {
         MDC.put("spanId", "feature-query-category");
         
         try {
-            Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
-                    .findByFeaturesCategoryOrderByCreatedAtDesc(category, pageable);
+                    .findByFeaturesCategory(category, pageable);
             
-            log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 페이지: {}, 크기: {}, 총 개수: {}", 
-                    category, page, size, featurePage.getTotalElements());
+            log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 페이지: {}, 크기: {}, 총 개수: {}",
+                    category, pageable.getPageNumber(), pageable.getPageSize(), featurePage.getTotalElements());
             
-            Page<CoverLetterFeatureData> dataPage = featurePage.map(CoverLetterFeatureData::from);
-            return CoverLetterFeaturePageResponse.from(dataPage);
+            return featurePage.map(CoverLetterFeatureData::from);
             
         } catch (Exception e) {
             log.error("카테고리별 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
@@ -82,19 +74,17 @@ public class CoverLetterFeatureQueryService {
      * 중복횟수 기준 내림차순으로 페이징 조회
      */
     @Transactional(readOnly = true)
-    public CoverLetterFeaturePageResponse getFeaturesByDuplicateCountWithPagination(int page, int size) {
+    public Page<CoverLetterFeatureData> getFeaturesByDuplicateCountWithPagination(Pageable pageable) {
         MDC.put("spanId", "feature-query-duplicate-count");
         
         try {
-            Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
-                    .findAllByOrderByDuplicateCountDesc(pageable);
+                    .findAll(pageable);
             
-            log.info("중복횟수 기준 특징 페이징 조회 완료 - 페이지: {}, 크기: {}, 총 개수: {}", 
-                    page, size, featurePage.getTotalElements());
+            log.info("중복횟수 기준 특징 페이징 조회 완료 - 페이지: {}, 크기: {}, 총 개수: {}",
+                    pageable.getPageNumber(), pageable.getPageSize(), featurePage.getTotalElements());
             
-            Page<CoverLetterFeatureData> dataPage = featurePage.map(CoverLetterFeatureData::from);
-            return CoverLetterFeaturePageResponse.from(dataPage);
+            return featurePage.map(CoverLetterFeatureData::from);
             
         } catch (Exception e) {
             log.error("중복횟수 기준 특징 페이징 조회 중 오류 발생", e);
@@ -106,66 +96,22 @@ public class CoverLetterFeatureQueryService {
      * 특정 카테고리에서 중복횟수 기준 내림차순으로 페이징 조회
      */
     @Transactional(readOnly = true)
-    public CoverLetterFeaturePageResponse getFeaturesByCategoryAndDuplicateCountWithPagination(
-            FeaturesCategory category, int page, int size) {
+    public Page<CoverLetterFeatureData> getFeaturesByCategoryAndDuplicateCountWithPagination(
+            FeaturesCategory category, Pageable pageable) {
         MDC.put("spanId", "feature-query-category-duplicate-count");
         
         try {
-            Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
-                    .findByFeaturesCategoryOrderByDuplicateCountDesc(category, pageable);
+                    .findByFeaturesCategory(category, pageable);
             
-            log.info("카테고리별 중복횟수 기준 특징 페이징 조회 완료 - 카테고리: {}, 페이지: {}, 크기: {}, 총 개수: {}", 
-                    category, page, size, featurePage.getTotalElements());
+            log.info("카테고리별 중복횟수 기준 특징 페이징 조회 완료 - 카테고리: {}, 페이지: {}, 크기: {}, 총 개수: {}",
+                    category, pageable.getPageNumber(), pageable.getPageSize(), featurePage.getTotalElements());
             
-            Page<CoverLetterFeatureData> dataPage = featurePage.map(CoverLetterFeatureData::from);
-            return CoverLetterFeaturePageResponse.from(dataPage);
+            return featurePage.map(CoverLetterFeatureData::from);
             
         } catch (Exception e) {
             log.error("카테고리별 중복횟수 기준 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
             throw new FeatureExtractionException("카테고리별 중복횟수 기준 특징 조회 실패", e);
-        }
-    }
-
-    /**
-     * 모든 특징 조회 (페이징 없음)
-     */
-    @Transactional(readOnly = true)
-    public List<CoverLetterFeatureData> getAllFeatures() {
-        MDC.put("spanId", "feature-query-all-no-paging");
-        
-        try {
-            List<CoverLetterFeature> features = coverLetterFeatureRepository.findAll();
-            log.info("모든 특징 조회 완료 - 총 개수: {}", features.size());
-            
-            return features.stream()
-                    .map(CoverLetterFeatureData::from)
-                    .toList();
-            
-        } catch (Exception e) {
-            log.error("모든 특징 조회 중 오류 발생", e);
-            throw new FeatureExtractionException("특징 조회 실패", e);
-        }
-    }
-
-    /**
-     * 특정 카테고리의 특징들 조회 (페이징 없음)
-     */
-    @Transactional(readOnly = true)
-    public List<CoverLetterFeatureData> getFeaturesByCategory(FeaturesCategory category) {
-        MDC.put("spanId", "feature-query-category-no-paging");
-        
-        try {
-            List<CoverLetterFeature> features = coverLetterFeatureRepository.findByFeaturesCategory(category);
-            log.info("카테고리별 특징 조회 완료 - 카테고리: {}, 총 개수: {}", category, features.size());
-            
-            return features.stream()
-                    .map(CoverLetterFeatureData::from)
-                    .toList();
-            
-        } catch (Exception e) {
-            log.error("카테고리별 특징 조회 중 오류 발생 - 카테고리: {}", category, e);
-            throw new FeatureExtractionException("카테고리별 특징 조회 실패", e);
         }
     }
 
