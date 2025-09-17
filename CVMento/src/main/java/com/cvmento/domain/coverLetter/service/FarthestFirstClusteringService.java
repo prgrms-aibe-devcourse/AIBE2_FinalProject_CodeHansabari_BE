@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ai.djl.translate.TranslateException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +26,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional(readOnly = true)
 public class FarthestFirstClusteringService {
+
+    private static final int EXPRESSION_CLUSTER_COUNT = 34;
+    private static final int STRUCTURE_CLUSTER_COUNT = 33;
+    private static final int CONTENT_CLUSTER_COUNT = 33;
+    private static final double INITIAL_DEDUPLICATION_THRESHOLD = 0.98;
 
     private final RawCoverLetterFeatureRepository rawFeatureRepository;
     private final CoverLetterFeatureRepository featureRepository;
@@ -55,34 +61,28 @@ public class FarthestFirstClusteringService {
             List<CoverLetterFeature> allFinalFeatures = new ArrayList<>();
             
             // EXPRESSION: 34개 클러스터
-            List<RawCoverLetterFeature> expressionFeatures = allRawFeatures.stream()
-                    .filter(feature -> feature.getFeaturesCategory() == FeaturesCategory.EXPRESSION)
-                    .collect(Collectors.toList());
+            List<RawCoverLetterFeature> expressionFeatures = filterFeaturesByCategory(allRawFeatures, FeaturesCategory.EXPRESSION);
             if (!expressionFeatures.isEmpty()) {
-                log.info("EXPRESSION 카테고리: {}개 특징 → 34개 클러스터", expressionFeatures.size());
-                List<CoverLetterFeature> expressionFinal = performFarthestFirstClustering(expressionFeatures, 34);
+                log.info("EXPRESSION 카테고리: {}개 특징 → {}개 클러스터", expressionFeatures.size(), EXPRESSION_CLUSTER_COUNT);
+                List<CoverLetterFeature> expressionFinal = performFarthestFirstClustering(expressionFeatures, EXPRESSION_CLUSTER_COUNT);
                 allFinalFeatures.addAll(expressionFinal);
                 log.info("EXPRESSION 카테고리: {}개 최종 특징 선정", expressionFinal.size());
             }
 
             // STRUCTURE: 33개 클러스터
-            List<RawCoverLetterFeature> structureFeatures = allRawFeatures.stream()
-                    .filter(feature -> feature.getFeaturesCategory() == FeaturesCategory.STRUCTURE)
-                    .collect(Collectors.toList());
+            List<RawCoverLetterFeature> structureFeatures = filterFeaturesByCategory(allRawFeatures, FeaturesCategory.STRUCTURE);
             if (!structureFeatures.isEmpty()) {
-                log.info("STRUCTURE 카테고리: {}개 특징 → 33개 클러스터", structureFeatures.size());
-                List<CoverLetterFeature> structureFinal = performFarthestFirstClustering(structureFeatures, 33);
+                log.info("STRUCTURE 카테고리: {}개 특징 → {}개 클러스터", structureFeatures.size(), STRUCTURE_CLUSTER_COUNT);
+                List<CoverLetterFeature> structureFinal = performFarthestFirstClustering(structureFeatures, STRUCTURE_CLUSTER_COUNT);
                 allFinalFeatures.addAll(structureFinal);
                 log.info("STRUCTURE 카테고리: {}개 최종 특징 선정", structureFinal.size());
             }
 
             // CONTENT: 33개 클러스터
-            List<RawCoverLetterFeature> contentFeatures = allRawFeatures.stream()
-                    .filter(feature -> feature.getFeaturesCategory() == FeaturesCategory.CONTENT)
-                    .collect(Collectors.toList());
+            List<RawCoverLetterFeature> contentFeatures = filterFeaturesByCategory(allRawFeatures, FeaturesCategory.CONTENT);
             if (!contentFeatures.isEmpty()) {
-                log.info("CONTENT 카테고리: {}개 특징 → 33개 클러스터", contentFeatures.size());
-                List<CoverLetterFeature> contentFinal = performFarthestFirstClustering(contentFeatures, 33);
+                log.info("CONTENT 카테고리: {}개 특징 → {}개 클러스터", contentFeatures.size(), CONTENT_CLUSTER_COUNT);
+                List<CoverLetterFeature> contentFinal = performFarthestFirstClustering(contentFeatures, CONTENT_CLUSTER_COUNT);
                 allFinalFeatures.addAll(contentFinal);
                 log.info("CONTENT 카테고리: {}개 최종 특징 선정", contentFinal.size());
             }
@@ -99,6 +99,12 @@ public class FarthestFirstClusteringService {
         }
     }
 
+    private List<RawCoverLetterFeature> filterFeaturesByCategory(List<RawCoverLetterFeature> allFeatures, FeaturesCategory category) {
+        return allFeatures.stream()
+                .filter(feature -> feature.getFeaturesCategory() == category)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Farthest-First 클러스터링 수행
      */
@@ -106,76 +112,78 @@ public class FarthestFirstClusteringService {
         try {
             log.info("Farthest-First 클러스터링 시작: {}개 특징 → {}개 클러스터", features.size(), k);
 
-            // 1. 특징 설명 리스트 추출
-            List<String> descriptions = features.stream()
-                    .map(RawCoverLetterFeature::getDescription)
-                    .collect(Collectors.toList());
+            // 1. 초기 중복 제거 및 임베딩 생성
+            List<String> descriptions = features.stream().map(RawCoverLetterFeature::getDescription).collect(Collectors.toList());
+            DuplicateRemovalResult duplicateRemovalResult = removeNearDuplicates(descriptions, INITIAL_DEDUPLICATION_THRESHOLD);
+            List<float[]> embeddings = generateEmbeddingsForFiltered(descriptions, duplicateRemovalResult.getFilteredIndices());
 
-            // 2. 초기 중복 제거 (유사도 >= 0.98인 완전 중복 제거) - 임계값 상향 조정
-            DuplicateRemovalResult duplicateRemovalResult = removeNearDuplicates(descriptions, 0.98);
-            List<Integer> filteredIndices = duplicateRemovalResult.getFilteredIndices();
-            Map<Integer, List<Integer>> originalToFiltered = duplicateRemovalResult.getOriginalToFiltered();
-            log.info("초기 중복 제거 후: {}개 특징 (목표: {}개)", filteredIndices.size(), k);
-
-            // 3. 임베딩 생성
-            List<String> filteredDescriptions = filteredIndices.stream()
-                    .map(descriptions::get)
-                    .collect(Collectors.toList());
-            List<float[]> embeddings = embeddingService.generateEmbeddings(filteredDescriptions);
-
-            // 4. Farthest-First로 대표 k개 선택
+            // 2. 대표 선정 및 클러스터 할당
             List<Integer> representatives = selectFarthestFirstRepresentatives(embeddings, k);
-            log.info("Farthest-First 대표 {}개 선택 완료 (목표: {}개)", representatives.size(), k);
-
-            // 5. 나머지 특징들을 가장 가까운 대표에 할당
             Map<Integer, List<Integer>> clusters = assignToClusters(embeddings, representatives);
-            log.info("클러스터 할당 완료: {}개 클러스터", clusters.size());
 
-            // 6. 메도이드 보정 (1-2회)
+            // 3. 메도이드 보정
             representatives = updateMedoids(embeddings, clusters, representatives);
             clusters = assignToClusters(embeddings, representatives);
             log.info("메도이드 보정 완료");
 
-            // 7. 최종 특징 생성
-            List<CoverLetterFeature> finalFeatures = new ArrayList<>();
-            
-            for (int i = 0; i < representatives.size(); i++) {
-                int representativeIndex = representatives.get(i);
-                int originalIndex = filteredIndices.get(representativeIndex);
-                RawCoverLetterFeature representative = features.get(originalIndex);
-                
-                List<Integer> cluster = clusters.get(i);
-                
-                // 원본 클러스터 크기 계산 (중복 제거 전)
-                int originalDuplicateCount = 0;
-                
-                for (int clusterIndex : cluster) {
-                    List<Integer> originalIndices = originalToFiltered.get(clusterIndex);
-                    if (originalIndices != null) {
-                        originalDuplicateCount += originalIndices.size();
-                    }
-                }
-                
-                CoverLetterFeature finalFeature = new CoverLetterFeature(
-                    representative.getFeaturesCategory(),
-                    representative.getDescription(),
-                    originalDuplicateCount,
-                    representative.getCoverLetterId()  // 대표 자소서 ID만 저장
-                );
-                
-                finalFeatures.add(finalFeature);
-            }
-
-            // 8. 중복횟수 기준 내림차순 정렬
-            finalFeatures.sort((a, b) -> Integer.compare(b.getDuplicateCount(), a.getDuplicateCount()));
-
-            log.info("Farthest-First 클러스터링 완료: {}개 최종 특징", finalFeatures.size());
-            return finalFeatures;
+            // 4. 최종 특징 생성
+            return createFinalFeatures(features, duplicateRemovalResult, representatives, clusters);
 
         } catch (Exception e) {
             log.error("Farthest-First 클러스터링 실패", e);
             return new ArrayList<>();
         }
+    }
+
+    private List<float[]> generateEmbeddingsForFiltered(List<String> allDescriptions, List<Integer> filteredIndices) throws TranslateException {
+        List<String> filteredDescriptions = filteredIndices.stream()
+                .map(allDescriptions::get)
+                .collect(Collectors.toList());
+        return embeddingService.generateEmbeddings(filteredDescriptions);
+    }
+
+    private List<CoverLetterFeature> createFinalFeatures(
+            List<RawCoverLetterFeature> originalFeatures,
+            DuplicateRemovalResult duplicateRemovalResult,
+            List<Integer> representatives,
+            Map<Integer, List<Integer>> clusters) {
+
+        List<Integer> filteredIndices = duplicateRemovalResult.getFilteredIndices();
+        Map<Integer, List<Integer>> originalToFiltered = duplicateRemovalResult.getOriginalToFiltered();
+
+        List<CoverLetterFeature> finalFeatures = new ArrayList<>();
+        for (int i = 0; i < representatives.size(); i++) {
+            int representativeIndexInFiltered = representatives.get(i);
+            int originalIndex = filteredIndices.get(representativeIndexInFiltered);
+            RawCoverLetterFeature representativeFeature = originalFeatures.get(originalIndex);
+
+            List<Integer> clusterMembers = clusters.get(i);
+            int duplicateCount = calculateOriginalDuplicateCount(clusterMembers, originalToFiltered);
+
+            CoverLetterFeature finalFeature = new CoverLetterFeature(
+                    representativeFeature.getFeaturesCategory(),
+                    representativeFeature.getDescription(),
+                    duplicateCount,
+                    representativeFeature.getCoverLetterId()
+            );
+            finalFeatures.add(finalFeature);
+        }
+
+        // 중복횟수 기준 내림차순 정렬
+        finalFeatures.sort(Comparator.comparingInt(CoverLetterFeature::getDuplicateCount).reversed());
+        log.info("Farthest-First 클러스터링 완료: {}개 최종 특징", finalFeatures.size());
+        return finalFeatures;
+    }
+
+    private int calculateOriginalDuplicateCount(List<Integer> clusterMembers, Map<Integer, List<Integer>> originalToFilteredMap) {
+        int count = 0;
+        for (int memberIndexInFiltered : clusterMembers) {
+            List<Integer> originalIndices = originalToFilteredMap.get(memberIndexInFiltered);
+            if (originalIndices != null) {
+                count += originalIndices.size();
+            }
+        }
+        return count;
     }
 
     /**
@@ -463,5 +471,4 @@ public class FarthestFirstClusteringService {
             return 0;
         }
     }
-
 }
