@@ -1,16 +1,24 @@
 package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.controller.interfaces.CoverLetterFeatureControllerInterface;
+import com.cvmento.domain.coverLetter.dto.response.CoverLetterFeatureData;
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.entity.RawCoverLetterFeature;
 import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
+import com.cvmento.domain.coverLetter.service.CoverLetterFeatureQueryService;
 import com.cvmento.domain.coverLetter.service.CoverLetterFeatureService;
 import com.cvmento.domain.coverLetter.service.FarthestFirstClusteringService;
+import com.cvmento.domain.coverLetter.service.RawCoverLetterFeatureQueryService;
+import com.cvmento.domain.coverLetter.dto.response.RawCoverLetterFeatureData;
 import com.cvmento.global.common.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,16 +29,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 자소서 특징 추출 API
+ * 자소서 특징 추출 및 조회 API
  */
 @RestController
-@RequestMapping("/api/cover-letter-feature")
+@RequestMapping("/api/cover-letter-features")
 @RequiredArgsConstructor
 @Slf4j
 public class CoverLetterFeatureController implements CoverLetterFeatureControllerInterface {
 
     private final CoverLetterFeatureService coverLetterFeatureService;
     private final FarthestFirstClusteringService farthestFirstClusteringService;
+    private final CoverLetterFeatureQueryService coverLetterFeatureQueryService;
+    private final RawCoverLetterFeatureQueryService rawCoverLetterFeatureQueryService;
 
     /**
      * 크롤링된 자소서에서 특징 추출
@@ -53,9 +63,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
             return ResponseEntity.ok(CommonResponse.error("EXTRACTION_FAILED", "특징 추출 중 오류가 발생했습니다: " + e.getMessage()));
         }
     }
-
-
-
 
     /**
      * 임베딩 기반 특징 중복제거 수행
@@ -158,5 +165,191 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
             log.error("Farthest-First 중복제거 컨트롤러 예외 발생", e);
             return ResponseEntity.ok(CommonResponse.error("FARTHEST_FIRST_DEDUPLICATION_FAILED", "Farthest-First 중복제거 중 오류가 발생했습니다: " + e.getMessage()));
         }
+    }
+
+    /**
+     * 모든 특징을 페이징으로 조회 (생성일 기준 내림차순)
+     */
+    @GetMapping("/")
+    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getAllFeaturesWithPagination(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        MDC.put("spanId", "feature-query-controller-all");
+
+        try {
+            String userEmail = userDetails.getUsername();
+            log.info("모든 특징 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}",
+                    userEmail, pageable.getPageNumber(), pageable.getPageSize());
+
+            Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
+                    .getAllFeaturesWithPagination(pageable);
+
+            log.info("모든 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
+                    response.getTotalElements(), response.getTotalPages());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+
+        } catch (Exception e) {
+            log.error("모든 특징 페이징 조회 중 오류 발생", e);
+            return ResponseEntity.ok(CommonResponse.error("QUERY_FAILED",
+                    "특징 조회 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 특정 카테고리의 특징들을 페이징으로 조회 (생성일 기준 내림차순)
+     */
+    @GetMapping("/category/{category}")
+    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByCategoryWithPagination(
+            @PathVariable FeaturesCategory category,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        MDC.put("spanId", "feature-query-controller-category");
+
+        try {
+            String userEmail = userDetails.getUsername();
+            log.info("카테고리별 특징 페이징 조회 요청 - 사용자: {}, 카테고리: {}, 페이지: {}, 크기: {}",
+                    userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
+
+            Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
+                    .getFeaturesByCategoryWithPagination(category, pageable);
+
+            log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
+                    category, response.getTotalElements(), response.getTotalPages());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+
+        } catch (Exception e) {
+            log.error("카테고리별 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
+            return ResponseEntity.ok(CommonResponse.error("QUERY_FAILED",
+                    "카테고리별 특징 조회 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 중복횟수 기준 내림차순으로 페이징 조회
+     */
+    @GetMapping("/by-duplicate-count")
+    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByDuplicateCountWithPagination(
+            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        MDC.put("spanId", "feature-query-controller-duplicate-count");
+
+        try {
+            String userEmail = userDetails.getUsername();
+            log.info("중복횟수 기준 특징 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}",
+                    userEmail, pageable.getPageNumber(), pageable.getPageSize());
+
+            Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
+                    .getFeaturesByDuplicateCountWithPagination(pageable);
+
+            log.info("중복횟수 기준 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
+                    response.getTotalElements(), response.getTotalPages());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+
+        } catch (Exception e) {
+            log.error("중복횟수 기준 특징 페이징 조회 중 오류 발생", e);
+            return ResponseEntity.ok(CommonResponse.error("QUERY_FAILED",
+                    "중복횟수 기준 특징 조회 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 특정 카테고리에서 중복횟수 기준 내림차순으로 페이징 조회
+     */
+    @GetMapping("/category/{category}/by-duplicate-count")
+    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByCategoryAndDuplicateCountWithPagination(
+            @PathVariable FeaturesCategory category,
+            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        MDC.put("spanId", "feature-query-controller-category-duplicate-count");
+
+        try {
+            String userEmail = userDetails.getUsername();
+            log.info("카테고리별 중복횟수 기준 특징 페이징 조회 요청 - 사용자: {}, 카테고리: {}, 페이지: {}, 크기: {}",
+                    userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
+
+            Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
+                    .getFeaturesByCategoryAndDuplicateCountWithPagination(category, pageable);
+
+            log.info("카테고리별 중복횟수 기준 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
+                    category, response.getTotalElements(), response.getTotalPages());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+
+        } catch (Exception e) {
+            log.error("카테고리별 중복횟수 기준 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
+            return ResponseEntity.ok(CommonResponse.error("QUERY_FAILED",
+                    "카테고리별 중복횟수 기준 특징 조회 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 특징 통계 정보 조회
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<CommonResponse<CoverLetterFeatureQueryService.FeatureStatistics>> getFeatureStatistics(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        MDC.put("spanId", "feature-query-controller-statistics");
+
+        try {
+            String userEmail = userDetails.getUsername();
+            log.info("특징 통계 조회 요청 - 사용자: {}", userEmail);
+
+            CoverLetterFeatureQueryService.FeatureStatistics response =
+                    coverLetterFeatureQueryService.getFeatureStatistics();
+
+            log.info("특징 통계 조회 완료 - 총 개수: {}, EXPRESSION: {}, STRUCTURE: {}, CONTENT: {}",
+                    response.totalCount(), response.expressionCount(),
+                    response.structureCount(), response.contentCount());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+
+        } catch (Exception e) {
+            log.error("특징 통계 조회 중 오류 발생", e);
+            return ResponseEntity.ok(CommonResponse.error("QUERY_FAILED",
+                    "특징 통계 조회 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Raw 특징 페이징 조회
+     */
+    @GetMapping("/raw")
+    @Override
+    public ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesPaged(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "raw-feature-query-controller-all");
+
+        String userEmail = userDetails.getUsername();
+        log.info("Raw 특징 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}", userEmail, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<RawCoverLetterFeatureData> response = rawCoverLetterFeatureQueryService.getRawFeaturesPaged(pageable);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 카테고리별 Raw 특징 페이징 조회
+     */
+    @GetMapping("/raw/category/{category}")
+    @Override
+    public ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesByCategoryPaged(
+            @PathVariable FeaturesCategory category,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "raw-feature-query-controller-category");
+
+        String userEmail = userDetails.getUsername();
+        log.info("Raw 카테고리별 특징 페이징 조회 요청 - 사용자: {}, 카테고리: {}, 페이지: {}, 크기: {}", userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<RawCoverLetterFeatureData> response = rawCoverLetterFeatureQueryService.getRawFeaturesByCategoryPaged(category, pageable);
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 }

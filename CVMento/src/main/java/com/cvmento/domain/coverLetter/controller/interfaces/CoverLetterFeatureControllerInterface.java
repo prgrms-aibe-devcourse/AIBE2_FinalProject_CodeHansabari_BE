@@ -1,6 +1,8 @@
 package com.cvmento.domain.coverLetter.controller.interfaces;
 
+import com.cvmento.domain.coverLetter.dto.response.CoverLetterFeatureData;
 import com.cvmento.domain.coverLetter.dto.response.FeatureCandidate;
+import com.cvmento.domain.coverLetter.dto.response.RawCoverLetterFeatureData;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.entity.RawCoverLetterFeature;
 import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
@@ -13,9 +15,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -321,4 +326,32 @@ public interface CoverLetterFeatureControllerInterface {
             @AuthenticationPrincipal UserDetails userDetails
     );
 
+    @Operation(
+            summary = "Raw 특징 페이징 조회",
+            description = "추출 후 정제되지 않은 원본(raw) 특징을 생성일 기준 내림차순으로 페이징 조회합니다.",
+            security = @SecurityRequirement(name = "cookieAuth"),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class))),
+                    @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+            }
+    )
+    ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesPaged(
+            @Parameter(hidden = true) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails
+    );
+
+    @Operation(
+            summary = "카테고리별 Raw 특징 페이징 조회",
+            description = "특정 카테고리(EXPRESSION, STRUCTURE, CONTENT)의 원본(raw) 특징을 페이징 조회합니다.",
+            security = @SecurityRequirement(name = "cookieAuth"),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CommonResponse.class))),
+                    @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content(schema = @Schema(implementation = CommonResponse.class)))
+            }
+    )
+    ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesByCategoryPaged(
+            @Parameter(description = "특징 카테고리", example = "EXPRESSION") @PathVariable FeaturesCategory category,
+            @Parameter(hidden = true) Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails
+    );
 }
