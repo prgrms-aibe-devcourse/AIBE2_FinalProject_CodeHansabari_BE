@@ -376,7 +376,7 @@ public interface AuthControllerInterface {
                                                         "name": "박민수",
                                                         "picture": "https://lh3.googleusercontent.com/...",
                                                         "role": "USER",
-                                                        "isActive": true,
+                                                        "status": "ACTIVE",
                                                         "createdAt": "2024-01-05T11:20:00",
                                                         "lastLoginAt": "2024-01-15T18:10:45"
                                                       },
