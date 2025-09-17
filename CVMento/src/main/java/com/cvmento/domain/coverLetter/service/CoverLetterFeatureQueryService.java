@@ -38,11 +38,6 @@ public class CoverLetterFeatureQueryService {
         MDC.put("spanId", "feature-query-all");
         
         try {
-            // 페이지 크기 제한 (최대 100개)
-            if (size > 100) {
-                size = 100;
-            }
-            
             Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository.findAllByOrderByCreatedAtDesc(pageable);
             
@@ -55,8 +50,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("모든 특징 페이징 조회 중 오류 발생", e);
             throw new FeatureExtractionException("특징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -69,11 +62,6 @@ public class CoverLetterFeatureQueryService {
         MDC.put("spanId", "feature-query-category");
         
         try {
-            // 페이지 크기 제한 (최대 100개)
-            if (size > 100) {
-                size = 100;
-            }
-            
             Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
                     .findByFeaturesCategoryOrderByCreatedAtDesc(category, pageable);
@@ -87,8 +75,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("카테고리별 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
             throw new FeatureExtractionException("카테고리별 특징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -100,11 +86,6 @@ public class CoverLetterFeatureQueryService {
         MDC.put("spanId", "feature-query-duplicate-count");
         
         try {
-            // 페이지 크기 제한 (최대 100개)
-            if (size > 100) {
-                size = 100;
-            }
-            
             Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
                     .findAllByOrderByDuplicateCountDesc(pageable);
@@ -118,8 +99,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("중복횟수 기준 특징 페이징 조회 중 오류 발생", e);
             throw new FeatureExtractionException("중복횟수 기준 특징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -132,11 +111,6 @@ public class CoverLetterFeatureQueryService {
         MDC.put("spanId", "feature-query-category-duplicate-count");
         
         try {
-            // 페이지 크기 제한 (최대 100개)
-            if (size > 100) {
-                size = 100;
-            }
-            
             Pageable pageable = PageRequest.of(page, size);
             Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
                     .findByFeaturesCategoryOrderByDuplicateCountDesc(category, pageable);
@@ -150,8 +124,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("카테고리별 중복횟수 기준 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
             throw new FeatureExtractionException("카테고리별 중복횟수 기준 특징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -173,8 +145,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("모든 특징 조회 중 오류 발생", e);
             throw new FeatureExtractionException("특징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -196,8 +166,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("카테고리별 특징 조회 중 오류 발생 - 카테고리: {}", category, e);
             throw new FeatureExtractionException("카테고리별 특징 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -222,8 +190,6 @@ public class CoverLetterFeatureQueryService {
         } catch (Exception e) {
             log.error("특징 통계 조회 중 오류 발생", e);
             throw new FeatureExtractionException("특징 통계 조회 실패", e);
-        } finally {
-            MDC.remove("spanId");
         }
     }
 
@@ -237,3 +203,5 @@ public class CoverLetterFeatureQueryService {
         long contentCount
     ) {}
 }
+
+
