@@ -77,6 +77,4 @@ public class FeatureExtractionResumeService {
     public long adjustDelayForSuccess(long responseTime, long currentDelay, long baseDelay, long maxDelay) {
         return utils.adjustDelayForSuccess(responseTime, currentDelay, baseDelay, maxDelay);
     }
-
-    // 삭제: 상태/재개 관련 부가 메서드들 - 현행 플로우에서 미사용
 }
