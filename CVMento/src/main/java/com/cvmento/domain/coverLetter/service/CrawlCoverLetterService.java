@@ -178,11 +178,9 @@ public class CrawlCoverLetterService {
                     if (content != null && !content.trim().isEmpty()) {
                         contents.add(content);
 
-                        // 처음 1개만 상세 로그 (디버그용)
+                        // 처음 1개만 길이 로그
                         if (i == 0) {
-                            String cleanedContent = cleanText(content);
-                            log.debug("첫 번째 content 샘플 - 원본길이: {}, 정리후길이: {}",
-                                    content.length(), cleanedContent.length());
+                            log.info("첫 번째 자소서 길이: {}자", content.length());
                         }
                     }
                 } else {
