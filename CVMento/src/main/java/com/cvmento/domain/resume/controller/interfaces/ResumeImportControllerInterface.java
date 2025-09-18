@@ -151,10 +151,12 @@ public interface ResumeImportControllerInterface {
                                                     name = "파일 형식 오류",
                                                     value = """
                                                     {
-                                                      "success": false,
-                                                      "message": "지원하지 않는 파일 형식입니다. PDF 또는 이미지 파일만 업로드 가능합니다.",
-                                                      "data": null,
-                                                      "timestamp": "2025-09-11T16:24:27"
+                                                      "timestamp": "2025-09-18T16:24:27",
+                                                      "status": 400,
+                                                      "error": "Bad Request",
+                                                      "errorCode": "UNSUPPORTED_FILE_TYPE",
+                                                      "message": "지원하지 않는 파일 형식입니다. 지원 형식: PDF (.pdf), 이미지 (.jpg, .jpeg, .png)",
+                                                      "errors": {}
                                                     }
                                                     """
                                             ),
@@ -162,10 +164,12 @@ public interface ResumeImportControllerInterface {
                                                     name = "파일 크기 초과",
                                                     value = """
                                                     {
-                                                      "success": false,
-                                                      "message": "파일 크기는 10MB를 초과할 수 없습니다.",
-                                                      "data": null,
-                                                      "timestamp": "2025-09-11T16:24:27"
+                                                      "timestamp": "2025-09-18T16:24:27",
+                                                      "status": 400,
+                                                      "error": "Bad Request",
+                                                      "errorCode": "FILE_SIZE_EXCEEDED",
+                                                      "message": "파일 크기가 제한을 초과했습니다. 최대 크기: 10MB",
+                                                      "errors": {}
                                                     }
                                                     """
                                             ),
@@ -173,10 +177,12 @@ public interface ResumeImportControllerInterface {
                                                     name = "빈 파일 오류",
                                                     value = """
                                                     {
-                                                      "success": false,
-                                                      "message": "파일이 비어있습니다.",
-                                                      "data": null,
-                                                      "timestamp": "2025-09-11T16:24:27"
+                                                      "timestamp": "2025-09-18T16:24:27",
+                                                      "status": 400,
+                                                      "error": "Bad Request",
+                                                      "errorCode": "INVALID_FILE",
+                                                      "message": "파일이 비어있습니다. 이력서 내용이 포함된 유효한 파일을 업로드해주세요.",
+                                                      "errors": {}
                                                     }
                                                     """
                                             )
