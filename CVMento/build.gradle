@@ -58,6 +58,11 @@ dependencies {
 	// OAuth2 Client
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
+	// Metrics & Monitoring (Micrometer + Prometheus)
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-core'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	// MySQL Driver
 	runtimeOnly 'mysql:mysql-connector-java:8.0.33'
 
@@ -93,6 +98,19 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.20.56')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:lambda'
+
+	// DJL (Deep Java Library) for embedding models
+	implementation platform("ai.djl:bom:0.34.0")
+	
+	implementation "ai.djl:api"
+	implementation "ai.djl.pytorch:pytorch-engine"
+	implementation "ai.djl.huggingface:tokenizers"
+	
+	// 네이티브 라이브러리
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:2.5.1"
+
+	// Spring Boot Actuator
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
 }
 
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')

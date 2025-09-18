@@ -34,6 +34,13 @@ public class LoggerFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String uri = request.getRequestURI();
+
+        if (uri.startsWith("/actuator")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         var req = new ContentCachingRequestWrapper(request);
         var res = new ContentCachingResponseWrapper(response);
 

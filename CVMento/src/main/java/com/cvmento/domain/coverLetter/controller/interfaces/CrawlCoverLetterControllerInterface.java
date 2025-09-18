@@ -11,15 +11,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
-
-@Tag(name = "자소서 크롤링", description = "자소서 크롤링 API - Linkareer API를 통한 합격 자소서 데이터 수집 및 관리")
+@Tag(name = "자소서 크롤링", description = "자소서 크롤링 관리 API. 외부 사이트에서 합격 자소서를 수집(크롤링)하고, 관리하는 기능을 제공합니다.")
 public interface CrawlCoverLetterControllerInterface {
 
     @Operation(
@@ -95,29 +96,63 @@ public interface CrawlCoverLetterControllerInterface {
     ResponseEntity<CommonResponse<?>> crawlCoverLetters(@AuthenticationPrincipal UserDetails userDetails);
 
     @Operation(
-            summary = "크롤링 데이터 전체 조회",
-            description = "크롤링된 모든 자소서 데이터를 조회합니다. (관리자 권한 필요)",
+            summary = "크롤링 데이터 페이징 조회",
+            description = """
+                    크롤링으로 수집된 원본 자소서 데이터를 페이징으로 조회합니다.
+                    프론트엔드 관리자 페이지에서 수집된 데이터를 확인하는 용도로 사용할 수 있습니다.
+                    
+                    **페이징 및 정렬 파라미터:**
+                    - `page`: 조회할 페이지 번호 (0부터 시작, 기본값: 0)
+                    - `size`: 한 페이지에 보여줄 데이터 개수 (기본값: 20)
+                    - `sort`: 정렬 기준. `{필드명},{ASC|DESC}` 형식으로 전달합니다.
+                      - **정렬 가능 필드**: `createdAt`(생성일), `updatedAt`(수정일)
+                    
+                    **사용 예시:**
+                    - 첫 페이지 조회: `?page=0&size=20`
+                    - 수정일 내림차순 정렬: `?sort=updatedAt,desc`
+                    
+                    **권한:** 관리자(ADMIN) 또는 최상위 관리자(ROOT)만 접근 가능
+                    """,
             security = @SecurityRequirement(name = "cookieAuth"),
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "조회 성공",
+                            description = "페이징 조회 성공",
                             content = @Content(
                                     schema = @Schema(implementation = CommonResponse.class),
                                     examples = @ExampleObject(
-                                            name = "크롤링 데이터 목록",
+                                            name = "페이징 응답 예시",
                                             value = """
                                                     {
                                                       "success": true,
                                                       "message": "요청이 성공적으로 처리되었습니다.",
-                                                      "data": [
-                                                        {
-                                                          "coverLetterId": 1,
-                                                          "text": "저는 소프트웨어 개발에 대한 깊은 열정을 바탕으로...",
-                                                          "createdAt": "2024-01-15T10:00:00",
-                                                          "updatedAt": "2024-01-15T10:00:00"
-                                                        }
-                                                      ],
+                                                      "data": {
+                                                        "content": [
+                                                          {
+                                                            "coverLetterId": 1,
+                                                            "text": "저는 소프트웨어 개발에 대한 깊은 열정을 바탕으로...",
+                                                            "createdAt": "2024-01-15T10:00:00",
+                                                            "updatedAt": "2024-01-15T10:00:00"
+                                                          }
+                                                        ],
+                                                        "pageable": {
+                                                          "sort": { "sorted": true, "unsorted": false, "empty": false },
+                                                          "offset": 0,
+                                                          "pageNumber": 0,
+                                                          "pageSize": 20,
+                                                          "paged": true,
+                                                          "unpaged": false
+                                                        },
+                                                        "totalElements": 1,
+                                                        "totalPages": 1,
+                                                        "last": true,
+                                                        "size": 20,
+                                                        "number": 0,
+                                                        "sort": { "sorted": true, "unsorted": false, "empty": false },
+                                                        "numberOfElements": 1,
+                                                        "first": true,
+                                                        "empty": false
+                                                      },
                                                       "timestamp": "2024-01-15T14:30:00"
                                                     }
                                                     """
@@ -131,7 +166,8 @@ public interface CrawlCoverLetterControllerInterface {
                     )
             }
     )
-    ResponseEntity<CommonResponse<List<CrawlCoverLetterData>>> getAllCrawlCoverLetters(
+    ResponseEntity<CommonResponse<Page<CrawlCoverLetterData>>> getCrawlCoverLettersWithPagination(
+            @Parameter(hidden = true) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails
     );
 

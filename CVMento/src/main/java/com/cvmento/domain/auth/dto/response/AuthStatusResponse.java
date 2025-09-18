@@ -1,5 +1,6 @@
 package com.cvmento.domain.auth.dto.response;
 
+import com.cvmento.domain.member.dto.MemberDetailInfo;
 import com.cvmento.domain.member.dto.MemberInfo;
 
 /**
@@ -10,5 +11,5 @@ import com.cvmento.domain.member.dto.MemberInfo;
  */
 public record AuthStatusResponse(
         boolean authenticated,
-        MemberInfo member
+        MemberDetailInfo member
 ) {}
