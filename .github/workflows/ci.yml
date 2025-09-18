@@ -44,14 +44,26 @@ jobs:
         run: |
           mkdir -p deployment-package
 
+          # 소스에서 agent-production.yml 확인
+          echo "=== Source file check ==="
+          ls -la CVMento/agent-production.yml
+
           # 모든 파일 복사 (숨겨진 디렉토리 포함)
           cp -r CVMento/. deployment-package/
+
+          # 복사 후 확인
+          echo "=== After copy check ==="
+          ls -la deployment-package/agent-production.yml
 
           # 불필요한 파일들 제거
           rm -rf deployment-package/build/
           rm -rf deployment-package/.gradle/
           rm -rf deployment-package/.git/
           rm -rf deployment-package/src/test/
+
+          # 제거 후 다시 확인
+          echo "=== After cleanup check ==="
+          ls -la deployment-package/agent-production.yml
 
           # JAR 파일을 application.jar로 복사
           cp ${{ env.JAR_PATH }} deployment-package/application.jar
@@ -63,6 +75,9 @@ jobs:
           else
             echo "❌ .ebextensions directory not found"
           fi
+
+          echo "Final deployment package contents:"
+          find deployment-package -name "agent-production.yml" -o -name "*.config" -o -name "application.jar" | sort
 
       - name: Create deployment ZIP
         run: |
