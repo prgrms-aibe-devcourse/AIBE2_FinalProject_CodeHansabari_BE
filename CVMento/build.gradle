@@ -95,11 +95,19 @@ dependencies {
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:lambda'
 
-	// Logback AWS Logs Appender
-//  implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
+	// DJL (Deep Java Library) for embedding models
+	implementation platform("ai.djl:bom:0.34.0")
+	
+	implementation "ai.djl:api"
+	implementation "ai.djl.pytorch:pytorch-engine"
+	implementation "ai.djl.huggingface:tokenizers"
+	
+	// 네이티브 라이브러리
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:2.5.1"
 
 	// Spring Boot Actuator
 	implementation "org.springframework.boot:spring-boot-starter-actuator"
+
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')
 
