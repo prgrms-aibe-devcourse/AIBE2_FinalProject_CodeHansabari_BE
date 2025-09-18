@@ -54,14 +54,4 @@ public interface RawCoverLetterFeatureRepository extends JpaRepository<RawCoverL
      */
     @Query("SELECT MIN(r.coverLetterId) FROM RawCoverLetterFeature r")
     Long findMinCoverLetterId();
-
-    /**
-     * 페이징: 생성일 기준 내림차순 전체 조회
-     */
-    Page<RawCoverLetterFeature> findAllByOrderByCreatedAtDesc(Pageable pageable);
-    
-    /**
-     * 페이징: 카테고리별 생성일 기준 내림차순 조회
-     */
-    Page<RawCoverLetterFeature> findByFeaturesCategoryOrderByCreatedAtDesc(FeaturesCategory featuresCategory, Pageable pageable);
 }

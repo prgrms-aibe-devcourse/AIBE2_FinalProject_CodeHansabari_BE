@@ -51,26 +51,6 @@ public interface CoverLetterFeatureRepository extends JpaRepository<CoverLetterF
     List<CoverLetterFeature> findByFeaturesCategoryAndRepresentativeCoverLetterId(FeaturesCategory featuresCategory, Long representativeCoverLetterId);
     
     /**
-     * 페이징을 사용한 모든 특징 조회 (생성일 기준 내림차순)
-     */
-    Page<CoverLetterFeature> findAllByOrderByCreatedAtDesc(Pageable pageable);
-    
-    /**
-     * 특정 카테고리의 특징들을 페이징으로 조회 (생성일 기준 내림차순)
-     */
-    Page<CoverLetterFeature> findByFeaturesCategoryOrderByCreatedAtDesc(FeaturesCategory featuresCategory, Pageable pageable);
-    
-    /**
-     * 중복횟수 기준 내림차순으로 페이징 조회
-     */
-    Page<CoverLetterFeature> findAllByOrderByDuplicateCountDesc(Pageable pageable);
-    
-    /**
-     * 특정 카테고리에서 중복횟수 기준 내림차순으로 페이징 조회
-     */
-    Page<CoverLetterFeature> findByFeaturesCategoryOrderByDuplicateCountDesc(FeaturesCategory featuresCategory, Pageable pageable);
-    
-    /**
      * 특정 카테고리 특징 개수 조회
      */
     long countByFeaturesCategory(FeaturesCategory featuresCategory);

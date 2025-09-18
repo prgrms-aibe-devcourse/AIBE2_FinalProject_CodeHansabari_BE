@@ -118,7 +118,7 @@ public class FeatureExtractionParserService {
                             description, 
                             coverLetter.getCoverLetterId()
                         ));
-                        log.debug("CONTENT 특징 추가 - 길이: {}자", description.length());
+                        log.debug("CONTENT 특징 추가: {}", description.substring(0, Math.min(50, description.length())));
                     }
                 } else {
                     log.warn("자소서 {}에 대한 키 '{}'를 찾을 수 없음", coverLetter.getCoverLetterId(), key);

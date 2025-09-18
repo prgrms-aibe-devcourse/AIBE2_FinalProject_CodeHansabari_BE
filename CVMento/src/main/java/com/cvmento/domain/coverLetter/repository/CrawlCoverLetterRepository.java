@@ -22,10 +22,4 @@ public interface CrawlCoverLetterRepository extends JpaRepository<CrawlCoverLett
      */
     @Query("SELECT MIN(c.coverLetterId) FROM CrawlCoverLetter c")
     Long findMinId();
-    
-    
-    /**
-     * 페이징을 사용한 크롤링 데이터 조회 (생성일 기준 내림차순)
-     */
-    Page<CrawlCoverLetter> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }
