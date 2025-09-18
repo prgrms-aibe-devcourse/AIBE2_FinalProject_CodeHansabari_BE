@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Getter
 public enum UsageType {
     COVERLETTER_REVIEW("AI 자소서 첨삭", 5),
+    RESUME_FILE_CONVERT("AI 이력서 파일 변환", 5),
     INTERVIEW_AUTO("모의 면접 자동질문생성", 3),
     INTERVIEW_CUSTOM("커스텀 프롬프트 면접 답변생성", 1);
 
