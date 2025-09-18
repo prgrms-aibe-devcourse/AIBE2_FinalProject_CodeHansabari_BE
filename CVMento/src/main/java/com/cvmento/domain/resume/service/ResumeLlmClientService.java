@@ -72,7 +72,12 @@ public class ResumeLlmClientService {
     }
 
     private String getRawResponse(ResumeLlmRequest request) {
-        return resumeLlmFeignClient.analyzeRaw(request);
+        try {
+            return resumeLlmFeignClient.analyzeRaw(request);
+        } catch (Exception e) {
+            log.error("LLM API 호출 실패: {}", e.getMessage(), e);
+            throw new ResumeException("LLM API 호출에 실패했습니다.", e);
+        }
     }
 
     private ResumeImportResponse parseOpenAiResponse(String rawResponse) {
@@ -151,7 +156,8 @@ public class ResumeLlmClientService {
                 } catch (Exception jsonEx) {
                     log.error("JSON 파싱 오류: {}", jsonEx.getMessage());
                     log.error("파싱 시도한 JSON: {}", jsonText);
-                    throw new ResumeException("JSON 파싱에 실패했습니다: " + jsonEx.getMessage(), jsonEx);
+                    log.warn("JSON 파싱 실패로 기본 응답 생성");
+                    return createDefaultResponse(text);
                 }
             }
         }
@@ -204,7 +210,12 @@ public class ResumeLlmClientService {
             log.warn("요청 JSON 로깅 실패: {}", jsonEx.getMessage());
         }
 
-        return resumeLlmFeignClient.analyzeVision(request);
+        try {
+            return resumeLlmFeignClient.analyzeVision(request);
+        } catch (Exception e) {
+            log.error("Vision API 호출 실패: {}", e.getMessage(), e);
+            throw new ResumeException("Vision API 호출에 실패했습니다.", e);
+        }
     }
 
     private ResumeImportResponse createDefaultResponse(String originalText) {
