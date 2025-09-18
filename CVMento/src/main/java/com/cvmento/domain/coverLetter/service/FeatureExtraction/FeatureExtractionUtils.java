@@ -46,18 +46,6 @@ public class FeatureExtractionUtils {
     }
 
     /**
-     * 요청 간 지연 추가
-     */
-    public void addDelayBetweenRequests() {
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("요청 간 지연이 중단되었습니다.");
-        }
-    }
-
-    /**
      * 성공적인 응답에 따른 지연 시간 조정
      */
     public long adjustDelayForSuccess(long responseTime, long currentDelay, long baseDelay, long maxDelay) {
@@ -71,12 +59,5 @@ public class FeatureExtractionUtils {
             log.debug("느린 응답으로 지연 시간 증가: {}ms", currentDelay);
         }
         return currentDelay;
-    }
-
-    /**
-     * 배치 크기 유효성 검증
-     */
-    public boolean isValidBatchSize(int batchSize) {
-        return batchSize >= 1 && batchSize <= 10;
     }
 }

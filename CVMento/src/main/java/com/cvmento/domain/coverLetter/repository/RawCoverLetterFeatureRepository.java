@@ -13,11 +13,6 @@ import java.util.List;
 public interface RawCoverLetterFeatureRepository extends JpaRepository<RawCoverLetterFeature, Long> {
     
     /**
-     * 특정 카테고리의 모든 특징 조회
-     */
-    List<RawCoverLetterFeature> findByFeaturesCategory(FeaturesCategory featuresCategory);
-
-    /**
      * 특정 카테고리의 모든 특징 페이징 조회
      */
     Page<RawCoverLetterFeature> findByFeaturesCategory(FeaturesCategory featuresCategory, Pageable pageable);

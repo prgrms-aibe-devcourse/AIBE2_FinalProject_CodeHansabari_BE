@@ -144,7 +144,7 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                 userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
-                .getFeaturesByCategoryAndDuplicateCountWithPagination(category, pageable);
+                .getFeaturesByCategoryWithPagination(category, pageable);
 
         log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
                 category, response.getTotalElements(), response.getTotalPages());
@@ -198,7 +198,7 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     @Override
     public ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesByCategoryPaged(
             @PathVariable FeaturesCategory category,
-            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "raw-feature-query-controller-category");
 

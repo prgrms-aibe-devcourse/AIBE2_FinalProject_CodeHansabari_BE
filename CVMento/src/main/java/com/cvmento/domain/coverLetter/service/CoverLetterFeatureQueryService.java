@@ -71,51 +71,6 @@ public class CoverLetterFeatureQueryService {
     }
 
     /**
-     * 중복횟수 기준 내림차순으로 페이징 조회
-     */
-    @Transactional(readOnly = true)
-    public Page<CoverLetterFeatureData> getFeaturesByDuplicateCountWithPagination(Pageable pageable) {
-        MDC.put("spanId", "feature-query-duplicate-count");
-        
-        try {
-            Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
-                    .findAll(pageable);
-            
-            log.info("중복횟수 기준 특징 페이징 조회 완료 - 페이지: {}, 크기: {}, 총 개수: {}",
-                    pageable.getPageNumber(), pageable.getPageSize(), featurePage.getTotalElements());
-            
-            return featurePage.map(CoverLetterFeatureData::from);
-            
-        } catch (Exception e) {
-            log.error("중복횟수 기준 특징 페이징 조회 중 오류 발생", e);
-            throw new FeatureExtractionException("중복횟수 기준 특징 조회 실패", e);
-        }
-    }
-
-    /**
-     * 특정 카테고리에서 중복횟수 기준 내림차순으로 페이징 조회
-     */
-    @Transactional(readOnly = true)
-    public Page<CoverLetterFeatureData> getFeaturesByCategoryAndDuplicateCountWithPagination(
-            FeaturesCategory category, Pageable pageable) {
-        MDC.put("spanId", "feature-query-category-duplicate-count");
-        
-        try {
-            Page<CoverLetterFeature> featurePage = coverLetterFeatureRepository
-                    .findByFeaturesCategory(category, pageable);
-            
-            log.info("카테고리별 중복횟수 기준 특징 페이징 조회 완료 - 카테고리: {}, 페이지: {}, 크기: {}, 총 개수: {}",
-                    category, pageable.getPageNumber(), pageable.getPageSize(), featurePage.getTotalElements());
-            
-            return featurePage.map(CoverLetterFeatureData::from);
-            
-        } catch (Exception e) {
-            log.error("카테고리별 중복횟수 기준 특징 페이징 조회 중 오류 발생 - 카테고리: {}", category, e);
-            throw new FeatureExtractionException("카테고리별 중복횟수 기준 특징 조회 실패", e);
-        }
-    }
-
-    /**
      * 특징 통계 정보 조회
      */
     @Transactional(readOnly = true)
