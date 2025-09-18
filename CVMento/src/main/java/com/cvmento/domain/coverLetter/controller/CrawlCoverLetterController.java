@@ -51,8 +51,6 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
             return ResponseEntity.ok(CommonResponse.success(response));
         } else {
             log.error("크롤링 실행 실패 - 메시지: {}", response.message());
-            // 실패 시에도 성공 응답으로 감싸서 보내되, 내용은 에러 DTO를 담는 것이 일관성 있을 수 있습니다.
-            // 여기서는 기존 로직을 유지하되, 예외를 던지는 방식으로 변경합니다.
             throw new CrawlCoverLetterException(response.message());
         }
     }
