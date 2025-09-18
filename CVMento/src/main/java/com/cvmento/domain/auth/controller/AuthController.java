@@ -12,8 +12,10 @@ import com.cvmento.domain.auth.dto.response.TokenRefreshResponse;
 import com.cvmento.domain.auth.service.AuthService;
 import com.cvmento.domain.auth.service.GoogleOAuthService;
 import com.cvmento.domain.member.dto.MemberInfo;
+import com.cvmento.domain.member.dto.MemberDetailInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
@@ -42,6 +44,7 @@ public class AuthController implements AuthControllerInterface {
 
     private final AuthService authService;
     private final GoogleOAuthService googleOAuthService;
+    private final MetricsService metricsService;
 
     /**
      * 구글 OAuth2 로그인 URL 생성
@@ -219,7 +222,7 @@ public class AuthController implements AuthControllerInterface {
 
         try {
             Member member = authService.getMemberFromUserDetails(userDetails);
-            return ResponseEntity.ok(CommonResponse.success(MemberInfo.from(member)));
+            return ResponseEntity.ok(CommonResponse.success(MemberDetailInfo.from(member)));
         } catch (IllegalArgumentException e) {
             log.debug("사용자 조회 실패: {}", e.getMessage());
             return ResponseEntity.status(401)
@@ -240,7 +243,7 @@ public class AuthController implements AuthControllerInterface {
         if (authService.isUserAuthenticatedAndActive(userDetails)) {
             try {
                 Member member = authService.getMemberFromUserDetails(userDetails);
-                AuthStatusResponse statusResponse = new AuthStatusResponse(true, MemberInfo.from(member));
+                AuthStatusResponse statusResponse = new AuthStatusResponse(true, MemberDetailInfo.from(member));
                 return ResponseEntity.ok(CommonResponse.success(statusResponse));
             } catch (IllegalArgumentException e) {
                 log.debug("인증 상태 확인 중 오류: {}", e.getMessage());
