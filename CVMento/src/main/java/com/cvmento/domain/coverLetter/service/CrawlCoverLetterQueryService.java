@@ -3,7 +3,7 @@ package com.cvmento.domain.coverLetter.service;
 import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
 import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
 import com.cvmento.domain.coverLetter.repository.CrawlCoverLetterRepository;
-import com.cvmento.global.exception.customException.CrawlCoverLetterException;
+import com.cvmento.global.exception.customException.CrawlCoverLetterNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -37,7 +37,7 @@ public class CrawlCoverLetterQueryService {
     public CrawlCoverLetterData getCrawlCoverLetterById(Long id) {
         MDC.put("spanId", "crawl-detail-service");
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
-                .orElseThrow(() -> new CrawlCoverLetterException(
+                .orElseThrow(() -> new CrawlCoverLetterNotFoundException(
                     "크롤링 데이터를 찾을 수 없습니다. ID: " + id
                 ));
         log.info("크롤링 데이터 개별 조회 완료 - ID: {}, 텍스트길이: {}",

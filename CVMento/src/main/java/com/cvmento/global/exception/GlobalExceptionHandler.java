@@ -122,7 +122,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-
     @ExceptionHandler(CoverLetterAiException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterAiException(CoverLetterAiException ex, HttpServletRequest request) {
         log.error("CoverLetterAiException: {}", ex.getMessage(), ex);
@@ -253,182 +252,57 @@ public class GlobalExceptionHandler {
     }
 
     // 크롤링 관련 예외
+    @ExceptionHandler(CrawlCoverLetterNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCrawlCoverLetterNotFoundException(
+            CrawlCoverLetterNotFoundException ex, HttpServletRequest request) {
+        log.warn("CrawlCoverLetterNotFoundException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.NOT_FOUND,
+                "CRAWL_COVER_LETTER_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+    }
+
     @ExceptionHandler(CrawlCoverLetterException.class)
     public ResponseEntity<Map<String, Object>> handleCrawlCoverLetterException(
             CrawlCoverLetterException ex, HttpServletRequest request) {
         log.error("CrawlCoverLetterException: {}", ex.getMessage(), ex);
         
-        // 메시지에 따라 동적으로 HTTP 상태 코드 결정
-        HttpStatus status = ex.getMessage().contains("찾을 수 없습니다") ?
-                HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
-        
-        String errorCode = status == HttpStatus.NOT_FOUND ?
-                "CRAWL_COVER_LETTER_NOT_FOUND" : "CRAWLING_ERROR";
-        
         return buildErrorResponse(
                 request,
-                status,
-                errorCode,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "CRAWLING_ERROR",
                 ex.getMessage(),
                 null
         );
     }
 
     // 특징 추출 관련 예외
-    @ExceptionHandler(FeatureExtractionException.class)
-    public ResponseEntity<Map<String, Object>> handleFeatureExtractionException(
-            FeatureExtractionException ex, HttpServletRequest request) {
-        log.error("FeatureExtractionException: {}", ex.getMessage(), ex);
-        
-        // 메시지에 따라 동적으로 HTTP 상태 코드 결정
-        HttpStatus status = ex.getMessage().contains("찾을 수 없습니다") ?
-                HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
-        
-        String errorCode = status == HttpStatus.NOT_FOUND ?
-                "FEATURE_EXTRACTION_NOT_FOUND" : "FEATURE_EXTRACTION_ERROR";
-        
+    @ExceptionHandler(FeatureExtractionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleFeatureExtractionNotFoundException(
+            FeatureExtractionNotFoundException ex, HttpServletRequest request) {
+        log.warn("FeatureExtractionNotFoundException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
-                status,
-                errorCode,
+                HttpStatus.NOT_FOUND,
+                "FEATURE_EXTRACTION_NOT_FOUND",
                 ex.getMessage(),
                 null
         );
     }
 
-    // HTTP 클라이언트 관련 예외 (RestTemplate, WebClient 등)
-    @ExceptionHandler(org.springframework.web.client.RestClientException.class)
-    public ResponseEntity<Map<String, Object>> handleRestClientException(
-            org.springframework.web.client.RestClientException ex, HttpServletRequest request) {
-        log.error("RestClientException: {}", ex.getMessage(), ex);
-        return buildErrorResponse(
-                request,
-                HttpStatus.BAD_GATEWAY,
-                "EXTERNAL_API_ERROR",
-                "외부 API 호출 중 오류가 발생했습니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    // JSON 파싱 관련 예외
-    @ExceptionHandler(com.fasterxml.jackson.core.JsonProcessingException.class)
-    public ResponseEntity<Map<String, Object>> handleJsonProcessingException(
-            com.fasterxml.jackson.core.JsonProcessingException ex, HttpServletRequest request) {
-        log.error("JsonProcessingException: {}", ex.getMessage(), ex);
-        return buildErrorResponse(
-                request,
-                HttpStatus.BAD_REQUEST,
-                "JSON_PARSING_ERROR",
-                "JSON 데이터 처리 중 오류가 발생했습니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    // HTTP 상태 코드 관련 예외
-    @ExceptionHandler(org.springframework.web.client.HttpClientErrorException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpClientErrorException(
-            org.springframework.web.client.HttpClientErrorException ex, HttpServletRequest request) {
-        log.error("HttpClientErrorException: {} - {}", ex.getStatusCode(), ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.BAD_GATEWAY,
-                "EXTERNAL_API_CLIENT_ERROR",
-                "외부 API 클라이언트 오류가 발생했습니다: " + ex.getStatusCode() + " - " + ex.getMessage(),
-                null
-        );
-    }
-
-    @ExceptionHandler(org.springframework.web.client.HttpServerErrorException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpServerErrorException(
-            org.springframework.web.client.HttpServerErrorException ex, HttpServletRequest request) {
-        log.error("HttpServerErrorException: {} - {}", ex.getStatusCode(), ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.BAD_GATEWAY,
-                "EXTERNAL_API_SERVER_ERROR",
-                "외부 API 서버 오류가 발생했습니다: " + ex.getStatusCode() + " - " + ex.getMessage(),
-                null
-        );
-    }
-
-    // Java 표준 예외들
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
-            IllegalArgumentException ex, HttpServletRequest request) {
-        log.warn("IllegalArgumentException: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.BAD_REQUEST,
-                "INVALID_ARGUMENT",
-                "잘못된 인수가 전달되었습니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalStateException(
-            IllegalStateException ex, HttpServletRequest request) {
-        log.warn("IllegalStateException: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.CONFLICT,
-                "INVALID_STATE",
-                "잘못된 상태입니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    @ExceptionHandler(UnsupportedOperationException.class)
-    public ResponseEntity<Map<String, Object>> handleUnsupportedOperationException(
-            UnsupportedOperationException ex, HttpServletRequest request) {
-        log.warn("UnsupportedOperationException: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.METHOD_NOT_ALLOWED,
-                "UNSUPPORTED_OPERATION",
-                "지원되지 않는 작업입니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    @ExceptionHandler(java.util.NoSuchElementException.class)
-    public ResponseEntity<Map<String, Object>> handleNoSuchElementException(
-            java.util.NoSuchElementException ex, HttpServletRequest request) {
-        log.warn("NoSuchElementException: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.NOT_FOUND,
-                "ELEMENT_NOT_FOUND",
-                "요청한 요소를 찾을 수 없습니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    // AI/ML 관련 예외들
-    @ExceptionHandler(ai.djl.translate.TranslateException.class)
-    public ResponseEntity<Map<String, Object>> handleTranslateException(
-            ai.djl.translate.TranslateException ex, HttpServletRequest request) {
-        log.error("TranslateException: {}", ex.getMessage(), ex);
+    @ExceptionHandler(FeatureExtractionException.class)
+    public ResponseEntity<Map<String, Object>> handleFeatureExtractionException(
+            FeatureExtractionException ex, HttpServletRequest request) {
+        log.error("FeatureExtractionException: {}", ex.getMessage(), ex);
+        
         return buildErrorResponse(
                 request,
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "AI_MODEL_ERROR",
-                "AI 모델 처리 중 오류가 발생했습니다: " + ex.getMessage(),
-                null
-        );
-    }
-
-    // 스레드 중단 예외
-    @ExceptionHandler(InterruptedException.class)
-    public ResponseEntity<Map<String, Object>> handleInterruptedException(
-            InterruptedException ex, HttpServletRequest request) {
-        log.warn("InterruptedException: {}", ex.getMessage());
-        Thread.currentThread().interrupt(); // 스레드 중단 상태 복원
-        return buildErrorResponse(
-                request,
-                HttpStatus.REQUEST_TIMEOUT,
-                "OPERATION_INTERRUPTED",
-                "작업이 중단되었습니다: " + ex.getMessage(),
+                "FEATURE_EXTRACTION_ERROR",
+                ex.getMessage(),
                 null
         );
     }

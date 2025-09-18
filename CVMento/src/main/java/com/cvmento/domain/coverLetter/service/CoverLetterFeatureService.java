@@ -35,6 +35,10 @@ public class CoverLetterFeatureService {
             log.info("크롤링된 자소서 데이터에서 특징 추출 시작");
 
             List<CrawlCoverLetter> crawledCoverLetters = crawlRepository.findAll();
+            if (crawledCoverLetters.isEmpty()) {
+                log.warn("특징을 추출할 크롤링 데이터가 없습니다.");
+                throw new FeatureExtractionException("특징을 추출할 크롤링 데이터가 없습니다.");
+            }
             log.info("총 {}개의 크롤링된 자소서 발견", crawledCoverLetters.size());
 
             // 기존 raw_features 데이터 삭제 (Repository의 기본 트랜잭션으로 실행)

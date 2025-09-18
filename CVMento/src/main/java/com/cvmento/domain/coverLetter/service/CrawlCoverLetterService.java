@@ -6,6 +6,7 @@ import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
 import com.cvmento.domain.coverLetter.repository.CrawlCoverLetterRepository;
 import com.cvmento.global.exception.customException.CrawlCoverLetterException;
+import com.cvmento.global.exception.customException.CrawlCoverLetterNotFoundException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +58,11 @@ public class CrawlCoverLetterService {
 
             // 3. JSON 응답 파싱하여 content 추출
             List<String> contents = parseContentsFromResponse(responseBody);
+
+            if (contents.isEmpty()) {
+                log.warn("크롤링 후 파싱된 자소서 내용이 없습니다.");
+                throw new CrawlCoverLetterException("크롤링으로 수집된 데이터가 없습니다.");
+            }
 
             // 4. DB에 저장
             List<CrawlCoverLetter> savedCoverLetters = saveCoverLetters(contents);
@@ -250,8 +256,8 @@ public class CrawlCoverLetterService {
 
         MDC.put("spanId", "crawl-repository");
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
-                .orElseThrow(() -> new CrawlCoverLetterException(
-                    "크롤링 데이터를 찾을 수 없습니다. ID: " + id
+                .orElseThrow(() -> new CrawlCoverLetterNotFoundException(
+                    "수정할 크롤링 데이터를 찾을 수 없습니다. ID: " + id
                 ));
 
         coverLetter.updateText(request.text());
@@ -272,8 +278,8 @@ public class CrawlCoverLetterService {
 
         MDC.put("spanId", "crawl-repository");
         if (!crawlCoverLetterRepository.existsById(id)) {
-            throw new CrawlCoverLetterException(
-                "크롤링 데이터를 찾을 수 없습니다. ID: " + id
+            throw new CrawlCoverLetterNotFoundException(
+                "삭제할 크롤링 데이터를 찾을 수 없습니다. ID: " + id
             );
         }
 
