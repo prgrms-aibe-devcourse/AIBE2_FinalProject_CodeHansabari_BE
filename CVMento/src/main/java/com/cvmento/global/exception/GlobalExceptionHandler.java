@@ -433,20 +433,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 권한 없음 예외 (@PreAuthorize 권한 검사 실패)
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
-            AccessDeniedException ex, HttpServletRequest request) {
-        log.warn("Access denied: {}", ex.getMessage());
-        return buildErrorResponse(
-                request,
-                HttpStatus.FORBIDDEN,
-                "ACCESS_DENIED",
-                "접근 권한이 없습니다. 관리자 권한이 필요합니다.",
-                null
-        );
-    }
-
     @ExceptionHandler(AiInvalidRequestException.class)
     public ResponseEntity<Map<String, Object>> handleAiInvalidRequestException(
             AiInvalidRequestException ex,
