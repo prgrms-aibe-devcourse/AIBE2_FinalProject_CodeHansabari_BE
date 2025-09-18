@@ -34,15 +34,51 @@ jobs:
           ls -la CVMento/build/libs || true
           JAR=$(find CVMento/build/libs -name "*.jar" -type f | head -n1 || true)
           if [ -z "$JAR" ]; then
-            echo "❌ No JAR found under CVMento/build/libs"
+            echo "⛔ No JAR found under CVMento/build/libs"
             exit 1
           fi
           echo "✅ Built JAR: $JAR"
           echo "JAR_PATH=$JAR" >> $GITHUB_ENV
 
+      - name: Create source bundle deployment package
+        run: |
+          mkdir -p deployment-package
+          
+          # 전체 소스 코드 복사 (.ebextensions 포함하기 위해)
+          cp -r CVMento/* deployment-package/
+          
+          # JAR 파일을 application.jar로 복사 (EB가 인식하도록)
+          cp ${{ env.JAR_PATH }} deployment-package/application.jar
+          
+          # 불필요한 파일들 제거
+          rm -rf deployment-package/build/
+          rm -rf deployment-package/.gradle/
+          rm -rf deployment-package/src/test/
+          
+          # .ebextensions 디렉토리가 있는지 확인
+          if [ -d "deployment-package/.ebextensions" ]; then
+            echo "✅ .ebextensions directory found"
+            ls -la deployment-package/.ebextensions/
+          else
+            echo "❌ .ebextensions directory not found"
+          fi
+          
+          echo "Deployment package structure:"
+          find deployment-package -type f \( -name "*.config" -o -name "*.jar" -o -name "Procfile" \) | sort
+
+      - name: Create deployment ZIP
+        run: |
+          cd deployment-package
+          zip -r ../cvmento-source-bundle.zip .
+          cd ..
+          echo "SOURCE_BUNDLE=cvmento-source-bundle.zip" >> $GITHUB_ENV
+          
+          echo "Source bundle created:"
+          ls -lh cvmento-source-bundle.zip
+
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
         with:
           name: cvmento-production
-          path: ${{ env.JAR_PATH }}
+          path: ${{ env.SOURCE_BUNDLE }}
           retention-days: 30
