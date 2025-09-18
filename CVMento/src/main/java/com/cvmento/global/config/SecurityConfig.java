@@ -61,7 +61,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/auth/google/url",
                                 "/auth/quick-login/**", // 개발용
-                                "/actuator/**"          // Actuator 엔드포인트 허용 추가
+                                "/actuator/**",
+                                "/actuator/prometheus"
                         ).permitAll()
                                 .anyRequest().hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")

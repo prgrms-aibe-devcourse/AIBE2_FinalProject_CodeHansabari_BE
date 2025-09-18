@@ -15,6 +15,7 @@ import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.dto.MemberDetailInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
@@ -43,6 +44,7 @@ public class AuthController implements AuthControllerInterface {
 
     private final AuthService authService;
     private final GoogleOAuthService googleOAuthService;
+    private final MetricsService metricsService;
 
     /**
      * 구글 OAuth2 로그인 URL 생성
@@ -278,16 +280,19 @@ public class AuthController implements AuthControllerInterface {
 
     @PostMapping("/quick-login/user")
     public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsUser(HttpServletResponse response) {
+        metricsService.incrementLoginCount();
         return performQuickLogin("user@test.com", "일반 사용자", Role.USER, response);
     }
 
     @PostMapping("/quick-login/expert")
     public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsExpert(HttpServletResponse response) {
+        metricsService.incrementLoginCount();
         return performQuickLogin("root@test.com", "최상위 관리자", Role.ROOT, response);
     }
 
     @PostMapping("/quick-login/admin")
     public ResponseEntity<CommonResponse<TestLoginResponse>> quickLoginAsAdmin(HttpServletResponse response) {
+        metricsService.incrementLoginCount();
         return performQuickLogin("admin@test.com", "관리자", Role.ADMIN, response);
     }
 
