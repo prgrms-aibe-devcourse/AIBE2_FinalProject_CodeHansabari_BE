@@ -31,8 +31,6 @@ public class FeatureExtractionParserService {
     private final GeminiResponseParser geminiResponseParser;
     private final ObjectMapper objectMapper;
 
-    // 삭제: parseBatchFeatureResponse - 사용처 없음
-
     /**
      * 단일 자소서 특징 응답 파싱
      */
@@ -136,11 +134,6 @@ public class FeatureExtractionParserService {
     }
 
     /**
-     * 배치 특징 텍스트에서 파싱
-     */
-    // 완전 삭제: parseBatchFeaturesFromText
-
-    /**
      * 단일 자소서 특징 텍스트에서 파싱
      */
     private List<FeatureCandidate> parseFeaturesFromText(String text) {
@@ -183,9 +176,4 @@ public class FeatureExtractionParserService {
             return new ArrayList<>();
         }
     }
-
-    /**
-     * 카테고리 문자열을 enum으로 변환
-     */
-    // 완전 삭제: convertToCategory - 현재 내부 저장로직 분리로 미사용
 }

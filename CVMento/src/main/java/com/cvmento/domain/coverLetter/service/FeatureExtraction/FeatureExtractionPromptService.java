@@ -20,9 +20,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class FeatureExtractionPromptService {
-
-    // 삭제: buildBatchExtractionPrompt - 사용처 없음
-
     /**
      * 단일 자소서 특징 추출용 프롬프트 생성
      */
