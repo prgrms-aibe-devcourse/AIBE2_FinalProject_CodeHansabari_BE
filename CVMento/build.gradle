@@ -105,8 +105,8 @@ dependencies {
 	// 네이티브 라이브러리
 	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:2.5.1"
 
-	// Logback AWS Logs Appender
-//	implementation 'ca.pjer:logback-awslogs-appender:1.6.0'
+	// Spring Boot Actuator
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
 
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')
