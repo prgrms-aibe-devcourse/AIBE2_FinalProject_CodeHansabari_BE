@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
   data:
     redis:
       host: localhost
@@ -69,3 +74,14 @@ logging:
 
 server:
   port: 8080
+
+cloud:
+  aws:
+    region:
+      static: ap-northeast-2
+    lambda:
+      function-name: test-dummy-function
+
+resume:
+  import:
+    strategy: lambda
