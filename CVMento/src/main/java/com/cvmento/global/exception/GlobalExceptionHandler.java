@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -94,6 +95,32 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
+            AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.FORBIDDEN,
+                "ACCESS_DENIED",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(SelfActionNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleSelfActionNotAllowed(
+            SelfActionNotAllowedException ex, HttpServletRequest request) {
+        log.warn("SelfActionNotAllowedException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "SELF_ACTION_NOT_ALLOWED",
+                ex.getMessage(),
+                null
+        );
+    }
+
 
     @ExceptionHandler(CoverLetterAiException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterAiException(CoverLetterAiException ex, HttpServletRequest request) {
@@ -162,7 +189,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
-  
+
     @ExceptionHandler(ResumeException.class)
     public ResponseEntity<Map<String, Object>> handleResumeException(ResumeException ex, HttpServletRequest request) {
         log.warn("ResumeException: {}", ex.getMessage());
@@ -251,7 +278,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
-  
+
     @ExceptionHandler(FileSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> handleFileSizeExceededException(
             FileSizeExceededException ex, HttpServletRequest request) {

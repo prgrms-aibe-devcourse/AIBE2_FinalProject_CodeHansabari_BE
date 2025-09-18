@@ -34,15 +34,64 @@ jobs:
           ls -la CVMento/build/libs || true
           JAR=$(find CVMento/build/libs -name "*.jar" -type f | head -n1 || true)
           if [ -z "$JAR" ]; then
-            echo "❌ No JAR found under CVMento/build/libs"
+            echo "⛔ No JAR found under CVMento/build/libs"
             exit 1
           fi
           echo "✅ Built JAR: $JAR"
           echo "JAR_PATH=$JAR" >> $GITHUB_ENV
 
+      - name: Create source bundle deployment package
+        run: |
+          mkdir -p deployment-package
+
+          # 소스에서 agent-production.yml 확인
+          echo "=== Source file check ==="
+          ls -la CVMento/agent-production.yml
+
+          # 모든 파일 복사 (숨겨진 디렉토리 포함)
+          cp -r CVMento/. deployment-package/
+
+          # 복사 후 확인
+          echo "=== After copy check ==="
+          ls -la deployment-package/agent-production.yml
+
+          # 불필요한 파일들 제거
+          rm -rf deployment-package/build/
+          rm -rf deployment-package/.gradle/
+          rm -rf deployment-package/.git/
+          rm -rf deployment-package/src/test/
+
+          # 제거 후 다시 확인
+          echo "=== After cleanup check ==="
+          ls -la deployment-package/agent-production.yml
+
+          # JAR 파일을 application.jar로 복사
+          cp ${{ env.JAR_PATH }} deployment-package/application.jar
+
+          # .ebextensions 디렉토리가 있는지 확인
+          if [ -d "deployment-package/.ebextensions" ]; then
+            echo "✅ .ebextensions directory found"
+            ls -la deployment-package/.ebextensions/
+          else
+            echo "❌ .ebextensions directory not found"
+          fi
+
+          echo "Final deployment package contents:"
+          find deployment-package -name "agent-production.yml" -o -name "*.config" -o -name "application.jar" | sort
+
+      - name: Create deployment ZIP
+        run: |
+          cd deployment-package
+          zip -r ../cvmento-source-bundle.zip .
+          cd ..
+          echo "SOURCE_BUNDLE=cvmento-source-bundle.zip" >> $GITHUB_ENV
+          
+          echo "Source bundle created:"
+          ls -lh cvmento-source-bundle.zip
+
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
         with:
           name: cvmento-production
-          path: ${{ env.JAR_PATH }}
+          path: ${{ env.SOURCE_BUNDLE }}
           retention-days: 30

@@ -20,6 +20,8 @@ services:
       - "${MYSQL_PORT}:3306"
     volumes:
       - ./mysql-data:/var/lib/mysql
+    networks:
+      - app-network
 
   redis:
     image: redis:latest
@@ -28,3 +30,26 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
     restart: always
+    networks:
+      - app-network
+
+  grafana-agent:
+    image: grafana/agent:latest
+    container_name: codehansabari-grafana-agent
+    command:
+      - --config.file=/etc/agent/agent.yml
+      - --config.expand-env
+      - --server.http.address=0.0.0.0:12345
+    volumes:
+      - ./agent.yml:/etc/agent/agent.yml:ro
+    ports:
+      - "12345:12345"
+    restart: unless-stopped
+    environment:
+      - GRAFANA_PUSH_URL=${GRAFANA_PUSH_URL}
+      - GRAFANA_USERNAME=${GRAFANA_USERNAME}
+      - GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+
+networks:
+  app-network:
+    driver: bridge
