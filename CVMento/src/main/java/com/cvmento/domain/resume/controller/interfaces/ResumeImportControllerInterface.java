@@ -184,30 +184,92 @@ public interface ResumeImportControllerInterface {
                             )
                     ),
                     @ApiResponse(
+                            responseCode = "422",
+                            description = "이력서로 인식할 수 없는 파일",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "이력서가 아닌 파일",
+                                            value = """
+                                            {
+                                              "timestamp": "2025-09-18T16:24:27",
+                                              "status": 422,
+                                              "error": "Unprocessable Entity",
+                                              "errorCode": "AI_INVALID_REQUEST",
+                                              "message": "이력서 형태로 인식할 수 없는 파일입니다. 명확한 이력서 내용이 포함된 파일을 업로드해주세요.",
+                                              "errors": {}
+                                            }
+                                            """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "429",
+                            description = "사용 한도 초과 (토큰 부족)",
+                            content = @Content(
+                                    schema = @Schema(implementation = CommonResponse.class),
+                                    examples = @ExampleObject(
+                                            name = "토큰 부족",
+                                            value = """
+                                            {
+                                              "timestamp": "2025-09-18T16:24:27",
+                                              "status": 429,
+                                              "error": "Too Many Requests",
+                                              "errorCode": "USAGE_LIMIT_EXCEEDED",
+                                              "message": "이력서 변환 토큰이 부족합니다. 토큰을 충전해주세요.",
+                                              "errors": {
+                                                "usageType": "RESUME_FILE_CONVERT",
+                                                "remainingTokens": "0",
+                                                "requiredTokens": "5",
+                                                "nextRefillTime": "2025-09-18T18:00:00"
+                                              }
+                                            }
+                                            """
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
                             responseCode = "500",
                             description = "이력서 변환 실패 (LLM API 오류, 파싱 실패 등)",
                             content = @Content(
                                     schema = @Schema(implementation = CommonResponse.class),
                                     examples = {
                                             @ExampleObject(
-                                                    name = "LLM API 오류",
+                                                    name = "Vision API 처리 실패",
                                                     value = """
                                                     {
-                                                      "success": false,
-                                                      "message": "이력서 변환 중 오류가 발생했습니다: 이력서 변환에 실패했습니다.",
-                                                      "data": null,
-                                                      "timestamp": "2025-09-11T16:24:27"
+                                                      "timestamp": "2025-09-18T16:24:27",
+                                                      "status": 500,
+                                                      "error": "Internal Server Error",
+                                                      "errorCode": "RESUME_CONVERSION_ERROR",
+                                                      "message": "이력서 파일 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                                                      "errors": {}
                                                     }
                                                     """
                                             ),
                                             @ExampleObject(
-                                                    name = "Lambda OCR 오류",
+                                                    name = "Lambda OCR 실패",
                                                     value = """
                                                     {
-                                                      "success": false,
-                                                      "message": "이력서 변환 중 오류가 발생했습니다: OCR 처리 중 오류가 발생했습니다.",
-                                                      "data": null,
-                                                      "timestamp": "2025-09-11T16:24:27"
+                                                      "timestamp": "2025-09-18T16:24:27",
+                                                      "status": 500,
+                                                      "error": "Internal Server Error",
+                                                      "errorCode": "LAMBDA_SERVICE_ERROR",
+                                                      "message": "파일 텍스트 추출 중 오류가 발생했습니다. 파일을 확인하고 다시 시도해주세요.",
+                                                      "errors": {}
+                                                    }
+                                                    """
+                                            ),
+                                            @ExampleObject(
+                                                    name = "LLM 응답 파싱 실패",
+                                                    value = """
+                                                    {
+                                                      "timestamp": "2025-09-18T16:24:27",
+                                                      "status": 500,
+                                                      "error": "Internal Server Error",
+                                                      "errorCode": "RESUME_CONVERSION_ERROR",
+                                                      "message": "이력서 변환 결과 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                                                      "errors": {}
                                                     }
                                                     """
                                             )
