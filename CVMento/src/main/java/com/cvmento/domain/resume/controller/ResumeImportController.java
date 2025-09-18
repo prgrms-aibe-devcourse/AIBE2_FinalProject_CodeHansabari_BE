@@ -4,6 +4,8 @@ import com.cvmento.domain.resume.controller.interfaces.ResumeImportControllerInt
 import com.cvmento.domain.resume.dto.response.ResumeImportResponse;
 import com.cvmento.domain.resume.service.ResumeImportService;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.usage.enums.UsageType;
+import com.cvmento.global.usage.annotation.RequireTokens;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -27,6 +29,7 @@ public class ResumeImportController implements ResumeImportControllerInterface {
      * 이력서 파일 변환
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequireTokens(UsageType.RESUME_FILE_CONVERT)
     @Override
     public ResponseEntity<CommonResponse<ResumeImportResponse>> importResume(
             @RequestParam("file") MultipartFile file,

@@ -8,6 +8,7 @@ import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.ResumeException;
+import com.cvmento.global.exception.customException.ResumeValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,11 +124,11 @@ class ResumeLlmClientServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> resumeLlmClientService.convertResume(""))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ResumeValidationException.class)
                     .hasMessage("프롬프트가 비어있습니다.");
 
             assertThatThrownBy(() -> resumeLlmClientService.convertResume(null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ResumeValidationException.class)
                     .hasMessage("프롬프트가 비어있습니다.");
 
             log.info("✅ 빈 프롬프트 검증 예외 처리 확인");
@@ -141,11 +142,11 @@ class ResumeLlmClientServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> resumeLlmClientService.convertResumeWithVision(VALID_PROMPT, "invalid_base64"))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ResumeValidationException.class)
                     .hasMessage("올바르지 않은 Base64 이미지 형식입니다.");
 
             assertThatThrownBy(() -> resumeLlmClientService.convertResumeWithVision(VALID_PROMPT, ""))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ResumeValidationException.class)
                     .hasMessage("Base64 이미지 데이터가 비어있습니다.");
 
             log.info("✅ Base64 이미지 검증 예외 처리 확인");
@@ -242,7 +243,7 @@ class ResumeLlmClientServiceTest {
             // When & Then
             assertThatThrownBy(() -> resumeLlmClientService.convertResume(VALID_PROMPT))
                     .isInstanceOf(ResumeException.class)
-                    .hasMessage("이력서 변환에 실패했습니다.");
+                    .hasMessage("LLM API 호출에 실패했습니다.");
 
             log.info("✅ LLM API 호출 실패 예외 처리 확인");
             log.info("=== 테스트 완료 ===\n");
@@ -266,7 +267,7 @@ class ResumeLlmClientServiceTest {
             // When & Then
             assertThatThrownBy(() -> resumeLlmClientService.convertResume(VALID_PROMPT))
                     .isInstanceOf(ResumeException.class)
-                    .hasMessage("이력서 변환에 실패했습니다.");
+                    .hasMessage("LLM 응답 파싱에 실패했습니다.");
 
             log.info("✅ OpenAI 응답 파싱 실패 예외 처리 확인");
             log.info("=== 테스트 완료 ===\n");
@@ -283,28 +284,30 @@ class ResumeLlmClientServiceTest {
             log.info("=== 테스트 시작: Vision API 정상 호출 및 응답 파싱 ===");
 
             // Given
-            String visionResponse = """
-                    {
-                      "choices": [
-                        {
-                          "message": {
-                            "content": "%s"
-                          }
-                        }
-                      ]
-                    }
-                    """.formatted(VALID_JSON_RESPONSE);
-
-            given(resumeLlmFeignClient.analyzeVision(any(ResumeVisionRequest.class)))
-                    .willReturn(visionResponse);
             try {
+                ObjectMapper realMapper = new ObjectMapper();
+                com.fasterxml.jackson.databind.node.ObjectNode visionNode = realMapper.createObjectNode();
+                com.fasterxml.jackson.databind.node.ArrayNode choicesArray = realMapper.createArrayNode();
+                com.fasterxml.jackson.databind.node.ObjectNode choiceNode = realMapper.createObjectNode();
+                com.fasterxml.jackson.databind.node.ObjectNode messageNode = realMapper.createObjectNode();
+
+                messageNode.put("content", VALID_JSON_RESPONSE);
+                choiceNode.set("message", messageNode);
+                choicesArray.add(choiceNode);
+                visionNode.set("choices", choicesArray);
+
+                String visionResponse = realMapper.writeValueAsString(visionNode);
+
+                given(resumeLlmFeignClient.analyzeVision(any(ResumeVisionRequest.class)))
+                        .willReturn(visionResponse);
+
                 // Vision API 응답 JSON을 실제 ObjectMapper로 파싱하도록 Mock
-                com.fasterxml.jackson.databind.JsonNode actualVisionNode = new ObjectMapper().readTree(visionResponse);
-                given(objectMapper.readTree(visionResponse))
+                com.fasterxml.jackson.databind.JsonNode actualVisionNode = realMapper.readTree(visionResponse);
+                given(objectMapper.readTree(anyString()))
                         .willReturn(actualVisionNode);
 
                 // 추출된 content를 ResumeImportResponse로 파싱
-                given(objectMapper.readValue(eq(VALID_JSON_RESPONSE), eq(ResumeImportResponse.class)))
+                given(objectMapper.readValue(anyString(), eq(ResumeImportResponse.class)))
                         .willReturn(mockResponse);
             } catch (Exception e) {
                 // Mock 설정이므로 실제로는 발생하지 않음
@@ -339,7 +342,7 @@ class ResumeLlmClientServiceTest {
             assertThatThrownBy(() -> resumeLlmClientService.convertResumeWithVision(
                     VALID_PROMPT, VALID_BASE64_IMAGE))
                     .isInstanceOf(ResumeException.class)
-                    .hasMessage("이력서 이미지 변환에 실패했습니다.");
+                    .hasMessage("Vision API 호출에 실패했습니다.");
 
             log.info("✅ Vision API 호출 실패 예외 처리 확인");
             log.info("=== 테스트 완료 ===\n");
