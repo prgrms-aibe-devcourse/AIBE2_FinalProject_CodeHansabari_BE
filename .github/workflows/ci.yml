@@ -43,18 +43,19 @@ jobs:
       - name: Create source bundle deployment package
         run: |
           mkdir -p deployment-package
-          
-          # 전체 소스 코드 복사 (.ebextensions 포함하기 위해)
-          cp -r CVMento/* deployment-package/
-          
-          # JAR 파일을 application.jar로 복사 (EB가 인식하도록)
-          cp ${{ env.JAR_PATH }} deployment-package/application.jar
-          
+
+          # 모든 파일 복사 (숨겨진 디렉토리 포함)
+          cp -r CVMento/. deployment-package/
+
           # 불필요한 파일들 제거
           rm -rf deployment-package/build/
           rm -rf deployment-package/.gradle/
+          rm -rf deployment-package/.git/
           rm -rf deployment-package/src/test/
-          
+
+          # JAR 파일을 application.jar로 복사
+          cp ${{ env.JAR_PATH }} deployment-package/application.jar
+
           # .ebextensions 디렉토리가 있는지 확인
           if [ -d "deployment-package/.ebextensions" ]; then
             echo "✅ .ebextensions directory found"
@@ -62,9 +63,6 @@ jobs:
           else
             echo "❌ .ebextensions directory not found"
           fi
-          
-          echo "Deployment package structure:"
-          find deployment-package -type f \( -name "*.config" -o -name "*.jar" -o -name "Procfile" \) | sort
 
       - name: Create deployment ZIP
         run: |
