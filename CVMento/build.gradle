@@ -58,6 +58,11 @@ dependencies {
 	// OAuth2 Client
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
+	// Metrics & Monitoring (Micrometer + Prometheus)
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-core'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	// MySQL Driver
 	runtimeOnly 'mysql:mysql-connector-java:8.0.33'
 
@@ -81,7 +86,6 @@ dependencies {
 
 	// Spring Cloud OpenFeign
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.3.0'
-
 
 	// PDF processing
 	implementation 'org.apache.pdfbox:pdfbox:3.0.3'

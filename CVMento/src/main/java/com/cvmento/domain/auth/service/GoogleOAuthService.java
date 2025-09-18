@@ -8,6 +8,7 @@ import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.common.util.CookieUtil;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
@@ -48,6 +49,7 @@ public class GoogleOAuthService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final NewUserTokenInitializer newUserTokenInitializer;
+    private final MetricsService metricsService;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
@@ -111,6 +113,8 @@ public class GoogleOAuthService {
             setAuthenticationCookies(response, tokenDto);
 
             log.info("구글 OAuth 로그인 성공 - memberId: {}", member.getMemberId());
+
+            metricsService.incrementLoginCount();
 
             return new LoginResponse(
                     "구글 로그인이 완료되었습니다.",

@@ -29,7 +29,7 @@ jobs:
       - name: Validate confirmation
         run: |
           if [[ "${{ github.event.inputs.confirm_deploy }}" != "DEPLOY" ]]; then
-            echo "❌ Deployment cancelled - confirmation required"
+            echo "⛔ Deployment cancelled - confirmation required"
             exit 1
           fi
 
@@ -45,13 +45,13 @@ jobs:
       - name: Verify downloaded artifact
         run: |
           ls -la ./artifacts || true
-          JAR=$(find ./artifacts -name "*.jar" -type f | head -n1 || true)
-          if [ -z "$JAR" ]; then
-            echo "❌ No JAR found under ./artifacts"
+          SOURCE_BUNDLE=$(find ./artifacts -name "*source-bundle*.zip" -type f | head -n1 || true)
+          if [ -z "$SOURCE_BUNDLE" ]; then
+            echo "⛔ No source bundle ZIP found under ./artifacts"
             exit 1
           fi
-          echo "✅ Artifact: $JAR"
-          echo "JAR_PATH=$JAR" >> $GITHUB_ENV
+          echo "✅ Source Bundle: $SOURCE_BUNDLE"
+          echo "SOURCE_BUNDLE_PATH=$SOURCE_BUNDLE" >> $GITHUB_ENV
 
       - name: Get current time
         uses: josStorer/get-current-time@v2.0.2
@@ -69,12 +69,12 @@ jobs:
           environment_name: ${{ secrets.ENVIRONMENT_NAME }}
           version_label: production-deploy-${{ steps.current-time.outputs.formattedTime }}
           region: ${{ secrets.AWS_REGION }}
-          deployment_package: ${{ env.JAR_PATH }}
+          deployment_package: ${{ env.SOURCE_BUNDLE_PATH }}
 
       - name: Deployment Success
         if: success()
         run: |
           echo "🎉 Deployment completed successfully!"
-          echo "📦 Deployed artifact path: ${{ env.JAR_PATH }}"
-          echo "🏷️  Version: production-deploy-${{ steps.current-time.outputs.formattedTime }}"
+          echo "📦 Deployed source bundle: ${{ env.SOURCE_BUNDLE_PATH }}"
+          echo "🏷️ Version: production-deploy-${{ steps.current-time.outputs.formattedTime }}"
           echo "💬 Message: ${{ github.event.inputs.deploy_message }}"
