@@ -38,7 +38,7 @@ import java.util.Map;
 public class CoverLetterFeatureController implements CoverLetterFeatureControllerInterface {
 
     private final CoverLetterFeatureService coverLetterFeatureService;
-    private final FarthestFirstClusteringService farthestFirstClusteringService;
+    // private final FarthestFirstClusteringService farthestFirstClusteringService;  // 임시로 비활성화 (다른 서버로 분리 예정)
     private final CoverLetterFeatureQueryService coverLetterFeatureQueryService;
     private final RawCoverLetterFeatureQueryService rawCoverLetterFeatureQueryService;
 
@@ -61,49 +61,49 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     /**
      * 임베딩 기반 특징 중복제거 수행
      */
-    @PostMapping("/deduplicate")
-    public ResponseEntity<CommonResponse<List<CoverLetterFeature>>> deduplicateFeatures(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        MDC.put("spanId", "feature-deduplication-controller");
+    // @PostMapping("/deduplicate")  // 임시로 비활성화 (다른 서버로 분리 예정)
+//    public ResponseEntity<CommonResponse<List<CoverLetterFeature>>> deduplicateFeatures(
+//            @AuthenticationPrincipal UserDetails userDetails) {
+//        MDC.put("spanId", "feature-deduplication-controller");
+//
+//        String userEmail = userDetails.getUsername();
+//        log.info("임베딩 기반 특징 중복제거 실행 요청 - 사용자: {}", userEmail);
+//
+//        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
+//        log.info("특징 중복제거 실행 성공 - 최종 특징 개수: {}", finalFeatures.size());
+//        return ResponseEntity.ok(CommonResponse.success("Farthest-First 클러스터링 기반 특징 중복제거가 완료되었습니다. cover_letter_features 테이블에 저장되었습니다.", finalFeatures));
+//    }
 
-        String userEmail = userDetails.getUsername();
-        log.info("임베딩 기반 특징 중복제거 실행 요청 - 사용자: {}", userEmail);
 
-        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
-        log.info("특징 중복제거 실행 성공 - 최종 특징 개수: {}", finalFeatures.size());
-        return ResponseEntity.ok(CommonResponse.success("Farthest-First 클러스터링 기반 특징 중복제거가 완료되었습니다. cover_letter_features 테이블에 저장되었습니다.", finalFeatures));
-    }
-
-
-    @PostMapping("/process")
-    @Override
-    public ResponseEntity<CommonResponse<Object>> extractFeaturesWithRealtimeAPI(UserDetails userDetails) {
-        log.info("전체 특징 처리 시작 - 사용자: {}", userDetails.getUsername());
-
-        // 1단계: 특징 추출
-        log.info("1단계: 특징 추출 시작");
-        List<RawCoverLetterFeature> rawFeatures = coverLetterFeatureService.extractFeaturesFromCrawledData();
-        log.info("1단계 완료: {}개 특징 추출", rawFeatures.size());
-
-        // 2단계: 중복제거
-        log.info("2단계: Farthest-First 클러스터링 기반 중복제거 시작");
-        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
-        log.info("2단계 완료: {}개 최종 특징 선정", finalFeatures.size());
-
-        // 결과 요약 생성
-        Map<String, Object> result = new HashMap<>();
-        result.put("rawFeaturesCount", rawFeatures.size());
-        result.put("finalFeaturesCount", finalFeatures.size());
-        result.put("deduplicationRatio", String.format("%.1f%%", (1.0 - (double) finalFeatures.size() / rawFeatures.size()) * 100));
-        result.put("batchSize", 2);
-        result.put("totalBatches", (int) Math.ceil(rawFeatures.size() / 6.0)); // 2개 자소서 * 3개 특징 = 6개
-        result.put("status", "COMPLETE");
-        result.put("message", "전체 특징 처리가 완료되었습니다.");
-
-        log.info("전체 특징 처리 완료 - 원본: {}개, 최종: {}개", rawFeatures.size(), finalFeatures.size());
-
-        return ResponseEntity.ok(CommonResponse.success("전체 특징 처리가 완료되었습니다.", result));
-    }
+    // @PostMapping("/process")  // 임시로 비활성화 (다른 서버로 분리 예정)
+//    @Override
+//    public ResponseEntity<CommonResponse<Object>> extractFeaturesWithRealtimeAPI(UserDetails userDetails) {
+//        log.info("전체 특징 처리 시작 - 사용자: {}", userDetails.getUsername());
+//
+//        // 1단계: 특징 추출
+//        log.info("1단계: 특징 추출 시작");
+//        List<RawCoverLetterFeature> rawFeatures = coverLetterFeatureService.extractFeaturesFromCrawledData();
+//        log.info("1단계 완료: {}개 특징 추출", rawFeatures.size());
+//
+//        // 2단계: 중복제거
+//        log.info("2단계: Farthest-First 클러스터링 기반 중복제거 시작");
+//        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
+//        log.info("2단계 완료: {}개 최종 특징 선정", finalFeatures.size());
+//
+//        // 결과 요약 생성
+//        Map<String, Object> result = new HashMap<>();
+//        result.put("rawFeaturesCount", rawFeatures.size());
+//        result.put("finalFeaturesCount", finalFeatures.size());
+//        result.put("deduplicationRatio", String.format("%.1f%%", (1.0 - (double) finalFeatures.size() / rawFeatures.size()) * 100));
+//        result.put("batchSize", 2);
+//        result.put("totalBatches", (int) Math.ceil(rawFeatures.size() / 6.0)); // 2개 자소서 * 3개 특징 = 6개
+//        result.put("status", "COMPLETE");
+//        result.put("message", "전체 특징 처리가 완료되었습니다.");
+//
+//        log.info("전체 특징 처리 완료 - 원본: {}개, 최종: {}개", rawFeatures.size(), finalFeatures.size());
+//
+//        return ResponseEntity.ok(CommonResponse.success("전체 특징 처리가 완료되었습니다.", result));
+//    }
 
     /**
      * 모든 특징을 페이징으로 조회 (생성일 기준 내림차순)

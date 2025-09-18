@@ -82,111 +82,111 @@ public interface CoverLetterFeatureControllerInterface {
 
 
 
-    @Operation(
-            summary = "(관리자용) Farthest-First 클러스터링 기반 특징 중복 제거",
-            description = """
-                    `raw_cover_letter_feature` 테이블에 저장된 모든 원본 특징들을 대상으로 Farthest-First 클러스터링을 수행하여 중복을 제거하고,
-                    핵심 대표 특징 100개를 선정하여 `cover_letter_feature` 테이블에 저장합니다.
-                    
-                    **Farthest-First 클러스터링의 장점:**
-                    - k-center 문제에 대한 탐욕 알고리즘으로, 의미적으로 다양한 특징을 균등하게 선택
-                    - 각 카테고리별로 정확한 수의 대표 특징(클러스터) 보장 (EXPRESSION: 34개, STRUCTURE: 33개, CONTENT: 33개)
-                    - 메도이드(Medoid) 보정을 통해 클러스터의 품질 향상
-                    
-                    **주요 처리 과정:**
-                    1. `raw_cover_letter_feature` 테이블에서 모든 특징 조회
-                    2. 카테고리별로 그룹화 (EXPRESSION, STRUCTURE, CONTENT)
-                    3. 각 카테고리별 Farthest-First 클러스터링 수행
-                    4. 초기 중복 제거(유사도 0.98 이상), 임베딩 생성 및 정규화
-                    5. 대표 특징 선택 및 메도이드 보정
-                    6. 최종 100개의 특징을 `cover_letter_feature` 테이블에 저장
-                    
-                    **권한:** ADMIN 또는 ROOT만 접근 가능
-                    """,
-            security = @SecurityRequirement(name = "cookieAuth"),
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "중복 제거 성공",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = CommonResponse.class)
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "권한 없음 - 관리자 권한이 필요합니다",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "500",
-                            description = "서버 오류 - 중복제거 중 오류 발생",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    )
-            }
-    )
-    ResponseEntity<CommonResponse<List<CoverLetterFeature>>> deduplicateFeatures(
-            @AuthenticationPrincipal UserDetails userDetails
-    );
+//    @Operation(
+//            summary = "(관리자용) Farthest-First 클러스터링 기반 특징 중복 제거",
+//            description = """
+//                    `raw_cover_letter_feature` 테이블에 저장된 모든 원본 특징들을 대상으로 Farthest-First 클러스터링을 수행하여 중복을 제거하고,
+//                    핵심 대표 특징 100개를 선정하여 `cover_letter_feature` 테이블에 저장합니다.
+//
+//                    **Farthest-First 클러스터링의 장점:**
+//                    - k-center 문제에 대한 탐욕 알고리즘으로, 의미적으로 다양한 특징을 균등하게 선택
+//                    - 각 카테고리별로 정확한 수의 대표 특징(클러스터) 보장 (EXPRESSION: 34개, STRUCTURE: 33개, CONTENT: 33개)
+//                    - 메도이드(Medoid) 보정을 통해 클러스터의 품질 향상
+//
+//                    **주요 처리 과정:**
+//                    1. `raw_cover_letter_feature` 테이블에서 모든 특징 조회
+//                    2. 카테고리별로 그룹화 (EXPRESSION, STRUCTURE, CONTENT)
+//                    3. 각 카테고리별 Farthest-First 클러스터링 수행
+//                    4. 초기 중복 제거(유사도 0.98 이상), 임베딩 생성 및 정규화
+//                    5. 대표 특징 선택 및 메도이드 보정
+//                    6. 최종 100개의 특징을 `cover_letter_feature` 테이블에 저장
+//
+//                    **권한:** ADMIN 또는 ROOT만 접근 가능
+//                    """,
+//            security = @SecurityRequirement(name = "cookieAuth"),
+//            responses = {
+//                    @ApiResponse(
+//                            responseCode = "200",
+//                            description = "중복 제거 성공",
+//                            content = @Content(
+//                                    mediaType = "application/json",
+//                                    schema = @Schema(implementation = CommonResponse.class)
+//                            )
+//                    ),
+//                    @ApiResponse(
+//                            responseCode = "403",
+//                            description = "권한 없음 - 관리자 권한이 필요합니다",
+//                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
+//                    ),
+//                    @ApiResponse(
+//                            responseCode = "500",
+//                            description = "서버 오류 - 중복제거 중 오류 발생",
+//                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
+//                    )
+//            }
+//    )
+//    ResponseEntity<CommonResponse<List<CoverLetterFeature>>> deduplicateFeatures(
+//            @AuthenticationPrincipal UserDetails userDetails
+//    );
     
-    @Operation(
-            summary = "(관리자용) 자소서 특징 추출 및 중복 제거 전체 프로세스 실행",
-            description = """
-                    자소서 특징 추출부터 Farthest-First 클러스터링 기반 중복 제거까지의 전체 프로세스를 한 번에 실행합니다.
-                    
-                    **전체 처리 과정:**
-                    1. **특징 추출**: 크롤링된 자소서에서 원본 특징을 추출하여 `raw_cover_letter_feature` 테이블에 저장합니다.
-                    2. **중복 제거**: 추출된 원본 특징을 Farthest-First 클러스터링으로 분석하여 대표 특징 100개를 `cover_letter_feature` 테이블에 저장합니다.
-                    3. **결과 요약 반환**: 처리된 특징의 수, 중복 제거 비율 등의 통계 정보를 반환합니다.
-                    
-                    **예상 처리 시간:** 약 20-25분 (추출: 15-20분, 중복 제거: 5분)
-                    **권한:** ADMIN 또는 ROOT만 접근 가능
-                    """,
-            security = @SecurityRequirement(name = "cookieAuth"),
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "전체 특징 처리 성공",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = CommonResponse.class),
-                                    examples = {
-                                            @ExampleObject(
-                                                    name = "전체 처리 완료",
-                                                    value = """
-                                                            {
-                                                              "success": true,
-                                                              "message": "전체 특징 처리가 완료되었습니다.",
-                                                              "data": {
-                                                                "rawFeaturesCount": 942,
-                                                                "finalFeaturesCount": 100,
-                                                                "deduplicationRatio": "89.4%",
-                                                                "batchSize": 2,
-                                                                "totalBatches": 157,
-                                                                "status": "COMPLETE",
-                                                                "message": "전체 특징 처리가 완료되었습니다."
-                                                              }
-                                                            }
-                                                            """
-                                            )
-                                    }
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "권한 없음 - 관리자 권한이 필요합니다",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "500",
-                            description = "서버 오류 - 전체 특징 처리 중 오류 발생",
-                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
-                    )
-            }
-    )
-    ResponseEntity<CommonResponse<Object>> extractFeaturesWithRealtimeAPI(
-            @AuthenticationPrincipal UserDetails userDetails
-    );
+//    @Operation(
+//            summary = "(관리자용) 자소서 특징 추출 및 중복 제거 전체 프로세스 실행",
+//            description = """
+//                    자소서 특징 추출부터 Farthest-First 클러스터링 기반 중복 제거까지의 전체 프로세스를 한 번에 실행합니다.
+//
+//                    **전체 처리 과정:**
+//                    1. **특징 추출**: 크롤링된 자소서에서 원본 특징을 추출하여 `raw_cover_letter_feature` 테이블에 저장합니다.
+//                    2. **중복 제거**: 추출된 원본 특징을 Farthest-First 클러스터링으로 분석하여 대표 특징 100개를 `cover_letter_feature` 테이블에 저장합니다.
+//                    3. **결과 요약 반환**: 처리된 특징의 수, 중복 제거 비율 등의 통계 정보를 반환합니다.
+//
+//                    **예상 처리 시간:** 약 20-25분 (추출: 15-20분, 중복 제거: 5분)
+//                    **권한:** ADMIN 또는 ROOT만 접근 가능
+//                    """,
+//            security = @SecurityRequirement(name = "cookieAuth"),
+//            responses = {
+//                    @ApiResponse(
+//                            responseCode = "200",
+//                            description = "전체 특징 처리 성공",
+//                            content = @Content(
+//                                    mediaType = "application/json",
+//                                    schema = @Schema(implementation = CommonResponse.class),
+//                                    examples = {
+//                                            @ExampleObject(
+//                                                    name = "전체 처리 완료",
+//                                                    value = """
+//                                                            {
+//                                                              "success": true,
+//                                                              "message": "전체 특징 처리가 완료되었습니다.",
+//                                                              "data": {
+//                                                                "rawFeaturesCount": 942,
+//                                                                "finalFeaturesCount": 100,
+//                                                                "deduplicationRatio": "89.4%",
+//                                                                "batchSize": 2,
+//                                                                "totalBatches": 157,
+//                                                                "status": "COMPLETE",
+//                                                                "message": "전체 특징 처리가 완료되었습니다."
+//                                                              }
+//                                                            }
+//                                                            """
+//                                            )
+//                                    }
+//                            )
+//                    ),
+//                    @ApiResponse(
+//                            responseCode = "403",
+//                            description = "권한 없음 - 관리자 권한이 필요합니다",
+//                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
+//                    ),
+//                    @ApiResponse(
+//                            responseCode = "500",
+//                            description = "서버 오류 - 전체 특징 처리 중 오류 발생",
+//                            content = @Content(schema = @Schema(implementation = CommonResponse.class))
+//                    )
+//            }
+//    )
+//    ResponseEntity<CommonResponse<Object>> extractFeaturesWithRealtimeAPI(
+//            @AuthenticationPrincipal UserDetails userDetails
+//    );
 
     @Operation(
             summary = "자소서 특징 전체 조회 (페이징)",
@@ -361,7 +361,7 @@ public interface CoverLetterFeatureControllerInterface {
     @Operation(
             summary = "카테고리별 원본 자소서 특징 조회 (페이징, 중복 순 정렬)",
             description = """
-                    특정 카테고리(EXPRESSION, STRUCTURE, CONTENT)에 해당하는 원본(Raw) 자소서 특징을 페이징으로 조회합니다. (주로 관리자용)
+                    특정 카테고리(EXPRESSION, STRUCTURE, CONTENT)에 해당하는 원본(Raw) 자소서 특징을 페이징으로 조회합니다.
                     
                     **동작 방식:**
                     - 기본적으로 중복 횟수(`duplicateCount`)가 많은 순으로 정렬됩니다.

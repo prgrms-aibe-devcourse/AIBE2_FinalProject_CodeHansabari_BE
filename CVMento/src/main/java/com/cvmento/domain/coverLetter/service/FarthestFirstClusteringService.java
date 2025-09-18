@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * - 서로 가장 멀리 떨어진 대표 k개를 선택 후 나머지를 할당
  * - 정확한 클러스터 수 보장 및 의미 공간의 균등한 커버리지
  */
-@Service
+// @Service  // 임시로 비활성화 (다른 서버로 분리 예정)
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)

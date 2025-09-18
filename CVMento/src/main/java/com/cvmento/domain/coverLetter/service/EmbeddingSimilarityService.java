@@ -25,7 +25,7 @@ import java.util.*;
  * - 배치 처리로 성능 최적화
  * - 코사인 유사도 기반 클러스터링
  */
-@Service
+// @Service  // 임시로 비활성화 (다른 서버로 분리 예정)
 @Slf4j
 public class EmbeddingSimilarityService {
 
