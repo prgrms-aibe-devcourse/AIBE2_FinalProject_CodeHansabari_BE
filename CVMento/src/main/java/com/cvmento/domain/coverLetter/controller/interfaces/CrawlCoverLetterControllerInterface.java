@@ -18,8 +18,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-@Tag(name = "자소서 크롤링", description = "자소서 크롤링 API - Linkareer API를 통한 합격 자소서 데이터 수집 및 관리")
+@Tag(name = "자소서 크롤링", description = "자소서 크롤링 관리 API. 외부 사이트에서 합격 자소서를 수집(크롤링)하고, 관리하는 기능을 제공합니다.")
 public interface CrawlCoverLetterControllerInterface {
 
     @Operation(
@@ -97,27 +98,18 @@ public interface CrawlCoverLetterControllerInterface {
     @Operation(
             summary = "크롤링 데이터 페이징 조회",
             description = """
-                    크롤링된 자소서 데이터를 페이징으로 조회합니다. (권장 방식)
+                    크롤링으로 수집된 원본 자소서 데이터를 페이징으로 조회합니다.
+                    프론트엔드 관리자 페이지에서 수집된 데이터를 확인하는 용도로 사용할 수 있습니다.
                     
-                    **페이징 파라미터 (URL Query String):**
-                    - page: 페이지 번호 (0부터 시작, 기본값: 0)
-                    - size: 페이지 크기 (기본값: 20, 최대: 100)
-                    - sort: 정렬 필드와 방향 (예: sort=createdAt,desc)
-                    
-                    **응답 정보 (Spring Page 객체):**
-                    - content: 현재 페이지의 데이터 목록
-                    - totalElements: 전체 데이터 개수
-                    - totalPages: 전체 페이지 수
-                    - number: 현재 페이지 번호 (0부터 시작)
-                    - size: 페이지 크기
-                    - sort: 정렬 정보
-                    - first: 첫 페이지 여부
-                    - last: 마지막 페이지 여부
-                    - empty: 내용 없음 여부
+                    **페이징 및 정렬 파라미터:**
+                    - `page`: 조회할 페이지 번호 (0부터 시작, 기본값: 0)
+                    - `size`: 한 페이지에 보여줄 데이터 개수 (기본값: 20)
+                    - `sort`: 정렬 기준. `{필드명},{ASC|DESC}` 형식으로 전달합니다.
+                      - **정렬 가능 필드**: `createdAt`(생성일), `updatedAt`(수정일)
                     
                     **사용 예시:**
-                    - 첫 번째 페이지: ?page=0&size=20
-                    - 생성일 내림차순 정렬: ?sort=createdAt,desc
+                    - 첫 페이지 조회: `?page=0&size=20`
+                    - 수정일 내림차순 정렬: `?sort=updatedAt,desc`
                     
                     **권한:** 관리자(ADMIN) 또는 최상위 관리자(ROOT)만 접근 가능
                     """,
