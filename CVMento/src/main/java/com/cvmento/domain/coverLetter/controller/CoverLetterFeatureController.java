@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -105,23 +106,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     }
 
     /**
-     * Farthest-First 클러스터링 기반 중복제거
-     */
-    @PostMapping("/deduplicate/farthest-first")
-    public ResponseEntity<CommonResponse<List<CoverLetterFeature>>> deduplicateFeaturesWithFarthestFirst(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        MDC.put("spanId", "feature-deduplication-farthest-first-controller");
-
-        String userEmail = userDetails.getUsername();
-        log.info("Farthest-First 클러스터링 기반 중복제거 실행 요청 - 사용자: {}",
-                userEmail);
-
-        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
-        log.info("Farthest-First 중복제거 실행 성공 - 최종 특징 개수: {}", finalFeatures.size());
-        return ResponseEntity.ok(CommonResponse.success("Farthest-First 클러스터링 기반 중복제거가 완료되었습니다. 942개 → 100개 클러스터로 압축되었습니다.", finalFeatures));
-    }
-
-    /**
      * 모든 특징을 페이징으로 조회 (생성일 기준 내림차순)
      */
     @GetMapping("/")
@@ -150,7 +134,7 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     @GetMapping("/category/{category}")
     public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByCategoryWithPagination(
             @PathVariable FeaturesCategory category,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         MDC.put("spanId", "feature-query-controller-category");
@@ -160,56 +144,9 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                 userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
 
         Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
-                .getFeaturesByCategoryWithPagination(category, pageable);
-
-        log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
-                category, response.getTotalElements(), response.getTotalPages());
-
-        return ResponseEntity.ok(CommonResponse.success(response));
-    }
-
-    /**
-     * 중복횟수 기준 내림차순으로 페이징 조회
-     */
-    @GetMapping("/by-duplicate-count")
-    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByDuplicateCountWithPagination(
-            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
-            @AuthenticationPrincipal UserDetails userDetails) {
-
-        MDC.put("spanId", "feature-query-controller-duplicate-count");
-
-        String userEmail = userDetails.getUsername();
-        log.info("중복횟수 기준 특징 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}",
-                userEmail, pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
-                .getFeaturesByDuplicateCountWithPagination(pageable);
-
-        log.info("중복횟수 기준 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
-                response.getTotalElements(), response.getTotalPages());
-
-        return ResponseEntity.ok(CommonResponse.success(response));
-    }
-
-    /**
-     * 특정 카테고리에서 중복횟수 기준 내림차순으로 페이징 조회
-     */
-    @GetMapping("/category/{category}/by-duplicate-count")
-    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByCategoryAndDuplicateCountWithPagination(
-            @PathVariable FeaturesCategory category,
-            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
-            @AuthenticationPrincipal UserDetails userDetails) {
-
-        MDC.put("spanId", "feature-query-controller-category-duplicate-count");
-
-        String userEmail = userDetails.getUsername();
-        log.info("카테고리별 중복횟수 기준 특징 페이징 조회 요청 - 사용자: {}, 카테고리: {}, 페이지: {}, 크기: {}",
-                userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
                 .getFeaturesByCategoryAndDuplicateCountWithPagination(category, pageable);
 
-        log.info("카테고리별 중복횟수 기준 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
+        log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
                 category, response.getTotalElements(), response.getTotalPages());
 
         return ResponseEntity.ok(CommonResponse.success(response));
@@ -261,7 +198,7 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     @Override
     public ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesByCategoryPaged(
             @PathVariable FeaturesCategory category,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "raw-feature-query-controller-category");
 
