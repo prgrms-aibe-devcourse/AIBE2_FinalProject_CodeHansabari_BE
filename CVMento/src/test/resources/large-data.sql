@@ -32,16 +32,16 @@ SELECT
     DATEADD('DAY', -FLOOR(RAND() * 90), NOW()) as updated_at
 FROM SYSTEM_RANGE(1, 752) as t(n);
 
--- DELETED USER들 (188명: id 4514~4701)
+-- SUSPENDED USER들 (188명: id 4514~4701)
 INSERT INTO members (member_id, google_id, email, name, profile_img, role, status, created_at, updated_at)
 SELECT
     n + 4513 as member_id,
     CONCAT('google-user-', n + 4513) as google_id,
-    CONCAT('deleted', n, '@example.com') as email,
-    CONCAT('삭제된사용자', n) as name,
+    CONCAT('suspended', n, '@example.com') as email,
+    CONCAT('정지된사용자', n) as name,
     CONCAT('https://example.com/profile', n + 4513, '.jpg') as profile_img,
     'USER' as role,
-    'DELETED' as status,
+    'SUSPENDED' as status,
     DATEADD('DAY', -FLOOR(RAND() * 365), NOW()) as created_at,
     DATEADD('DAY', -FLOOR(RAND() * 180), NOW()) as updated_at
 FROM SYSTEM_RANGE(1, 188) as t(n);
@@ -74,29 +74,29 @@ SELECT
     DATEADD('DAY', -FLOOR(RAND() * 60), NOW()) as updated_at
 FROM SYSTEM_RANGE(1, 12) as t(n);
 
--- ACTIVE SUPER_ADMIN들 (48명: id 4952~4999)
+-- ACTIVE ROOT들 (48명: id 4952~4999)
 INSERT INTO members (member_id, google_id, email, name, profile_img, role, status, created_at, updated_at)
 SELECT
     n + 4951 as member_id,
-    CONCAT('google-super-', n + 4951) as google_id,
-    CONCAT('super', n, '@company.com') as email,
-    CONCAT('슈퍼관리자', n) as name,
-    CONCAT('https://example.com/super', n, '.jpg') as profile_img,
-    'SUPER_ADMIN' as role,
+    CONCAT('google-root-', n + 4951) as google_id,
+    CONCAT('root', n, '@company.com') as email,
+    CONCAT('루트관리자', n) as name,
+    CONCAT('https://example.com/root', n, '.jpg') as profile_img,
+    'ROOT' as role,
     'ACTIVE' as status,
     DATEADD('DAY', -FLOOR(RAND() * 180), NOW()) as created_at,
     DATEADD('DAY', -FLOOR(RAND() * 3), NOW()) as updated_at
 FROM SYSTEM_RANGE(1, 48) as t(n);
 
--- INACTIVE SUPER_ADMIN들 (2명: id 5000~5001)
+-- INACTIVE ROOT들 (2명: id 5000~5001)
 INSERT INTO members (member_id, google_id, email, name, profile_img, role, status, created_at, updated_at)
 SELECT
     n + 4999 as member_id,
-    CONCAT('google-super-', n + 4999) as google_id,
-    CONCAT('inactive-super', n, '@company.com') as email,
-    CONCAT('비활성슈퍼관리자', n) as name,
-    CONCAT('https://example.com/super', n + 4999, '.jpg') as profile_img,
-    'SUPER_ADMIN' as role,
+    CONCAT('google-root-', n + 4999) as google_id,
+    CONCAT('inactive-root', n, '@company.com') as email,
+    CONCAT('비활성루트관리자', n) as name,
+    CONCAT('https://example.com/root', n + 4999, '.jpg') as profile_img,
+    'ROOT' as role,
     'INACTIVE' as status,
     DATEADD('DAY', -FLOOR(RAND() * 365), NOW()) as created_at,
     DATEADD('DAY', -FLOOR(RAND() * 120), NOW()) as updated_at
