@@ -85,3 +85,27 @@ cloud:
 resume:
   import:
     strategy: lambda
+
+gemini:
+  api:
+    feature-extraction:
+      url: https://generativelanguage.googleapis.com/v1beta
+      key: dummy-test-gemini-key
+
+# 임베딩 모델 설정
+embedding:
+  model:
+    url: "djl://ai.djl.huggingface.pytorch/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    threshold: 0.75
+  cache:
+    dir: "${user.home}/.djl-cache"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
