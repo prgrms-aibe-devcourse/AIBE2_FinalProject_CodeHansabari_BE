@@ -1,7 +1,9 @@
 -- 벤치마크용 대량 데이터 생성 (H2 동적 생성)
+-- ENUM 값들과 정확히 일치하도록 수정
 -- 자소서: 5천개, 이력서: 2500개
 
 -- 1. 자소서 데이터 5천개 생성 (member_id 1~5000 기준)
+-- CoverLetterStatus: ACTIVE, DELETED
 INSERT INTO cover_letter (title, content, job_field, experience_years, member_id, status, created_at, updated_at)
 SELECT
     CONCAT('자기소개서 ', n) as title,
@@ -20,30 +22,31 @@ SELECT
     CASE
         WHEN n <= 5000 THEN n
         ELSE 1
-    END as member_id,
-    CASE WHEN MOD(n, 10) = 0 THEN 'INACTIVE' ELSE 'ACTIVE' END as status,
+        END as member_id,
+    CASE WHEN MOD(n, 10) = 0 THEN 'DELETED' ELSE 'ACTIVE' END as status,
     DATEADD('DAY', -FLOOR(RAND() * 365), NOW()) as created_at,
     DATEADD('DAY', -FLOOR(RAND() * 30), NOW()) as updated_at
 FROM SYSTEM_RANGE(1, 5000) as t(n);
 
 -- 2. 이력서 데이터 2500개 생성 (member_id 1~2500 기준)
-INSERT INTO resume (title, resume_type, name, email, birth_year, phone, career_type, desired_position, member_id, status, created_at, updated_at)
+-- ResumeType: DEFAULT, MODERN
+-- CareerType: FRESHMAN, EXPERIENCED (NEW_GRADUATE, CAREER_CHANGE 제거)
+-- ResumeStatus: ACTIVE, DELETED
+INSERT INTO resume (title, type, name, email, birth_year, phone, career_type, desired_position, member_id, status, created_at, updated_at)
 SELECT
     CONCAT('이력서 ', n) as title,
-    'DEFAULT' as resume_type,
+    CASE WHEN MOD(n, 2) = 0 THEN 'DEFAULT' ELSE 'MODERN' END as type,
     CONCAT('개발자', n) as name,
     CONCAT('dev', n, '@example.com') as email,
     (1990 + MOD(n, 15)) as birth_year,
     CONCAT('010-', LPAD(MOD(n, 9999), 4, '0'), '-', LPAD(MOD(n*7, 9999), 4, '0')) as phone,
-    CASE WHEN MOD(n, 3) = 0 THEN 'NEW_GRADUATE'
-         WHEN MOD(n, 3) = 1 THEN 'EXPERIENCED'
-         ELSE 'CAREER_CHANGE' END as career_type,
+    CASE WHEN MOD(n, 2) = 0 THEN 'FRESHMAN' ELSE 'EXPERIENCED' END as career_type,
     CASE WHEN MOD(n, 4) = 0 THEN '백엔드 개발자'
          WHEN MOD(n, 4) = 1 THEN '프론트엔드 개발자'
          WHEN MOD(n, 4) = 2 THEN '풀스택 개발자'
          ELSE 'DevOps 엔지니어' END as desired_position,
     n as member_id,
-    CASE WHEN MOD(n, 8) = 0 THEN 'INACTIVE' ELSE 'ACTIVE' END as status,
+    CASE WHEN MOD(n, 8) = 0 THEN 'DELETED' ELSE 'ACTIVE' END as status,
     DATEADD('DAY', -FLOOR(RAND() * 365), NOW()) as created_at,
     DATEADD('DAY', -FLOOR(RAND() * 60), NOW()) as updated_at
 FROM SYSTEM_RANGE(1, 2500) as t(n);
@@ -53,3 +56,5 @@ FROM SYSTEM_RANGE(1, 2500) as t(n);
 -- SELECT COUNT(*) as total_resumes FROM resume;
 -- SELECT status, COUNT(*) FROM cover_letter GROUP BY status;
 -- SELECT status, COUNT(*) FROM resume GROUP BY status;
+-- SELECT career_type, COUNT(*) FROM resume GROUP BY career_type;
+-- SELECT resume_type, COUNT(*) FROM resume GROUP BY resume_type;
