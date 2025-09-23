@@ -4,10 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "tech_stack", indexes = {
-    @Index(name = "idx_tech_stack_name", columnList = "name"),
-    @Index(name = "idx_tech_stack_category", columnList = "category")
-})
+@Table(name = "tech_stack")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TechStack {
