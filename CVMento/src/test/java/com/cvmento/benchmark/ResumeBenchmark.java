@@ -58,7 +58,8 @@ public class ResumeBenchmark {
 
     /**
      * 사용자별 이력서 목록 조회 (페이징)
-     * 인덱스: member_id, status, updated_at
+     * - 가장 중요한 사용자 시나리오
+     * - 인덱스: member_email, status, updated_at
      */
     @Benchmark
     public Page<Resume> 사용자별_이력서목록() {
@@ -67,48 +68,39 @@ public class ResumeBenchmark {
     }
 
     /**
-     * 사용자와 ID로 이력서 조회
-     * 인덱스: member_id
+     * 사용자별 이력서 상세 조회
+     * - 두 번째로 중요한 사용자 시나리오
+     * - 인덱스: member_email, status
      */
     @Benchmark
-    public Optional<Resume> 사용자별_이력서조회() {
+    public Page<Resume> 사용자별_이력서상세조회() {
+        return resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
+                testEmail, ResumeStatus.ACTIVE, PageRequest.of(0, 1));
+    }
+
+    /**
+     * 이력서 저장(생성/수정)
+     * - 세 번째로 중요한 사용자 시나리오
+     * - 인덱스: member_email, status, updated_at (저장 시 인덱스 업데이트)
+     */
+    @Benchmark
+    public Resume 이력서_저장() {
         Optional<Member> member = memberRepository.findByEmail(testEmail);
         if (member.isPresent()) {
-            return resumeRepository.findByIdAndMember(1L, member.get());
+            Resume resume = Resume.createResume(
+                "벤치마크 테스트 이력서",
+                com.cvmento.domain.resume.enums.ResumeType.DEFAULT,
+                "홍길동",
+                testEmail,
+                1990,
+                "010-1234-5678",
+                com.cvmento.domain.resume.enums.CareerType.EXPERIENCED,
+                "백엔드 개발",
+                member.get()
+            );
+            return resumeRepository.save(resume);
         }
-        return Optional.empty();
-    }
-
-    /**
-     * 사용자+상태+ID로 이력서 조회
-     * 인덱스: member_id, status 복합
-     */
-    @Benchmark
-    public Optional<Resume> 사용자별_활성이력서조회() {
-        Optional<Member> member = memberRepository.findByEmail(testEmail);
-        if (member.isPresent()) {
-            return resumeRepository.findByIdAndMemberAndStatus(1L, member.get(), ResumeStatus.ACTIVE);
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * 상태와 ID로 이력서 조회
-     * 인덱스: status
-     */
-    @Benchmark
-    public Optional<Resume> 상태별_이력서조회() {
-        return resumeRepository.findByIdAndStatus(1L, ResumeStatus.ACTIVE);
-    }
-
-    /**
-     * 상태와 수정시간으로 이력서 조회 (정리용)
-     * 인덱스: status, updated_at 복합
-     */
-    @Benchmark
-    public List<Resume> 오래된_삭제된이력서조회() {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
-        return resumeRepository.findByStatusAndUpdatedAtBefore(ResumeStatus.DELETED, cutoff);
+        return null;
     }
 
     public static void main(String[] args) throws Exception {
