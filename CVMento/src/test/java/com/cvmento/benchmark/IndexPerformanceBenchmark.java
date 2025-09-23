@@ -8,7 +8,10 @@ import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
 import com.cvmento.domain.member.enums.UserStatus;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.domain.resume.entity.TechStack;
+import com.cvmento.domain.resume.enums.ResumeStatus;
+import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.domain.resume.repository.TechStackRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.openjdk.jmh.annotations.*;
@@ -46,6 +49,7 @@ public class IndexPerformanceBenchmark {
     private static ConfigurableApplicationContext context;
     private MemberRepository memberRepository;
     private CoverLetterRepository coverLetterRepository;
+    private ResumeRepository resumeRepository;
     private TechStackRepository techStackRepository;
 
     // 테스트용 데이터 (data.sql에서 생성됨)
@@ -64,6 +68,7 @@ public class IndexPerformanceBenchmark {
 
         memberRepository = context.getBean(MemberRepository.class);
         coverLetterRepository = context.getBean(CoverLetterRepository.class);
+        resumeRepository = context.getBean(ResumeRepository.class);
         techStackRepository = context.getBean(TechStackRepository.class);
 
         log.info("=== Spring Boot 컨텍스트 로딩 완료 ===");
@@ -71,10 +76,11 @@ public class IndexPerformanceBenchmark {
         // 데이터 존재 확인
         long memberCount = memberRepository.count();
         long coverLetterCount = coverLetterRepository.count();
+        long resumeCount = resumeRepository.count();
         long techStackCount = techStackRepository.count();
 
-        log.info("테스트 데이터 확인 - 회원: {}명, 자소서: {}개, 기술스택: {}개",
-                memberCount, coverLetterCount, techStackCount);
+        log.info("테스트 데이터 확인 - 회원: {}명, 자소서: {}개, 이력서: {}개, 기술스택: {}개",
+                memberCount, coverLetterCount, resumeCount, techStackCount);
     }
 
     @TearDown(Level.Trial)
@@ -137,6 +143,27 @@ public class IndexPerformanceBenchmark {
     @Benchmark
     public List<CoverLetter> 자소서_전체목록_최신순() {
         return coverLetterRepository.findAllByOrderByUpdatedAtDesc();
+    }
+
+    // ========== 이력서 조회 테스트 ==========
+
+    /**
+     * 사용자별 이력서 목록 조회 (페이징)
+     * 인덱스 필요: member_id, status
+     */
+    @Benchmark
+    public Page<Resume> 이력서_사용자별_목록조회() {
+        return resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
+                testEmail, ResumeStatus.ACTIVE, pageable);
+    }
+
+    /**
+     * 상태별 이력서 조회
+     * 인덱스 필요: status
+     */
+    @Benchmark
+    public Optional<Resume> 이력서_상태별_조회() {
+        return resumeRepository.findByIdAndStatus(1L, ResumeStatus.ACTIVE);
     }
 
     // ========== 기술스택 조회 테스트 ==========
