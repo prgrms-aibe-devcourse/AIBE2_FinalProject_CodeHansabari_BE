@@ -32,7 +32,7 @@ FROM SYSTEM_RANGE(1, 5000) as t(n);
 -- ResumeType: DEFAULT, MODERN
 -- CareerType: FRESHMAN, EXPERIENCED (NEW_GRADUATE, CAREER_CHANGE 제거)
 -- ResumeStatus: ACTIVE, DELETED
-INSERT INTO resume (title, type, name, email, birth_year, phone, career_type, desired_position, member_id, status, created_at, updated_at)
+INSERT INTO resume (title, type, name, email, birth_year, phone, career_type, field_name, member_id, status, created_at, updated_at)
 SELECT
     CONCAT('이력서 ', n) as title,
     CASE WHEN MOD(n, 2) = 0 THEN 'DEFAULT' ELSE 'MODERN' END as type,
@@ -44,7 +44,7 @@ SELECT
     CASE WHEN MOD(n, 4) = 0 THEN '백엔드 개발자'
          WHEN MOD(n, 4) = 1 THEN '프론트엔드 개발자'
          WHEN MOD(n, 4) = 2 THEN '풀스택 개발자'
-         ELSE 'DevOps 엔지니어' END as desired_position,
+         ELSE 'DevOps 엔지니어' END as field_name,
     n as member_id,
     CASE WHEN MOD(n, 8) = 0 THEN 'DELETED' ELSE 'ACTIVE' END as status,
     DATEADD('DAY', -FLOOR(RAND() * 365), NOW()) as created_at,
