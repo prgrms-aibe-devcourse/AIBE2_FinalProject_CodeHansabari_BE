@@ -89,7 +89,7 @@ public class ResumeBenchmark {
         if (member.isPresent()) {
             Resume resume = Resume.createResume(
                 "벤치마크 테스트 이력서",
-                com.cvmento.domain.resume.enums.ResumeType.GENERAL,
+                com.cvmento.domain.resume.enums.ResumeType.DEFAULT,
                 "홍길동",
                 testEmail,
                 1990,
