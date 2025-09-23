@@ -78,6 +78,31 @@ public class ResumeBenchmark {
                 testEmail, ResumeStatus.ACTIVE, PageRequest.of(0, 1));
     }
 
+    /**
+     * 이력서 저장(생성/수정)
+     * - 세 번째로 중요한 사용자 시나리오
+     * - 인덱스: member_email, status, updated_at (저장 시 인덱스 업데이트)
+     */
+    @Benchmark
+    public Resume 이력서_저장() {
+        Optional<Member> member = memberRepository.findByEmail(testEmail);
+        if (member.isPresent()) {
+            Resume resume = Resume.createResume(
+                "벤치마크 테스트 이력서",
+                com.cvmento.domain.resume.enums.ResumeType.GENERAL,
+                "홍길동",
+                testEmail,
+                1990,
+                "010-1234-5678",
+                com.cvmento.domain.resume.enums.CareerType.EXPERIENCED,
+                "백엔드 개발",
+                member.get()
+            );
+            return resumeRepository.save(resume);
+        }
+        return null;
+    }
+
     public static void main(String[] args) throws Exception {
         System.out.println("=== Resume 인덱스 성능 벤치마크 ===");
 
