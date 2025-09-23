@@ -53,16 +53,7 @@ public class MemberBenchmark {
     public Optional<Member> Email로_회원조회() {
         return memberRepository.findByEmail(testEmail);
     }
-
-    @Benchmark
-    public long 상태별_회원수() {
-        return memberRepository.countByStatus(UserStatus.ACTIVE);
-    }
-
-    @Benchmark
-    public long 역할별_회원수() {
-        return memberRepository.countByRole(Role.USER);
-    }
+    
 
     public static void main(String[] args) throws Exception {
         Options opt = new OptionsBuilder()
