@@ -32,7 +32,6 @@ public class MemberBenchmark {
     private static ConfigurableApplicationContext context;
     private MemberRepository memberRepository;
 
-    private final String testGoogleId = "test-google-123";
     private final String testEmail = "test@example.com";
 
     @Setup(Level.Trial)
@@ -48,11 +47,6 @@ public class MemberBenchmark {
     @TearDown(Level.Trial)
     public void tearDownSpring() {
         if (context != null) context.close();
-    }
-
-    @Benchmark
-    public Optional<Member> GoogleId로_회원조회() {
-        return memberRepository.findByGoogleId(testGoogleId);
     }
 
     @Benchmark
