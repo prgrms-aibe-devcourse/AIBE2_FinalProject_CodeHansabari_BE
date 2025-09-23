@@ -37,7 +37,7 @@ public class CoverLetterBenchmark {
     private CoverLetterService coverLetterService;
 
     // 테스트 데이터 (data-test.sql에서 생성됨)
-    private final String testUserEmail = "test@example.com";
+    private final String testUserEmail = "user100@example.com";
     private final Long existingCoverLetterId = 1L;
 
     @Setup(Level.Trial)

@@ -38,7 +38,7 @@ public class ResumeBenchmark {
     private ResumeRepository resumeRepository;
     private MemberRepository memberRepository;
 
-    private final String testEmail = "test@example.com";
+    private final String testEmail = "user100@example.com";
 
     @Setup(Level.Trial)
     public void setupSpring() {

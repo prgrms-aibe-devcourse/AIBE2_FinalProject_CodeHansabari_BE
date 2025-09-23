@@ -15,8 +15,8 @@ spring:
       mode: always
       data-locations:
         - classpath:data.sql
-        - classpath:large-data.sql
-        - classpath:benchmark-large-data.sql
+        - classpath:member-data.sql
+        - classpath:benchmark-coverletter-resume-data.sql
   data:
     redis:
       host: localhost
