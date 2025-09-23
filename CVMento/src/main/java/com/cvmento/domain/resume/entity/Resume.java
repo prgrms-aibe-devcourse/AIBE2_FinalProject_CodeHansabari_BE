@@ -11,10 +11,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "resume", indexes = {
-    @Index(name = "idx_resume_member_id", columnList = "member_id"),
-    @Index(name = "idx_resume_status", columnList = "status"),
-    @Index(name = "idx_resume_member_status", columnList = "member_id, status"),
-    @Index(name = "idx_resume_status_updated", columnList = "status, updated_at")
+    @Index(name = "idx_resume_member_status_updated", columnList = "member_id, status, updated_at")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

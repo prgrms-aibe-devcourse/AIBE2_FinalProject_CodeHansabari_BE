@@ -13,8 +13,7 @@ import java.util.List;
 @Entity
 @Getter
 @Table(name = "cover_letter", indexes = {
-    @Index(name = "idx_cover_letter_member_status_updated", columnList = "member_id, status, updated_at"),
-    @Index(name = "idx_cover_letter_status_updated", columnList = "status, updated_at")
+    @Index(name = "idx_cover_letter_member_status_updated", columnList = "member_id, status, updated_at")
 })
 public class CoverLetter extends BaseTimeEntity {
 
