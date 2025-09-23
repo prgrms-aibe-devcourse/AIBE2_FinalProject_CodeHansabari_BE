@@ -16,6 +16,7 @@ spring:
       data-locations:
         - classpath:data.sql
         - classpath:large-data.sql
+        - classpath:benchmark-large-data.sql
   data:
     redis:
       host: localhost
