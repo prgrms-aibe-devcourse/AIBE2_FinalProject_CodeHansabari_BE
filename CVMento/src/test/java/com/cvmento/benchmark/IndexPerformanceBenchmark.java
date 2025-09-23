@@ -49,7 +49,6 @@ public class IndexPerformanceBenchmark {
     private TechStackRepository techStackRepository;
 
     // 테스트용 데이터 (data.sql에서 생성됨)
-    private final String testGoogleId = "test-google-123";
     private final String testEmail = "test@example.com";
     private final Pageable pageable = PageRequest.of(0, 10);
 
@@ -87,15 +86,6 @@ public class IndexPerformanceBenchmark {
     }
 
     // ========== 회원 조회 테스트 ==========
-
-    /**
-     * 회원 GoogleId 조회 성능
-     * 인덱스 필요: google_id
-     */
-    @Benchmark
-    public Optional<Member> 회원_GoogleId로_조회() {
-        return memberRepository.findByGoogleId(testGoogleId);
-    }
 
     /**
      * 회원 Email 조회 성능
