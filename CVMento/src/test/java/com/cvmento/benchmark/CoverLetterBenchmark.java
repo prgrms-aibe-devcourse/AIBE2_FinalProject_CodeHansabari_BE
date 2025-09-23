@@ -18,11 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.concurrent.TimeUnit;
 
 /**
- * CoverLetterService 성능 벤치마크
- *
- * 실행 방법:
- * 1. IDE에서 main 메서드 실행
- * 2. 또는 터미널에서: ./gradlew test --tests CoverLetterBenchmark
+ * CoverLetterService 성능 벤치마크 (MySQL용)
  */
 @Slf4j
 @State(Scope.Benchmark)
@@ -30,19 +26,19 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Fork(0) // 같은 JVM에서 실행 (스프링 컨텍스트 공유)
+@Fork(0)
 public class CoverLetterBenchmark {
 
     private static ConfigurableApplicationContext context;
     private CoverLetterService coverLetterService;
 
-    // 테스트 데이터 (data-test.sql에서 생성됨)
-    private final String testUserEmail = "user100@example.com";
+    // MySQL 데이터에 맞게 수정된 테스트 데이터
+    private final String testUserEmail = "test@example.com";
     private final Long existingCoverLetterId = 1L;
 
     @Setup(Level.Trial)
     public void setupSpring() {
-        log.info("=== Spring Boot 앱 시작 중... ===");
+        log.info("=== CoverLetter 벤치마크 시작 (MySQL) ===");
 
         context = SpringApplication.run(CvMentoApplication.class,
                 "--spring.profiles.active=test",
@@ -88,15 +84,15 @@ public class CoverLetterBenchmark {
     }
 
     /**
-     * 자기소개서 저장 성능 측정 (원본)
+     * 자기소개서 저장 성능 측정
      * - 트랜잭션, DB INSERT 성능
      * - 비즈니스 로직 처리 시간 포함
      */
     @Benchmark
-    public void 자기소개서저장_원본() {
+    public void 자기소개서저장() {
         CoverLetterSaveRequest request = new CoverLetterSaveRequest(
                 "벤치마크 테스트 자기소개서 " + System.currentTimeMillis(),
-                "벤치마크를 위한 테스트용 자기소개서 내용입니다. ".repeat(10), // 100자 이상으로 만들기
+                "벤치마크를 위한 테스트용 자기소개서 내용입니다. 열정적인 개발자로서 지속적인 성장을 추구합니다. ".repeat(5),
                 "IT",
                 3,
                 false
@@ -109,12 +105,14 @@ public class CoverLetterBenchmark {
      * 벤치마크 실행 메인 메서드
      */
     public static void main(String[] args) throws Exception {
-        System.out.println("=== 자기소개서 서비스 성능 벤치마크 시작 ===");
+        System.out.println("=== 자기소개서 서비스 성능 벤치마크 시작 (MySQL) ===");
 
         Options opt = new OptionsBuilder()
                 .include(CoverLetterBenchmark.class.getSimpleName())
                 .shouldFailOnError(true)
-                .jvmArgs("-Xmx2g") // 메모리 충분히 할당
+                .jvmArgs("-Xmx2g")
+                .result("coverletter-benchmark-results.json")
+                .resultFormat(org.openjdk.jmh.results.format.ResultFormatType.JSON)
                 .build();
 
         new Runner(opt).run();

@@ -16,14 +16,12 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Resume 엔티티 전용 벤치마크
- * 실행시간: 약 1분
+ * Resume 엔티티 전용 벤치마크 (MySQL용)
  */
 @Slf4j
 @State(Scope.Benchmark)
@@ -37,18 +35,32 @@ public class ResumeBenchmark {
     private static ConfigurableApplicationContext context;
     private ResumeRepository resumeRepository;
     private MemberRepository memberRepository;
+    private Random random = new Random();
 
-    private final String testEmail = "user100@example.com";
+    // 이력서가 있는 회원들의 이메일 (member_id 1~2500)
+    private final String[] testEmails = {
+            "test@example.com",           // member_id: 1
+            "user100@example.com",        // member_id: 100
+            "user500@example.com",        // member_id: 500
+            "user1000@example.com",       // member_id: 1000
+            "user1500@example.com",       // member_id: 1500
+            "user2000@example.com",       // member_id: 2000
+            "user2500@example.com"        // member_id: 2500
+    };
 
     @Setup(Level.Trial)
     public void setupSpring() {
-        log.info("=== Resume 벤치마크 시작 ===");
+        log.info("=== Resume 벤치마크 시작 (MySQL) ===");
         context = SpringApplication.run(CvMentoApplication.class,
                 "--spring.profiles.active=test",
                 "--logging.level.org.springframework=WARN"
         );
         resumeRepository = context.getBean(ResumeRepository.class);
         memberRepository = context.getBean(MemberRepository.class);
+
+        // 데이터 확인
+        long resumeCount = resumeRepository.count();
+        log.info("총 이력서 수: {}", resumeCount);
     }
 
     @TearDown(Level.Trial)
@@ -57,46 +69,34 @@ public class ResumeBenchmark {
     }
 
     /**
-     * 사용자별 이력서 목록 조회 (페이징)
-     * - 가장 중요한 사용자 시나리오
-     * - 인덱스: member_email, status, updated_at
+     * 사용자별 이력서 목록 조회 (인덱스 성능 핵심 테스트)
      */
     @Benchmark
     public Page<Resume> 사용자별_이력서목록() {
+        String email = testEmails[random.nextInt(testEmails.length)];
         return resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
-                testEmail, ResumeStatus.ACTIVE, PageRequest.of(0, 10));
+                email, ResumeStatus.ACTIVE, PageRequest.of(0, 10));
     }
 
     /**
-     * 사용자별 이력서 상세 조회
-     * - 두 번째로 중요한 사용자 시나리오
-     * - 인덱스: member_email, status
-     */
-    @Benchmark
-    public Page<Resume> 사용자별_이력서상세조회() {
-        return resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
-                testEmail, ResumeStatus.ACTIVE, PageRequest.of(0, 1));
-    }
-
-    /**
-     * 이력서 저장(생성/수정)
-     * - 세 번째로 중요한 사용자 시나리오
-     * - 인덱스: member_email, status, updated_at (저장 시 인덱스 업데이트)
+     * 이력서 저장 성능 측정
      */
     @Benchmark
     public Resume 이력서_저장() {
-        Optional<Member> member = memberRepository.findByEmail(testEmail);
+        String email = testEmails[random.nextInt(testEmails.length)];
+        Optional<Member> member = memberRepository.findByEmail(email);
+
         if (member.isPresent()) {
             Resume resume = Resume.createResume(
-                "벤치마크 테스트 이력서",
-                com.cvmento.domain.resume.enums.ResumeType.DEFAULT,
-                "홍길동",
-                testEmail,
-                1990,
-                "010-1234-5678",
-                com.cvmento.domain.resume.enums.CareerType.EXPERIENCED,
-                "백엔드 개발",
-                member.get()
+                    "벤치마크 테스트 이력서 " + System.currentTimeMillis(),
+                    com.cvmento.domain.resume.enums.ResumeType.DEFAULT,
+                    "벤치마크 테스터",
+                    "benchmark" + System.currentTimeMillis() + "@test.com",
+                    1990 + random.nextInt(20),
+                    "010-1234-5678",
+                    com.cvmento.domain.resume.enums.CareerType.EXPERIENCED,
+                    "백엔드 개발",
+                    member.get()
             );
             return resumeRepository.save(resume);
         }
@@ -104,10 +104,12 @@ public class ResumeBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-        System.out.println("=== Resume 인덱스 성능 벤치마크 ===");
+        System.out.println("=== Resume 인덱스 성능 벤치마크 (MySQL) ===");
 
         Options opt = new OptionsBuilder()
                 .include(ResumeBenchmark.class.getSimpleName())
+                .result("resume-benchmark-results.json")
+                .resultFormat(org.openjdk.jmh.results.format.ResultFormatType.JSON)
                 .build();
 
         new Runner(opt).run();

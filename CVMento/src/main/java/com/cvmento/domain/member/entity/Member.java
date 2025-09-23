@@ -14,9 +14,7 @@ import java.util.List;
 
 @Entity
 @Getter
-@Table(name = "members", indexes = {
-    @Index(name = "idx_member_email", columnList = "email")
-})
+@Table(name = "members")
 public class Member extends BaseTimeEntity {
 
     @Id
