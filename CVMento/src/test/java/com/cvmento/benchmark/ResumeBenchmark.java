@@ -72,7 +72,7 @@ public class ResumeBenchmark {
      * 사용자별 이력서 목록 조회 (인덱스 성능 핵심 테스트)
      */
     @Benchmark
-    public Page<Resume> 사용자별_이력서목록() {
+    public Page<Resume> getUserResumeList() {
         String email = testEmails[random.nextInt(testEmails.length)];
         return resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
                 email, ResumeStatus.ACTIVE, PageRequest.of(0, 10));
@@ -82,7 +82,7 @@ public class ResumeBenchmark {
      * 이력서 저장 성능 측정
      */
     @Benchmark
-    public Resume 이력서_저장() {
+    public Resume saveResume() {
         String email = testEmails[random.nextInt(testEmails.length)];
         Optional<Member> member = memberRepository.findByEmail(email);
 

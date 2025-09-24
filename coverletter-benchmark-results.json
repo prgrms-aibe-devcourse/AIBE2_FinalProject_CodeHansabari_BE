@@ -1,0 +1,1544 @@
+[
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersByStatusNoFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 9.721600358469367,
+            "scoreError" : 14.238033804156133,
+            "scoreConfidence" : [
+                -4.516433445686767,
+                23.9596341626255
+            ],
+            "scorePercentiles" : {
+                "0.0" : 8.821352631578947,
+                "50.0" : 10.136456565656566,
+                "90.0" : 10.20699187817259,
+                "95.0" : 10.20699187817259,
+                "99.0" : 10.20699187817259,
+                "99.9" : 10.20699187817259,
+                "99.99" : 10.20699187817259,
+                "99.999" : 10.20699187817259,
+                "99.9999" : 10.20699187817259,
+                "100.0" : 10.20699187817259
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    8.821352631578947,
+                    10.136456565656566,
+                    10.20699187817259
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersByStatusNoFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 9.227328323706347,
+            "scoreError" : 3.3766122240341705,
+            "scoreConfidence" : [
+                5.8507160996721765,
+                12.603940547740518
+            ],
+            "scorePercentiles" : {
+                "0.0" : 9.026481614349775,
+                "50.0" : 9.264495412844036,
+                "90.0" : 9.391007943925233,
+                "95.0" : 9.391007943925233,
+                "99.0" : 9.391007943925233,
+                "99.9" : 9.391007943925233,
+                "99.99" : 9.391007943925233,
+                "99.999" : 9.391007943925233,
+                "99.9999" : 9.391007943925233,
+                "100.0" : 9.391007943925233
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    9.026481614349775,
+                    9.264495412844036,
+                    9.391007943925233
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersByStatusNoFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 9.397378472104162,
+            "scoreError" : 26.180711364202608,
+            "scoreConfidence" : [
+                -16.783332892098446,
+                35.57808983630677
+            ],
+            "scorePercentiles" : {
+                "0.0" : 8.254035802469136,
+                "50.0" : 8.930323111111111,
+                "90.0" : 11.00777650273224,
+                "95.0" : 11.00777650273224,
+                "99.0" : 11.00777650273224,
+                "99.9" : 11.00777650273224,
+                "99.99" : 11.00777650273224,
+                "99.999" : 11.00777650273224,
+                "99.9999" : 11.00777650273224,
+                "100.0" : 11.00777650273224
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    11.00777650273224,
+                    8.930323111111111,
+                    8.254035802469136
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersByStatusNoFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 9.813326034466996,
+            "scoreError" : 4.534767218651973,
+            "scoreConfidence" : [
+                5.278558815815023,
+                14.34809325311897
+            ],
+            "scorePercentiles" : {
+                "0.0" : 9.60634066985646,
+                "50.0" : 9.74461884057971,
+                "90.0" : 10.089018592964823,
+                "95.0" : 10.089018592964823,
+                "99.0" : 10.089018592964823,
+                "99.9" : 10.089018592964823,
+                "99.99" : 10.089018592964823,
+                "99.999" : 10.089018592964823,
+                "99.9999" : 10.089018592964823,
+                "100.0" : 10.089018592964823
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    9.74461884057971,
+                    10.089018592964823,
+                    9.60634066985646
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersWithEmailFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 15.616322012276536,
+            "scoreError" : 16.60003213824954,
+            "scoreConfidence" : [
+                -0.983710125973003,
+                32.21635415052607
+            ],
+            "scorePercentiles" : {
+                "0.0" : 14.794668382352942,
+                "50.0" : 15.46006076923077,
+                "90.0" : 16.594236885245902,
+                "95.0" : 16.594236885245902,
+                "99.0" : 16.594236885245902,
+                "99.9" : 16.594236885245902,
+                "99.99" : 16.594236885245902,
+                "99.999" : 16.594236885245902,
+                "99.9999" : 16.594236885245902,
+                "100.0" : 16.594236885245902
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    16.594236885245902,
+                    15.46006076923077,
+                    14.794668382352942
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersWithEmailFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 15.809669259551612,
+            "scoreError" : 11.51673529511984,
+            "scoreConfidence" : [
+                4.292933964431771,
+                27.326404554671452
+            ],
+            "scorePercentiles" : {
+                "0.0" : 15.385385496183206,
+                "50.0" : 15.508497692307692,
+                "90.0" : 16.535124590163935,
+                "95.0" : 16.535124590163935,
+                "99.0" : 16.535124590163935,
+                "99.9" : 16.535124590163935,
+                "99.99" : 16.535124590163935,
+                "99.999" : 16.535124590163935,
+                "99.9999" : 16.535124590163935,
+                "100.0" : 16.535124590163935
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    16.535124590163935,
+                    15.508497692307692,
+                    15.385385496183206
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersWithEmailFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 15.768056275760387,
+            "scoreError" : 20.897803383251578,
+            "scoreConfidence" : [
+                -5.129747107491191,
+                36.665859659011964
+            ],
+            "scorePercentiles" : {
+                "0.0" : 15.028964179104477,
+                "50.0" : 15.187639393939394,
+                "90.0" : 17.087565254237287,
+                "95.0" : 17.087565254237287,
+                "99.0" : 17.087565254237287,
+                "99.9" : 17.087565254237287,
+                "99.99" : 17.087565254237287,
+                "99.999" : 17.087565254237287,
+                "99.9999" : 17.087565254237287,
+                "100.0" : 17.087565254237287
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    17.087565254237287,
+                    15.187639393939394,
+                    15.028964179104477
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.adminGetCoverLettersWithEmailFilter",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 15.213414911513444,
+            "scoreError" : 17.95257131548428,
+            "scoreConfidence" : [
+                -2.7391564039708367,
+                33.165986226997724
+            ],
+            "scorePercentiles" : {
+                "0.0" : 14.630419708029198,
+                "50.0" : 14.66026811594203,
+                "90.0" : 16.349556910569106,
+                "95.0" : 16.349556910569106,
+                "99.0" : 16.349556910569106,
+                "99.9" : 16.349556910569106,
+                "99.99" : 16.349556910569106,
+                "99.999" : 16.349556910569106,
+                "99.9999" : 16.349556910569106,
+                "100.0" : 16.349556910569106
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    16.349556910569106,
+                    14.66026811594203,
+                    14.630419708029198
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListFullView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 1.6891270975835473,
+            "scoreError" : 5.7905027704410355,
+            "scoreConfidence" : [
+                -4.101375672857488,
+                7.479629868024583
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.4011708304256805,
+                "50.0" : 1.636759250203749,
+                "90.0" : 2.029451212121212,
+                "95.0" : 2.029451212121212,
+                "99.0" : 2.029451212121212,
+                "99.9" : 2.029451212121212,
+                "99.99" : 2.029451212121212,
+                "99.999" : 2.029451212121212,
+                "99.9999" : 2.029451212121212,
+                "100.0" : 2.029451212121212
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.029451212121212,
+                    1.636759250203749,
+                    1.4011708304256805
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListFullView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 1.767083418867754,
+            "scoreError" : 8.519029637192713,
+            "scoreConfidence" : [
+                -6.751946218324958,
+                10.286113056060467
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.405938784067086,
+                "50.0" : 1.6009144338118022,
+                "90.0" : 2.2943970387243735,
+                "95.0" : 2.2943970387243735,
+                "99.0" : 2.2943970387243735,
+                "99.9" : 2.2943970387243735,
+                "99.99" : 2.2943970387243735,
+                "99.999" : 2.2943970387243735,
+                "99.9999" : 2.2943970387243735,
+                "100.0" : 2.2943970387243735
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.2943970387243735,
+                    1.6009144338118022,
+                    1.405938784067086
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListFullView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 2.065470313217307,
+            "scoreError" : 7.622890747048555,
+            "scoreConfidence" : [
+                -5.557420433831249,
+                9.688361060265862
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.724607448630137,
+                "50.0" : 1.9401880193236716,
+                "90.0" : 2.5316154716981134,
+                "95.0" : 2.5316154716981134,
+                "99.0" : 2.5316154716981134,
+                "99.9" : 2.5316154716981134,
+                "99.99" : 2.5316154716981134,
+                "99.999" : 2.5316154716981134,
+                "99.9999" : 2.5316154716981134,
+                "100.0" : 2.5316154716981134
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.5316154716981134,
+                    1.9401880193236716,
+                    1.724607448630137
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListFullView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 2.173436867991875,
+            "scoreError" : 7.173722157160016,
+            "scoreConfidence" : [
+                -5.000285289168142,
+                9.34715902515189
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.8945536654135338,
+                "50.0" : 2.0025772,
+                "90.0" : 2.6231797385620914,
+                "95.0" : 2.6231797385620914,
+                "99.0" : 2.6231797385620914,
+                "99.9" : 2.6231797385620914,
+                "99.99" : 2.6231797385620914,
+                "99.999" : 2.6231797385620914,
+                "99.9999" : 2.6231797385620914,
+                "100.0" : 2.6231797385620914
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.6231797385620914,
+                    2.0025772,
+                    1.8945536654135338
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListThumbnailView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 1.8433745225094924,
+            "scoreError" : 6.704272906758207,
+            "scoreConfidence" : [
+                -4.860898384248714,
+                8.547647429267698
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.4379380442541043,
+                "50.0" : 1.937647821878025,
+                "90.0" : 2.154537701396348,
+                "95.0" : 2.154537701396348,
+                "99.0" : 2.154537701396348,
+                "99.9" : 2.154537701396348,
+                "99.99" : 2.154537701396348,
+                "99.999" : 2.154537701396348,
+                "99.9999" : 2.154537701396348,
+                "100.0" : 2.154537701396348
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.154537701396348,
+                    1.937647821878025,
+                    1.4379380442541043
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListThumbnailView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 1.5491843119202706,
+            "scoreError" : 4.058782015736688,
+            "scoreConfidence" : [
+                -2.509597703816418,
+                5.607966327656959
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.3388881842456608,
+                "50.0" : 1.5265551515151514,
+                "90.0" : 1.7821096,
+                "95.0" : 1.7821096,
+                "99.0" : 1.7821096,
+                "99.9" : 1.7821096,
+                "99.99" : 1.7821096,
+                "99.999" : 1.7821096,
+                "99.9999" : 1.7821096,
+                "100.0" : 1.7821096
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    1.7821096,
+                    1.5265551515151514,
+                    1.3388881842456608
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListThumbnailView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 2.1432384610280937,
+            "scoreError" : 8.993122092013898,
+            "scoreConfidence" : [
+                -6.849883630985804,
+                11.136360553041992
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.7071366101694916,
+                "50.0" : 2.0445015306122447,
+                "90.0" : 2.6780772423025434,
+                "95.0" : 2.6780772423025434,
+                "99.0" : 2.6780772423025434,
+                "99.9" : 2.6780772423025434,
+                "99.99" : 2.6780772423025434,
+                "99.999" : 2.6780772423025434,
+                "99.9999" : 2.6780772423025434,
+                "100.0" : 2.6780772423025434
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.6780772423025434,
+                    2.0445015306122447,
+                    1.7071366101694916
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.getCoverLettersListThumbnailView",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 2.0519131527443073,
+            "scoreError" : 4.4214035960230955,
+            "scoreConfidence" : [
+                -2.369490443278788,
+                6.473316748767402
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.828775204359673,
+                "50.0" : 2.0172234234234234,
+                "90.0" : 2.309740830449827,
+                "95.0" : 2.309740830449827,
+                "99.0" : 2.309740830449827,
+                "99.9" : 2.309740830449827,
+                "99.99" : 2.309740830449827,
+                "99.999" : 2.309740830449827,
+                "99.9999" : 2.309740830449827,
+                "100.0" : 2.309740830449827
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.309740830449827,
+                    2.0172234234234234,
+                    1.828775204359673
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceFirstPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 1.7148642966720633,
+            "scoreError" : 3.223362380756993,
+            "scoreConfidence" : [
+                -1.5084980840849296,
+                4.938226677429056
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.554593488372093,
+                "50.0" : 1.6856746632996633,
+                "90.0" : 1.904324738344434,
+                "95.0" : 1.904324738344434,
+                "99.0" : 1.904324738344434,
+                "99.9" : 1.904324738344434,
+                "99.99" : 1.904324738344434,
+                "99.999" : 1.904324738344434,
+                "99.9999" : 1.904324738344434,
+                "100.0" : 1.904324738344434
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    1.904324738344434,
+                    1.554593488372093,
+                    1.6856746632996633
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceFirstPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 1.6175624131598731,
+            "scoreError" : 5.014209323021066,
+            "scoreConfidence" : [
+                -3.396646909861193,
+                6.631771736180939
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.3512208642808914,
+                "50.0" : 1.6012781399046105,
+                "90.0" : 1.9001882352941177,
+                "95.0" : 1.9001882352941177,
+                "99.0" : 1.9001882352941177,
+                "99.9" : 1.9001882352941177,
+                "99.99" : 1.9001882352941177,
+                "99.999" : 1.9001882352941177,
+                "99.9999" : 1.9001882352941177,
+                "100.0" : 1.9001882352941177
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    1.9001882352941177,
+                    1.6012781399046105,
+                    1.3512208642808914
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceFirstPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 1.6138759562109473,
+            "scoreError" : 4.629956426025769,
+            "scoreConfidence" : [
+                -3.0160804698148223,
+                6.243832382236716
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.4038756832515766,
+                "50.0" : 1.541870452801228,
+                "90.0" : 1.8958817325800377,
+                "95.0" : 1.8958817325800377,
+                "99.0" : 1.8958817325800377,
+                "99.9" : 1.8958817325800377,
+                "99.99" : 1.8958817325800377,
+                "99.999" : 1.8958817325800377,
+                "99.9999" : 1.8958817325800377,
+                "100.0" : 1.8958817325800377
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    1.8958817325800377,
+                    1.541870452801228,
+                    1.4038756832515766
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceFirstPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 1.6992367496015364,
+            "scoreError" : 5.118370637058699,
+            "scoreConfidence" : [
+                -3.4191338874571624,
+                6.817607386660235
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.452072602739726,
+                "50.0" : 1.641452854812398,
+                "90.0" : 2.0041847912524853,
+                "95.0" : 2.0041847912524853,
+                "99.0" : 2.0041847912524853,
+                "99.9" : 2.0041847912524853,
+                "99.99" : 2.0041847912524853,
+                "99.999" : 2.0041847912524853,
+                "99.9999" : 2.0041847912524853,
+                "100.0" : 2.0041847912524853
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.0041847912524853,
+                    1.641452854812398,
+                    1.452072602739726
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceSecondPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 2.1334248057049643,
+            "scoreError" : 9.009256243371425,
+            "scoreConfidence" : [
+                -6.875831437666461,
+                11.142681049076389
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.738559982638889,
+                "50.0" : 1.9745888344760039,
+                "90.0" : 2.6871256,
+                "95.0" : 2.6871256,
+                "99.0" : 2.6871256,
+                "99.9" : 2.6871256,
+                "99.99" : 2.6871256,
+                "99.999" : 2.6871256,
+                "99.9999" : 2.6871256,
+                "100.0" : 2.6871256
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.6871256,
+                    1.9745888344760039,
+                    1.738559982638889
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceSecondPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 2.351394037013844,
+            "scoreError" : 12.708854540130838,
+            "scoreConfidence" : [
+                -10.357460503116995,
+                15.060248577144682
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.8117249773755657,
+                "50.0" : 2.1046622899159666,
+                "90.0" : 3.13779484375,
+                "95.0" : 3.13779484375,
+                "99.0" : 3.13779484375,
+                "99.9" : 3.13779484375,
+                "99.99" : 3.13779484375,
+                "99.999" : 3.13779484375,
+                "99.9999" : 3.13779484375,
+                "100.0" : 3.13779484375
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    3.13779484375,
+                    2.1046622899159666,
+                    1.8117249773755657
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceSecondPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 2.157545744392678,
+            "scoreError" : 7.6771381763445135,
+            "scoreConfidence" : [
+                -5.5195924319518355,
+                9.834683920737191
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.7881176,
+                "50.0" : 2.0689046201232033,
+                "90.0" : 2.61561501305483,
+                "95.0" : 2.61561501305483,
+                "99.0" : 2.61561501305483,
+                "99.9" : 2.61561501305483,
+                "99.99" : 2.61561501305483,
+                "99.999" : 2.61561501305483,
+                "99.9999" : 2.61561501305483,
+                "100.0" : 2.61561501305483
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.61561501305483,
+                    2.0689046201232033,
+                    1.7881176
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.pagingPerformanceSecondPage",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 2.1469737159292954,
+            "scoreError" : 7.110281536278756,
+            "scoreConfidence" : [
+                -4.963307820349461,
+                9.25725525220805
+            ],
+            "scorePercentiles" : {
+                "0.0" : 1.7632173989455184,
+                "50.0" : 2.1352728144989337,
+                "90.0" : 2.542430934343434,
+                "95.0" : 2.542430934343434,
+                "99.0" : 2.542430934343434,
+                "99.9" : 2.542430934343434,
+                "99.99" : 2.542430934343434,
+                "99.999" : 2.542430934343434,
+                "99.9999" : 2.542430934343434,
+                "100.0" : 2.542430934343434
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    2.542430934343434,
+                    2.1352728144989337,
+                    1.7632173989455184
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.realUsagePatternMixedScenario",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 2.603233224888573,
+            "scoreError" : 7.225863636899204,
+            "scoreConfidence" : [
+                -4.622630412010631,
+                9.829096861787777
+            ],
+            "scorePercentiles" : {
+                "0.0" : 2.2581193258426966,
+                "50.0" : 2.515892336683417,
+                "90.0" : 3.0356880121396053,
+                "95.0" : 3.0356880121396053,
+                "99.0" : 3.0356880121396053,
+                "99.9" : 3.0356880121396053,
+                "99.99" : 3.0356880121396053,
+                "99.999" : 3.0356880121396053,
+                "99.9999" : 3.0356880121396053,
+                "100.0" : 3.0356880121396053
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    3.0356880121396053,
+                    2.515892336683417,
+                    2.2581193258426966
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.realUsagePatternMixedScenario",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "0",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 2.6174224253909975,
+            "scoreError" : 6.973456245996284,
+            "scoreConfidence" : [
+                -4.356033820605287,
+                9.590878671387282
+            ],
+            "scorePercentiles" : {
+                "0.0" : 2.2851968072976057,
+                "50.0" : 2.5318886506935687,
+                "90.0" : 3.035181818181818,
+                "95.0" : 3.035181818181818,
+                "99.0" : 3.035181818181818,
+                "99.9" : 3.035181818181818,
+                "99.99" : 3.035181818181818,
+                "99.999" : 3.035181818181818,
+                "99.9999" : 3.035181818181818,
+                "100.0" : 3.035181818181818
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    3.035181818181818,
+                    2.5318886506935687,
+                    2.2851968072976057
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.realUsagePatternMixedScenario",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "5"
+        },
+        "primaryMetric" : {
+            "score" : 2.651089883452498,
+            "scoreError" : 8.031216524302414,
+            "scoreConfidence" : [
+                -5.380126640849916,
+                10.682306407754911
+            ],
+            "scorePercentiles" : {
+                "0.0" : 2.290941095890411,
+                "50.0" : 2.520501125,
+                "90.0" : 3.1418274294670847,
+                "95.0" : 3.1418274294670847,
+                "99.0" : 3.1418274294670847,
+                "99.9" : 3.1418274294670847,
+                "99.99" : 3.1418274294670847,
+                "99.999" : 3.1418274294670847,
+                "99.9999" : 3.1418274294670847,
+                "100.0" : 3.1418274294670847
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    3.1418274294670847,
+                    2.520501125,
+                    2.290941095890411
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.CoverLetterBenchmark.realUsagePatternMixedScenario",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Xmx2g",
+            "-Xms1g"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 2,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 3,
+        "measurementTime" : "2 s",
+        "measurementBatchSize" : 1,
+        "params" : {
+            "pageNumber" : "1",
+            "pageSize" : "10"
+        },
+        "primaryMetric" : {
+            "score" : 2.6132242729536297,
+            "scoreError" : 6.902747931010261,
+            "scoreConfidence" : [
+                -4.2895236580566305,
+                9.51597220396389
+            ],
+            "scorePercentiles" : {
+                "0.0" : 2.324086906141367,
+                "50.0" : 2.474141451414514,
+                "90.0" : 3.041444461305008,
+                "95.0" : 3.041444461305008,
+                "99.0" : 3.041444461305008,
+                "99.9" : 3.041444461305008,
+                "99.99" : 3.041444461305008,
+                "99.999" : 3.041444461305008,
+                "99.9999" : 3.041444461305008,
+                "100.0" : 3.041444461305008
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    3.041444461305008,
+                    2.474141451414514,
+                    2.324086906141367
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    }
+]
+
+

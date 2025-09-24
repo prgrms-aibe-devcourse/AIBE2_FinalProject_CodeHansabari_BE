@@ -76,11 +76,11 @@ public class MemberBenchmark {
     /**
      * 이메일 인덱스 성능 측정 (핵심 벤치마크)
      */
-    @Benchmark
-    public Optional<Member> Email로_회원조회() {
-        String email = testEmails[random.nextInt(testEmails.length)];
-        return memberRepository.findByEmail(email);
-    }
+//    @Benchmark
+//    public Optional<Member> Email로_회원조회() {
+//        String email = testEmails[random.nextInt(testEmails.length)];
+//        return memberRepository.findByEmail(email);
+//    }
 
 //    /**
 //     * 회원 상세 조회 (COUNT 쿼리 최적화 효과 측정)

@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * 벤치마크용 테스트 데이터를 프로그래밍 방식으로 생성
+ * 빠른 벤치마크용 테스트 데이터 생성기
+ * 100명 회원, test 사용자 10개 자소서, 일반 사용자 3-5개 자소서
  * @Profile("test") 애너테이션으로 테스트 환경에서만 실행
  */
 @Slf4j
@@ -40,7 +41,7 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("=== 벤치마크 데이터 생성 시작 ===");
+        log.info("=== 빠른 벤치마크 데이터 생성 시작 ===");
 
         // 기존 데이터가 있으면 건너뛰기
         if (memberRepository.count() > 1) {
@@ -53,12 +54,12 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
         createBulkCoverLetters();
         createBulkResumes();
 
-        log.info("=== 벤치마크 데이터 생성 완료 ===");
+        log.info("=== 빠른 벤치마크 데이터 생성 완료 ===");
         logDataSummary();
     }
 
     /**
-     * 기본 테스트 멤버 생성 (member_id: 1)
+     * 테스트 멤버 생성 (10개 자소서 포함)
      */
     @Transactional
     public void createTestMember() {
@@ -72,97 +73,94 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
 
         memberRepository.save(testMember);
 
-        // 테스트 자소서 생성
-        CoverLetter testCoverLetter = new CoverLetter(
-                "[원본] 백엔드 개발자 자기소개서",
-                "안녕하세요. 백엔드 개발자를 꿈꾸는 지원자입니다. Java와 Spring Boot를 활용한 웹 애플리케이션 개발 경험이 있으며, 특히 REST API 설계와 데이터베이스 최적화에 관심이 많습니다.",
-                "IT",
-                3,
-                testMember
-        );
-        coverLetterRepository.save(testCoverLetter);
+        // 테스트 사용자용 자소서 10개 생성
+        List<CoverLetter> testCoverLetters = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            String jobType = switch (i % 5) {
+                case 0 -> "백엔드";
+                case 1 -> "프론트엔드";
+                case 2 -> "풀스택";
+                case 3 -> "DevOps";
+                default -> "AI";
+            };
 
-        log.info("기본 테스트 데이터 생성 완료");
+            CoverLetter coverLetter = new CoverLetter(
+                    String.format("[테스트] %s 개발자 자소서 %d", jobType, i),
+                    String.format("안녕하세요. %s 개발자를 꿈꾸는 지원자입니다. " +
+                            "Java와 Spring Boot를 활용한 웹 애플리케이션 개발 경험이 있으며, " +
+                            "특히 REST API 설계와 데이터베이스 최적화에 관심이 많습니다. " +
+                            "팀워크를 중시하며, 사용자 중심의 서비스 개발에 관심이 많습니다. " +
+                            "새로운 기술에 대한 호기심과 도전 정신으로 더 나은 개발자가 되고 싶습니다. " +
+                            "자소서 번호: %d", jobType, i),
+                    "IT",
+                    (i % 5) + 1, // 1-5년 경력
+                    testMember
+            );
+
+            // 10%는 DELETED 상태로 설정
+            if (i % 10 == 0) {
+                coverLetter.delete();
+            }
+
+            testCoverLetters.add(coverLetter);
+        }
+
+        coverLetterRepository.saveAll(testCoverLetters);
+        log.info("테스트 멤버와 10개 자소서 생성 완료");
     }
 
     /**
-     * 대량 멤버 데이터 생성 (5000명)
+     * 소규모 멤버 데이터 생성 (100명 총)
      */
     @Transactional
     public void createBulkMembers() {
-        log.info("대량 멤버 데이터 생성 시작...");
+        log.info("소규모 멤버 데이터 생성 시작...");
 
         List<Member> members = new ArrayList<>();
-        int batchSize = 1000;
+        int batchSize = 50;
 
-        // ACTIVE USER들 (3,760명: id 2~3761)
-        for (int i = 2; i <= 3761; i++) {
+        // ACTIVE USER들 (75명: id 2~76)
+        for (int i = 2; i <= 76; i++) {
             Member member = new Member("google-user-" + i, "user" + i + "@example.com",
                     "사용자" + i, "https://example.com/profile" + i + ".jpg");
-            member.activate(); // 명시적으로 ACTIVE 상태 설정
+            member.activate();
             members.add(member);
 
             if (members.size() >= batchSize) {
                 memberRepository.saveAll(members);
                 members.clear();
-                log.info("ACTIVE USER 진행률: {}/{}", i-1, 3760);
             }
         }
 
-        // INACTIVE USER들 (752명: id 3762~4513)
-        for (int i = 3762; i <= 4513; i++) {
+        // INACTIVE USER들 (15명: id 77~91)
+        for (int i = 77; i <= 91; i++) {
             Member member = new Member("google-user-" + i, "user" + i + "@example.com",
                     "비활성사용자" + i, "https://example.com/profile" + i + ".jpg");
-            member.deactivate(); // INACTIVE 상태로 설정
+            member.deactivate();
             members.add(member);
-
-            if (members.size() >= batchSize) {
-                memberRepository.saveAll(members);
-                members.clear();
-            }
         }
 
-        // SUSPENDED USER들 (188명: id 4514~4701)
-        for (int i = 4514; i <= 4701; i++) {
+        // SUSPENDED USER들 (4명: id 92~95)
+        for (int i = 92; i <= 95; i++) {
             Member member = new Member("google-user-" + i, "suspended" + i + "@example.com",
                     "정지된사용자" + i, "https://example.com/profile" + i + ".jpg");
-            member.deactivate(); // SUSPENDED도 비활성화로 처리 (Member 엔티티에 suspend 메소드가 없음)
+            member.deactivate();
             members.add(member);
         }
 
-        // ACTIVE ADMIN들 (238명: id 4702~4939)
-        for (int i = 4702; i <= 4939; i++) {
+        // ACTIVE ADMIN들 (4명: id 96~99)
+        for (int i = 96; i <= 99; i++) {
             Member member = new Member("google-admin-" + i, "admin" + i + "@company.com",
                     "관리자" + i, "https://example.com/admin" + i + ".jpg");
             member.changeRole(Role.ADMIN);
             members.add(member);
         }
 
-        // INACTIVE ADMIN들 (12명: id 4940~4951)
-        for (int i = 4940; i <= 4951; i++) {
-            Member member = new Member("google-admin-" + i, "inactive-admin" + i + "@company.com",
-                    "비활성관리자" + i, "https://example.com/admin" + i + ".jpg");
-            member.changeRole(Role.ADMIN);
-            member.deactivate();
-            members.add(member);
-        }
-
-        // ACTIVE ROOT들 (48명: id 4952~4999)
-        for (int i = 4952; i <= 4999; i++) {
-            Member member = new Member("google-root-" + i, "root" + i + "@company.com",
-                    "루트관리자" + i, "https://example.com/root" + i + ".jpg");
-            member.changeRole(Role.ROOT);
-            members.add(member);
-        }
-
-        // INACTIVE ROOT들 (2명: id 5000~5001)
-        for (int i = 5000; i <= 5001; i++) {
-            Member member = new Member("google-root-" + i, "inactive-root" + i + "@company.com",
-                    "비활성루트관리자" + i, "https://example.com/root" + i + ".jpg");
-            member.changeRole(Role.ROOT);
-            member.deactivate();
-            members.add(member);
-        }
+        // ACTIVE ROOT (1명: id 100)
+        Member rootMember = new Member("google-root-100", "root100@company.com",
+                "루트관리자100", "https://example.com/root100.jpg");
+        rootMember.changeRole(Role.ROOT);
+        members.add(rootMember);
 
         // 남은 데이터 저장
         if (!members.isEmpty()) {
@@ -173,57 +171,58 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
     }
 
     /**
-     * 대량 자소서 데이터 생성 (5000개)
+     * 소규모 자소서 데이터 생성 (약 400개: 일반 사용자당 3-5개)
      */
     @Transactional
     public void createBulkCoverLetters() {
-        log.info("대량 자소서 데이터 생성 시작...");
+        log.info("소규모 자소서 데이터 생성 시작...");
 
         List<CoverLetter> coverLetters = new ArrayList<>();
-        int batchSize = 1000;
+        int batchSize = 100;
+        int totalCreated = 0;
 
-        for (int i = 1; i <= 5000; i++) {
-            // member_id는 1~5000 범위에서 순환
-            Long memberId = (long) i;
-            if (i > 5001) memberId = (long) ((i % 5001) + 1);
-
+        // 일반 사용자들(id 2~100)에게 각각 3-5개의 자소서 생성
+        for (long memberId = 2; memberId <= 100; memberId++) {
             Member member = memberRepository.findById(memberId).orElse(null);
-            if (member == null) {
-                member = memberRepository.findById(1L).orElseThrow(); // fallback to test user
-            }
+            if (member == null) continue;
 
-            String jobType = switch (i % 5) {
-                case 0 -> "백엔드";
-                case 1 -> "프론트엔드";
-                case 2 -> "풀스택";
-                case 3 -> "DevOps";
-                default -> "AI";
-            };
+            // 각 사용자마다 3-5개의 자소서 (랜덤)
+            int coverLetterCount = 3 + random.nextInt(3); // 3~5개
 
-            CoverLetter coverLetter = new CoverLetter(
-                    "자기소개서 " + i,
-                    String.format("안녕하세요. %s 개발자를 꿈꾸는 지원자입니다. " +
-                            "열정적으로 개발에 임하고 있으며, 지속적인 학습을 통해 성장하고 있습니다. " +
-                            "다양한 프로젝트 경험을 바탕으로 실무에 바로 적용할 수 있는 역량을 갖추었습니다. " +
-                            "팀워크를 중시하며, 사용자 중심의 서비스 개발에 관심이 많습니다. " +
-                            "새로운 기술에 대한 호기심과 도전 정신으로 더 나은 개발자가 되고 싶습니다. " +
-                            "자소서 번호: %d", jobType, i),
-                    "IT",
-                    (i % 5) + 1,
-                    member
-            );
+            for (int coverLetterIndex = 1; coverLetterIndex <= coverLetterCount; coverLetterIndex++) {
+                String jobType = switch (coverLetterIndex % 5) {
+                    case 0 -> "백엔드";
+                    case 1 -> "프론트엔드";
+                    case 2 -> "풀스택";
+                    case 3 -> "DevOps";
+                    default -> "AI";
+                };
 
-            // 10%는 DELETED 상태로 설정
-            if (i % 10 == 0) {
-                coverLetter.delete();
-            }
+                CoverLetter coverLetter = new CoverLetter(
+                        String.format("자소서 %d - %s 개발자", coverLetterIndex, jobType),
+                        String.format("안녕하세요. %s 개발자를 꿈꾸는 지원자입니다. " +
+                                "열정적으로 개발에 임하고 있으며, 지속적인 학습을 통해 성장하고 있습니다. " +
+                                "다양한 프로젝트 경험을 바탕으로 실무에 바로 적용할 수 있는 역량을 갖추었습니다. " +
+                                "팀워크를 중시하며, 사용자 중심의 서비스 개발에 관심이 많습니다. " +
+                                "새로운 기술에 대한 호기심과 도전 정신으로 더 나은 개발자가 되고 싶습니다. " +
+                                "자소서 번호: %d, 회원ID: %d", jobType, coverLetterIndex, memberId),
+                        "IT",
+                        (coverLetterIndex % 5) + 1,
+                        member
+                );
 
-            coverLetters.add(coverLetter);
+                // 10%는 DELETED 상태로 설정
+                if (coverLetterIndex % 10 == 0) {
+                    coverLetter.delete();
+                }
 
-            if (coverLetters.size() >= batchSize) {
-                coverLetterRepository.saveAll(coverLetters);
-                coverLetters.clear();
-                log.info("자소서 생성 진행률: {}/{}", i, 5000);
+                coverLetters.add(coverLetter);
+                totalCreated++;
+
+                if (coverLetters.size() >= batchSize) {
+                    coverLetterRepository.saveAll(coverLetters);
+                    coverLetters.clear();
+                }
             }
         }
 
@@ -236,16 +235,17 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
     }
 
     /**
-     * 대량 이력서 데이터 생성 (2500개)
+     * 소규모 이력서 데이터 생성 (50개: 회원의 50%)
      */
     @Transactional
     public void createBulkResumes() {
-        log.info("대량 이력서 데이터 생성 시작...");
+        log.info("소규모 이력서 데이터 생성 시작...");
 
         List<Resume> resumes = new ArrayList<>();
-        int batchSize = 1000;
+        int batchSize = 25;
 
-        for (int i = 1; i <= 2500; i++) {
+        // 첫 50명의 사용자에게 이력서 생성 (50% 비율)
+        for (int i = 1; i <= 50; i++) {
             Member member = memberRepository.findById((long) i).orElse(null);
             if (member == null) {
                 member = memberRepository.findById(1L).orElseThrow(); // fallback to test user
@@ -262,7 +262,7 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
                     "이력서 " + i,
                     i % 2 == 0 ? ResumeType.DEFAULT : ResumeType.MODERN,
                     "개발자" + i,
-                    "resume" + i + "@example.com", // 고유 이메일
+                    "resume" + i + "@example.com",
                     1990 + (i % 15),
                     String.format("010-%04d-%04d", i % 9999, (i * 7) % 9999),
                     i % 2 == 0 ? CareerType.FRESHMAN : CareerType.EXPERIENCED,
@@ -280,7 +280,6 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
             if (resumes.size() >= batchSize) {
                 resumeRepository.saveAll(resumes);
                 resumes.clear();
-                log.info("이력서 생성 진행률: {}/{}", i, 2500);
             }
         }
 
@@ -296,7 +295,7 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
      * 생성된 데이터 요약 로깅
      */
     private void logDataSummary() {
-        log.info("=== 데이터 생성 요약 ===");
+        log.info("=== 빠른 벤치마크 데이터 생성 요약 ===");
         log.info("총 회원 수: {}", memberRepository.count());
         log.info("총 자소서 수: {}", coverLetterRepository.count());
         log.info("총 이력서 수: {}", resumeRepository.count());
