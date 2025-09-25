@@ -21,7 +21,6 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final CorsConfigurationSource corsConfigurationSource;
-    private final InternalApiKeyFilter internalApiKeyFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           OAuth2SuccessHandler oAuth2SuccessHandler,
@@ -30,7 +29,6 @@ public class SecurityConfig {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.corsConfigurationSource = corsConfigurationSource;
-        this.internalApiKeyFilter = internalApiKeyFilter;
     }
 
     @Bean
@@ -80,8 +78,6 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
                         .failureUrl("/login?error=true")
                 )
-                // InternalApiKeyFilter를 JwtAuthenticationFilter보다 먼저 실행
-                .addFilterBefore(internalApiKeyFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
