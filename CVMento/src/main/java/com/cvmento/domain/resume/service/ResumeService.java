@@ -176,7 +176,7 @@ public class ResumeService {
             metricsService.incrementErrorCount("RESUME_DETAIL_MEMBER_NOT_FOUND");
             throw e;
         } catch (ResumeNotFoundException e) {
-            throw e; // 이미 위에서 메트릭 처리됨
+            throw e;
         } catch (Exception e) {
             metricsService.incrementErrorCount("RESUME_DETAIL_ERROR");
             throw e;

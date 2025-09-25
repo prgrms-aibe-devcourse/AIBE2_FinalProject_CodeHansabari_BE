@@ -90,7 +90,7 @@ public class InterviewService {
             metricsService.incrementErrorCount("INTERVIEW_CREATION_COVER_LETTER_NOT_FOUND");
             throw e;
         } catch (InterviewLimitExceededException e) {
-            throw e; // 이미 위에서 메트릭 처리됨
+            throw e;
         } catch (Exception e) {
             metricsService.incrementErrorCount("INTERVIEW_CREATION_ERROR");
             throw e;
