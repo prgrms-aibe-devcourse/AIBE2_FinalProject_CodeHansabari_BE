@@ -2,6 +2,7 @@ package com.cvmento.global.config;
 
 import com.cvmento.global.security.JwtAuthenticationFilter;
 import com.cvmento.global.security.OAuth2SuccessHandler;
+import com.cvmento.global.security.InternalApiKeyFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,13 +21,16 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           OAuth2SuccessHandler oAuth2SuccessHandler,
-                          CorsConfigurationSource corsConfigurationSource) {
+                          CorsConfigurationSource corsConfigurationSource,
+                          InternalApiKeyFilter internalApiKeyFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.corsConfigurationSource = corsConfigurationSource;
+        this.internalApiKeyFilter = internalApiKeyFilter;
     }
 
     @Bean
@@ -64,18 +68,20 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/actuator/prometheus",
                                 "/api/test/**",
-                                "/api/v1/admin/analysis/**",
-                                "/api/internal/**"
+                                "/api/v1/admin/analysis/**"
                         ).permitAll()
-                                .anyRequest().hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/crawl/").hasAnyRole("ADMIN", "ROOT")
+//                        .requestMatchers("/api/v1/admin/").hasAnyRole("ADMIN", "ROOT")
 //                        .anyRequest().authenticated()
+                        .requestMatchers("/api/internal/**").authenticated() // API Key로 인증된 요청만 허용
+                        .anyRequest().hasAnyRole("ADMIN", "ROOT")
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)
                         .failureUrl("/login?error=true")
                 )
+                // InternalApiKeyFilter를 JwtAuthenticationFilter보다 먼저 실행
+                .addFilterBefore(internalApiKeyFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

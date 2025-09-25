@@ -59,6 +59,8 @@ app:
   cors:
     allowed-origins:
       - "https://cvmento.shop"
+  internal:
+    api-key: ${APP_INTERNAL_KEY}
 
 llm:
   api:
