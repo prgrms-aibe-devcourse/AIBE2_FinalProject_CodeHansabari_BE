@@ -4,6 +4,8 @@ import com.cvmento.CvMentoApplication;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.domain.coverLetter.service.CoverLetterService;
+import com.cvmento.domain.resume.service.ResumeService;
+import com.cvmento.global.usage.service.UsageTokenService;
 import com.cvmento.domain.auth.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.openjdk.jmh.annotations.*;
@@ -34,11 +36,15 @@ public class SpringCacheBenchmark {
     // Global state
     private static volatile ConfigurableApplicationContext context;
     private static CoverLetterService staticCoverLetterService;
+    private static ResumeService staticResumeService;
+    private static UsageTokenService staticUsageTokenService;
     private static MemberRepository staticMemberRepository;
     private static AuthService staticAuthService;
 
     // Instance fields
     private CoverLetterService coverLetterService;
+    private ResumeService resumeService;
+    private UsageTokenService usageTokenService;
     private MemberRepository memberRepository;
     private AuthService authService;
 
@@ -50,6 +56,8 @@ public class SpringCacheBenchmark {
 
         // Instance fields 할당
         this.coverLetterService = staticCoverLetterService;
+        this.resumeService = staticResumeService;
+        this.usageTokenService = staticUsageTokenService;
         this.memberRepository = staticMemberRepository;
         this.authService = staticAuthService;
 
@@ -71,6 +79,8 @@ public class SpringCacheBenchmark {
             );
 
             staticCoverLetterService = context.getBean(CoverLetterService.class);
+            staticResumeService = context.getBean(ResumeService.class);
+            staticUsageTokenService = context.getBean(UsageTokenService.class);
             staticMemberRepository = context.getBean(MemberRepository.class);
             staticAuthService = context.getBean(AuthService.class);
 
@@ -116,12 +126,12 @@ public class SpringCacheBenchmark {
     }
 
     /**
-     * 캐시 적용 버전 - @Cacheable 사용
+     * 자소서 - 캐시 적용 버전
      * 첫 호출: DB 조회 + 캐시 저장
      * 이후 호출: 캐시에서 바로 반환
      */
     @Benchmark
-    public Member 캐시적용_Member조회() {
+    public Member 자소서_캐시적용_Member조회() {
         return coverLetterService.findMemberByEmailForBenchmark(testEmail);
     }
 
@@ -130,8 +140,44 @@ public class SpringCacheBenchmark {
      * 매번 DB 쿼리 실행
      */
     @Benchmark
-    public Member 캐시미적용_Member조회() {
+    public Member 자소서_캐시미적용_Member조회() {
         return coverLetterService.findMemberByEmailNoCache(testEmail);
+    }
+
+    // === 이력서 서비스 벤치마크 ===
+
+    /**
+     * 이력서 - 캐시 적용 버전
+     */
+    @Benchmark
+    public Member 이력서_캐시적용_Member조회() {
+        return resumeService.findMemberByEmailForBenchmark(testEmail);
+    }
+
+    /**
+     * 이력서 - 캐시 미적용 버전
+     */
+    @Benchmark
+    public Member 이력서_캐시미적용_Member조회() {
+        return resumeService.findMemberByEmailNoCache(testEmail);
+    }
+
+    // === 사용량토큰 서비스 벤치마크 ===
+
+    /**
+     * 사용량토큰 - 캐시 적용 버전
+     */
+    @Benchmark
+    public Member 사용량토큰_캐시적용_Member조회() {
+        return usageTokenService.findMemberByEmailForBenchmark(testEmail);
+    }
+
+    /**
+     * 사용량토큰 - 캐시 미적용 버전
+     */
+    @Benchmark
+    public Member 사용량토큰_캐시미적용_Member조회() {
+        return usageTokenService.findMemberByEmailNoCache(testEmail);
     }
 
     /**

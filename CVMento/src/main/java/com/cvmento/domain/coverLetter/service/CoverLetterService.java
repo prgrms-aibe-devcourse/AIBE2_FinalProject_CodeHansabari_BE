@@ -212,7 +212,7 @@ public class CoverLetterService {
 
     // 캐시 적용 버전
     @Cacheable(value = "memberCache", key = "#email")
-    private Member findMemberByEmail(String email) {
+    public Member findMemberByEmail(String email) {
         log.info("🔥 DB 조회 (캐시 적용): {}", email);
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
