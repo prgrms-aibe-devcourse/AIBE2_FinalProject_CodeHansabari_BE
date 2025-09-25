@@ -125,3 +125,7 @@ management:
     tags:
       application: cvmento
       environment: production
+
+sub-backend:
+  url: https://api-sub.cvmento.shop/
+  api-key: ${SUB_API_KEY}
