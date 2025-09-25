@@ -68,6 +68,14 @@ public class CoverLetterService {
             String logType = request.isAiImproved() ? "AI첨삭" : "원본";
             log.info("{} 자소서 저장 완료 - coverLetterId: {}, memberId: {}, 지원분야: {}",
                     logType, saved.getCoverLetterId(), member.getMemberId(), request.jobField());
+
+            metricsService.incrementCoverLetterCreatedCount();
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_SAVE_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_SAVE_ERROR");
+            throw e;
         } finally {
             MDC.remove("spanId");
         }
@@ -95,6 +103,12 @@ public class CoverLetterService {
 
             log.info("자소서 수정 완료 - coverLetterId: {}, memberId: {}, 지원분야: {}",
                     coverLetterId, coverLetter.getMember().getMemberId(), request.jobField());
+        } catch (CoverLetterException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_UPDATE_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_UPDATE_ERROR");
+            throw e;
         } finally {
             MDC.remove("spanId");
         }
@@ -111,6 +125,12 @@ public class CoverLetterService {
             coverLetter.delete();
             log.info("자소서 삭제 완료 - coverLetterId: {}, memberId: {}",
                     coverLetterId, coverLetter.getMember().getMemberId());
+        } catch (CoverLetterException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_DELETE_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_DELETE_ERROR");
+            throw e;
         } finally {
             MDC.remove("spanId");
         }
@@ -141,6 +161,12 @@ public class CoverLetterService {
                     member.getMemberId(), coverLetters.getTotalElements(), coverLetters.getNumberOfElements(), view);
 
             return new PageImpl<>(responses, pageable, coverLetters.getTotalElements());
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_LIST_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_LIST_ERROR");
+            throw e;
         } finally {
             MDC.remove("spanId");
         }
@@ -154,6 +180,12 @@ public class CoverLetterService {
         try {
             CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
             return CoverLetterDetailResponse.from(coverLetter);
+        } catch (CoverLetterException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_DETAIL_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_DETAIL_ERROR");
+            throw e;
         } finally {
             if (log.isInfoEnabled()) MDC.remove("spanId");
         }
@@ -170,6 +202,12 @@ public class CoverLetterService {
             coverLetter.restore();
             log.info("관리자 자소서 복구 완료 - coverLetterId: {}, 관리자: {}, 원소유자ID: {}",
                     coverLetterId, adminEmail, coverLetter.getMember().getMemberId());
+        } catch (CoverLetterException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_RESTORE_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_RESTORE_ERROR");
+            throw e;
         } finally {
             MDC.remove("spanId");
         }
@@ -198,6 +236,9 @@ public class CoverLetterService {
                     status, result.getTotalElements(), result.getNumberOfElements());
 
             return result;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_ADMIN_LIST_ERROR");
+            throw e;
         } finally {
             MDC.remove("spanId");
         }
