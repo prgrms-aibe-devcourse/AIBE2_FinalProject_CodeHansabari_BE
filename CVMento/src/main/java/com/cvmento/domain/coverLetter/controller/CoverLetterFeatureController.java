@@ -1,6 +1,7 @@
 package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.controller.interfaces.CoverLetterFeatureControllerInterface;
+import com.cvmento.domain.coverLetter.service.AsyncJobService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.subBackend.client.FeatureClient;
 import com.cvmento.global.subBackend.client.JobClient;
@@ -12,11 +13,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 자소서 특징 추출 및 조회 API (Sub Backend 위임)
@@ -29,9 +32,10 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
 
     private final JobClient jobClient;
     private final FeatureClient featureClient;
+    private final AsyncJobService asyncJobService;
 
     /**
-     * 크롤링된 자소서에서 특징 추출 (Sub 백엔드로 위임)
+     * 크롤링된 자소서에서 특징 추출 (Sub 백엔드로 위임) - 기존 동기 방식
      */
     @PostMapping("/extract")
     @Override
@@ -78,7 +82,7 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
     }
 
     /**
-     * 임베딩 기반 특징 중복제거 수행 (Sub 백엔드로 위임)
+     * 임베딩 기반 특징 중복제거 수행 (Sub 백엔드로 위임) - 비동기 처리
      */
     @PostMapping("/deduplicate")
     @Override
@@ -102,21 +106,31 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                         activeJobType, activeStatus, activeJobCreatedBy, userEmail);
 
                 return ResponseEntity.badRequest().body(CommonResponse.error(
-                        "JOB_AL-READY_ACTIVE",
+                        "JOB_ALREADY_ACTIVE",
                         String.format("현재 %s 작업이 진행 중입니다. 작업 완료 후 다시 시도해주세요. (진행중인 작업 생성자: %s)",
                                 getJobTypeKorean(activeJobType), activeJobCreatedBy)
                 ));
             }
 
-            // 2. 활성 Job이 없으면 중복제거 시작
+            // 2. 비동기로 중복제거 작업 시작 - 별도 서비스 사용
+            String jobId = java.util.UUID.randomUUID().toString();
             Map<String, Object> jobRequest = Map.of(
-                    "jobId", java.util.UUID.randomUUID().toString(),
+                    "jobId", jobId,
                     "task", "DEDUPLICATION"
             );
-            Map<String, Object> response = jobClient.startJob(jobRequest);
-            log.info("Sub 백엔드 중복제거 요청 성공 - 사용자: {}", userEmail);
 
-            return ResponseEntity.ok(CommonResponse.success("특징 중복제거 작업이 시작되었습니다.", response));
+            // 비동기 서비스 호출 (프록시를 통해 정상 동작)
+            asyncJobService.executeDeduplicationAsync(jobRequest, userEmail);
+
+            // 즉시 응답 반환
+            Map<String, Object> responseData = Map.of(
+                    "jobId", jobId,
+                    "status", "STARTED",
+                    "message", "중복제거 작업이 백그라운드에서 시작되었습니다."
+            );
+
+            log.info("중복제거 작업 시작 응답 - 사용자: {}, jobId: {}", userEmail, jobId);
+            return ResponseEntity.ok(CommonResponse.success("특징 중복제거 작업이 시작되었습니다.", responseData));
 
         } catch (Exception e) {
             log.error("Sub 백엔드 특징 중복제거 요청 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
