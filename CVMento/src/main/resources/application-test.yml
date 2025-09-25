@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3309/aibe2?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3312/cvmentodb?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: 1234
+    password: team2
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     show-sql: true  # 테스트에서 SQL 로그 보기

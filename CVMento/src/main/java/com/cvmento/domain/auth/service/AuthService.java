@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -187,6 +188,15 @@ public class AuthService {
     }
 
     /**
+     * 로그인 시 캐시에 사용자 정보 저장
+     */
+    @CachePut(value = "memberCache", key = "#member.email")
+    public Member cacheUserOnLogin(Member member) {
+        log.info("🚀 로그인 시 캐시 저장: {} (ID: {})", member.getEmail(), member.getMemberId());
+        return member;
+    }
+
+    /**
      * 토큰을 생성하고 쿠키에 설정합니다.
      */
     public TokenDto generateTokensAndSetCookies(Member member, HttpServletResponse response) {
@@ -198,6 +208,9 @@ public class AuthService {
                 Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
         cookieUtil.addRefreshTokenCookie(response, tokenDto.refreshToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getRefreshTokenExpirationTime()));
+
+        // 🔥 로그인 성공 시 캐시에 사용자 정보 저장
+        cacheUserOnLogin(member);
 
         log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
 
