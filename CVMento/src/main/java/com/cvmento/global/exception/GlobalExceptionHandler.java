@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -282,6 +283,62 @@ public class GlobalExceptionHandler {
                 "USAGE_LIMIT_EXCEEDED",
                 ex.getMessage(),
                 errors
+        );
+    }
+
+    // 크롤링 관련 예외
+    @ExceptionHandler(CrawlCoverLetterNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCrawlCoverLetterNotFoundException(
+            CrawlCoverLetterNotFoundException ex, HttpServletRequest request) {
+        log.warn("CrawlCoverLetterNotFoundException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.NOT_FOUND,
+                "CRAWL_COVER_LETTER_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(CrawlCoverLetterException.class)
+    public ResponseEntity<Map<String, Object>> handleCrawlCoverLetterException(
+            CrawlCoverLetterException ex, HttpServletRequest request) {
+        log.error("CrawlCoverLetterException: {}", ex.getMessage(), ex);
+        
+        return buildErrorResponse(
+                request,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "CRAWLING_ERROR",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    // 특징 추출 관련 예외
+    @ExceptionHandler(FeatureExtractionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleFeatureExtractionNotFoundException(
+            FeatureExtractionNotFoundException ex, HttpServletRequest request) {
+        log.warn("FeatureExtractionNotFoundException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.NOT_FOUND,
+                "FEATURE_EXTRACTION_NOT_FOUND",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(FeatureExtractionException.class)
+    public ResponseEntity<Map<String, Object>> handleFeatureExtractionException(
+            FeatureExtractionException ex, HttpServletRequest request) {
+        log.error("FeatureExtractionException: {}", ex.getMessage(), ex);
+        
+        return buildErrorResponse(
+                request,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "FEATURE_EXTRACTION_ERROR",
+                ex.getMessage(),
+                null
         );
     }
 

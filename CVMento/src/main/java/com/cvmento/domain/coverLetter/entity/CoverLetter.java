@@ -12,7 +12,9 @@ import java.util.List;
 
 @Entity
 @Getter
-@Table(name = "cover_letter")
+@Table(name = "cover_letter", indexes = {
+    @Index(name = "idx_cover_letter_member", columnList = "member_id")
+})
 public class CoverLetter extends BaseTimeEntity {
 
     @Id

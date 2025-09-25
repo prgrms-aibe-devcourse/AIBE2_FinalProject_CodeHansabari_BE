@@ -5,23 +5,22 @@ import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.domain.coverLetter.entity.CrawlCoverLetter;
 import com.cvmento.domain.coverLetter.repository.CrawlCoverLetterRepository;
-import com.cvmento.domain.member.entity.Member;
-import com.cvmento.domain.member.enums.Role;
-import com.cvmento.global.exception.CrawlCoverLetterException;
+import com.cvmento.global.exception.customException.CrawlCoverLetterException;
+import com.cvmento.global.exception.customException.CrawlCoverLetterNotFoundException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 크롤링 데이터 서비스
@@ -60,6 +59,11 @@ public class CrawlCoverLetterService {
             // 3. JSON 응답 파싱하여 content 추출
             List<String> contents = parseContentsFromResponse(responseBody);
 
+            if (contents.isEmpty()) {
+                log.warn("크롤링 후 파싱된 자소서 내용이 없습니다.");
+                throw new CrawlCoverLetterException("크롤링으로 수집된 데이터가 없습니다.");
+            }
+
             // 4. DB에 저장
             List<CrawlCoverLetter> savedCoverLetters = saveCoverLetters(contents);
 
@@ -70,11 +74,15 @@ public class CrawlCoverLetterService {
                     "자소서 크롤링이 완료되었습니다.",
                     savedCoverLetters.size()
             );
-
+                    
+        } catch (CrawlCoverLetterException e) {
+            // 이미 CrawlCoverLetterException인 경우 그대로 던짐
+            throw e;
         } catch (Exception e) {
             log.error("자소서 크롤링 중 오류 발생", e);
-            return CrawlCoverLetterResponse.failure(
-                    "크롤링 중 오류가 발생했습니다: " + e.getMessage()
+            throw new CrawlCoverLetterException(
+                "크롤링 중 오류가 발생했습니다: " + e.getMessage(),
+                e
             );
         }
     }
@@ -131,8 +139,10 @@ public class CrawlCoverLetterService {
         );
 
         if (response.getStatusCode() != HttpStatus.OK) {
-            log.error("Linkareer API 호출 실패 - 상태코드: {}", response.getStatusCode());
-            throw new RuntimeException("API 호출 실패: " + response.getStatusCode());
+            log.error("API 호출 실패: {}", response.getStatusCode());
+            throw new CrawlCoverLetterException(
+                "Linkareer API 호출 실패: " + response.getStatusCode()
+            );
         }
 
         String responseBody = response.getBody();
@@ -174,11 +184,9 @@ public class CrawlCoverLetterService {
                     if (content != null && !content.trim().isEmpty()) {
                         contents.add(content);
 
-                        // 처음 1개만 상세 로그 (디버그용)
+                        // 처음 1개만 길이 로그
                         if (i == 0) {
-                            String cleanedContent = cleanText(content);
-                            log.debug("첫 번째 content 샘플 - 원본길이: {}, 정리후길이: {}",
-                                    content.length(), cleanedContent.length());
+                            log.info("첫 번째 자소서 길이: {}자", content.length());
                         }
                     }
                 } else {
@@ -241,59 +249,15 @@ public class CrawlCoverLetterService {
     }
 
     /**
-     * 크롤링 데이터 전체 조회
-     */
-    public List<CrawlCoverLetterData> getAllCrawlCoverLetters() {
-        MDC.put("spanId", "crawl-list-service");
-
-        MDC.put("spanId", "crawl-repository");
-        List<CrawlCoverLetter> coverLetters = crawlCoverLetterRepository.findAllByOrderByCreatedAtDesc();
-
-        MDC.put("spanId", "crawl-list-service");
-        log.info("크롤링 데이터 전체 조회 완료 - 개수: {}", coverLetters.size());
-
-        return coverLetters.stream()
-                .map(CrawlCoverLetterData::from)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 크롤링 데이터 단건 조회
-     */
-    public CrawlCoverLetterData getCrawlCoverLetterById(Long id) {
-        MDC.put("spanId", "crawl-detail-service");
-
-        MDC.put("spanId", "crawl-repository");
-        CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
-                .orElseThrow(() -> new CrawlCoverLetterException(
-                        "CRAWL_COVER_LETTER_NOT_FOUND",
-                        "크롤링 데이터를 찾을 수 없습니다. ID: " + id,
-                        404
-                ));
-
-        MDC.put("spanId", "crawl-detail-service");
-        log.info("크롤링 데이터 개별 조회 완료 - ID: {}, 텍스트길이: {}",
-                id, coverLetter.getText() != null ? coverLetter.getText().length() : 0);
-
-        return CrawlCoverLetterData.from(coverLetter);
-    }
-
-    /**
      * 크롤링 데이터 수정
      */
-    public CrawlCoverLetterData updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, Member member) {
+    public CrawlCoverLetterData updateCrawlCoverLetter(Long id, UpdateCrawlCoverLetterRequest request, String userEmail) {
         MDC.put("spanId", "crawl-update-service");
-
-        if (member == null || (member.getRole() != Role.ADMIN && member.getRole() != Role.ROOT)) {
-            throw new AccessDeniedException("크롤링 데이터를 수정할 권한이 없습니다.");
-        }
 
         MDC.put("spanId", "crawl-repository");
         CrawlCoverLetter coverLetter = crawlCoverLetterRepository.findById(id)
-                .orElseThrow(() -> new CrawlCoverLetterException(
-                        "CRAWL_COVER_LETTER_NOT_FOUND",
-                        "크롤링 데이터를 찾을 수 없습니다. ID: " + id,
-                        404
+                .orElseThrow(() -> new CrawlCoverLetterNotFoundException(
+                    "수정할 크롤링 데이터를 찾을 수 없습니다. ID: " + id
                 ));
 
         coverLetter.updateText(request.text());
@@ -301,7 +265,7 @@ public class CrawlCoverLetterService {
 
         MDC.put("spanId", "crawl-update-service");
         log.info("크롤링 데이터 수정 완료 - ID: {}, 수정자: {}, 새로운텍스트길이: {}",
-                id, member.getMemberId(), request.text() != null ? request.text().length() : 0);
+                id, userEmail, request.text() != null ? request.text().length() : 0);
 
         return CrawlCoverLetterData.from(savedCoverLetter);
     }
@@ -314,10 +278,8 @@ public class CrawlCoverLetterService {
 
         MDC.put("spanId", "crawl-repository");
         if (!crawlCoverLetterRepository.existsById(id)) {
-            throw new CrawlCoverLetterException(
-                    "CRAWL_COVER_LETTER_NOT_FOUND",
-                    "크롤링 데이터를 찾을 수 없습니다. ID: " + id,
-                    404
+            throw new CrawlCoverLetterNotFoundException(
+                "삭제할 크롤링 데이터를 찾을 수 없습니다. ID: " + id
             );
         }
 
