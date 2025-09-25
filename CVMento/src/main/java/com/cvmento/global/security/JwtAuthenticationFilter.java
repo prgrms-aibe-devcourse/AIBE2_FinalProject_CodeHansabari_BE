@@ -21,7 +21,6 @@ import java.util.Optional;
 
 @Component
 @Slf4j
-@Order(101)
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;

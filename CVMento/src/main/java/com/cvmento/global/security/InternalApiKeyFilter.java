@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-@Order(100)
 public class InternalApiKeyFilter extends OncePerRequestFilter {
 
     @Value("${app.internal.api-key}") // application.yml에서 설정
