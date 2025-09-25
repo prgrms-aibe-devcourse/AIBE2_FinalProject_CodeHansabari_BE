@@ -10,6 +10,7 @@ import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class CoverLetterService {
 
     private final CoverLetterRepository coverLetterRepository;
     private final MemberRepository memberRepository;
+    private final MetricsService metricsService;
 
     /**
      * 자소서 저장(원본/AI 첨삭)
@@ -60,6 +62,8 @@ public class CoverLetterService {
         String logType = request.isAiImproved() ? "AI첨삭" : "원본";
         log.info("{} 자소서 저장 완료 - coverLetterId: {}, memberId: {}, 지원분야: {}",
                 logType, savedCoverLetter.getCoverLetterId(), member.getMemberId(), request.jobField());
+
+        metricsService.incrementCoverLetterCreatedCount();
     }
 
     /**
@@ -104,27 +108,35 @@ public class CoverLetterService {
     public Page<CoverLetterListResponse> getCoverLetters(String memberEmail, Pageable pageable, String view) {
         MDC.put("spanId", "coverletter-list-service");
 
-        Member member = findMemberByEmail(memberEmail);
+        try {
+            Member member = findMemberByEmail(memberEmail);
 
-        MDC.put("spanId", "coverletter-repository");
-        Page<CoverLetter> coverLetters = coverLetterRepository
-                .findByMemberAndStatusOrderByUpdatedAtDesc(member, CoverLetterStatus.ACTIVE, pageable);
+            MDC.put("spanId", "coverletter-repository");
+            Page<CoverLetter> coverLetters = coverLetterRepository
+                    .findByMemberAndStatusOrderByUpdatedAtDesc(member, CoverLetterStatus.ACTIVE, pageable);
 
-        MDC.put("spanId", "coverletter-list-service");
-        boolean isThumbnailView = "thumbnail".equals(view);
+            MDC.put("spanId", "coverletter-list-service");
+            boolean isThumbnailView = "thumbnail".equals(view);
 
-        List<CoverLetterListResponse> responses = coverLetters.getContent()
-                .stream()
-                .map(coverLetter -> isThumbnailView
-                        ? CoverLetterListResponse.thumbnail(coverLetter)
-                        : CoverLetterListResponse.full(coverLetter))
-                .toList();
+            List<CoverLetterListResponse> responses = coverLetters.getContent()
+                    .stream()
+                    .map(coverLetter -> isThumbnailView
+                            ? CoverLetterListResponse.thumbnail(coverLetter)
+                            : CoverLetterListResponse.full(coverLetter))
+                    .toList();
 
-        log.info("자소서 목록 조회 완료 - memberId: {}, 총 개수: {}, 뷰타입: {}",
-                member.getMemberId(), coverLetters.getTotalElements(),
-                isThumbnailView ? "thumbnail" : "full");
+            log.info("자소서 목록 조회 완료 - memberId: {}, 총 개수: {}, 뷰타입: {}",
+                    member.getMemberId(), coverLetters.getTotalElements(),
+                    isThumbnailView ? "thumbnail" : "full");
 
-        return new PageImpl<>(responses, pageable, coverLetters.getTotalElements());
+            return new PageImpl<>(responses, pageable, coverLetters.getTotalElements());
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_LIST_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_LIST_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -133,12 +145,20 @@ public class CoverLetterService {
     public CoverLetterDetailResponse getCoverLetter(Long coverLetterId, String memberEmail) {
         MDC.put("spanId", "coverletter-detail-service");
 
-        CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
+        try {
+            CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
-        log.info("자소서 상세 조회 완료 - coverLetterId: {}, memberId: {}",
-                coverLetterId, coverLetter.getMember().getMemberId());
+            log.info("자소서 상세 조회 완료 - coverLetterId: {}, memberId: {}",
+                    coverLetterId, coverLetter.getMember().getMemberId());
 
-        return CoverLetterDetailResponse.from(coverLetter);
+            return CoverLetterDetailResponse.from(coverLetter);
+        } catch (CoverLetterException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_DETAIL_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_DETAIL_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -147,12 +167,21 @@ public class CoverLetterService {
     @Transactional
     public void restoreCoverLetter(Long coverLetterId, String adminEmail) {
         MDC.put("spanId", "coverletter-restore-service");
-        CoverLetter coverLetter = findDeletedCoverLetterById(coverLetterId);
 
-        coverLetter.restore();
+        try {
+            CoverLetter coverLetter = findDeletedCoverLetterById(coverLetterId);
 
-        log.info("관리자 자소서 복구 완료 - coverLetterId: {}, 관리자: {}, 원소유자ID: {}",
-                coverLetterId, adminEmail, coverLetter.getMember().getMemberId());
+            coverLetter.restore();
+
+            log.info("관리자 자소서 복구 완료 - coverLetterId: {}, 관리자: {}, 원소유자ID: {}",
+                    coverLetterId, adminEmail, coverLetter.getMember().getMemberId());
+        } catch (CoverLetterException e) {
+            metricsService.incrementErrorCount("COVER_LETTER_RESTORE_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_RESTORE_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -170,13 +199,18 @@ public class CoverLetterService {
         log.info("관리자 상태별 자소서 목록 조회 요청 - 관리자: {}, 상태: {}, 이메일필터: {}, 제목필터: {}, 페이지: {}",
                 adminEmail, status, email, title, pageable.getPageNumber());
 
-        Page<CoverLetterStatusListResponse> result = coverLetterRepository
-                .findCoverLettersWithFilters(status, email, title, pageable);
+        try {
+            Page<CoverLetterStatusListResponse> result = coverLetterRepository
+                    .findCoverLettersWithFilters(status, email, title, pageable);
 
-        log.info("상태별 자소서 목록 조회 완료 - 상태: {}, 총 개수: {}, 현재 페이지 개수: {}",
-                status, result.getTotalElements(), result.getNumberOfElements());
+            log.info("상태별 자소서 목록 조회 완료 - 상태: {}, 총 개수: {}, 현재 페이지 개수: {}",
+                    status, result.getTotalElements(), result.getNumberOfElements());
 
-        return result;
+            return result;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_ADMIN_LIST_ERROR");
+            throw e;
+        }
     }
 
     private String buildTitleWithPrefix(String originalTitle, boolean isAiImproved) {

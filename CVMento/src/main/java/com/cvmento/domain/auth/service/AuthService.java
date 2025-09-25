@@ -5,6 +5,7 @@ import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.common.util.CookieUtil;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.security.JwtUtil;
 import com.cvmento.global.security.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,7 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final CookieUtil cookieUtil;
     private final JwtUtil jwtUtil;
+    private final MetricsService metricsService;
 
     /**
      * UserDetails에서 Member 엔티티를 추출합니다.
@@ -88,6 +90,7 @@ public class AuthService {
         Optional<String> refreshTokenOpt = cookieUtil.getRefreshTokenFromCookies(request);
 
         if (refreshTokenOpt.isEmpty()) {
+            metricsService.incrementErrorCount("REFRESH_TOKEN_NOT_FOUND");
             throw new IllegalArgumentException("Refresh token not found");
         }
 
@@ -95,16 +98,19 @@ public class AuthService {
 
         if (!jwtUtil.isValidToken(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
+            metricsService.incrementErrorCount("INVALID_REFRESH_TOKEN_FORMAT");
             throw new IllegalArgumentException("Invalid refresh token format");
         }
 
         if (!jwtUtil.isRefreshToken(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
+            metricsService.incrementErrorCount("WRONG_TOKEN_TYPE");
             throw new IllegalArgumentException("Wrong token type - not a refresh token");
         }
 
         if (jwtUtil.isTokenExpired(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
+            metricsService.incrementErrorCount("REFRESH_TOKEN_EXPIRED");
             throw new IllegalArgumentException("Refresh token expired");
         }
 
@@ -123,6 +129,7 @@ public class AuthService {
         } catch (IllegalArgumentException e) {
             cookieUtil.deleteAllAuthCookies(response);
             log.debug("토큰 갱신 실패: {}", e.getMessage());
+            metricsService.incrementErrorCount("REFRESH_TOKEN_VALIDATION_FAILED");
             throw new IllegalArgumentException("Refresh token validation failed");
         }
     }
@@ -199,6 +206,7 @@ public class AuthService {
         cookieUtil.addRefreshTokenCookie(response, tokenDto.refreshToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getRefreshTokenExpirationTime()));
 
+        metricsService.incrementLoginCount();
         log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
 
         return tokenDto;
