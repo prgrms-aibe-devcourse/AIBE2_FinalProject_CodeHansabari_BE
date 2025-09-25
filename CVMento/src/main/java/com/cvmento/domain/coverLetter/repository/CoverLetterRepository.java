@@ -14,12 +14,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CoverLetterRepository extends JpaRepository<CoverLetter, Long>, CoverLetterRepositoryCustom {
-    List<CoverLetter> findByMember(Member member);
-    List<CoverLetter> findAllByOrderByUpdatedAtDesc();
 
-    // 페이징 지원 메서드들
-    Page<CoverLetter> findByMemberAndStatusOrderByUpdatedAtDesc(Member member, CoverLetterStatus status, Pageable pageable);
-
+    /**
+     * 사용자의 활성 자소서 목록 조회 (페이징)
+     */
+    Page<CoverLetter> findByMemberAndStatusOrderByUpdatedAtDesc(
+            Member member,
+            CoverLetterStatus status,
+            Pageable pageable
+    );
     @Query("SELECT c FROM CoverLetter c WHERE c.coverLetterId = :coverLetterId AND c.member.email = :memberEmail AND c.status = :status")
     Optional<CoverLetter> findByCoverLetterIdAndMemberEmailAndStatus(
             @Param("coverLetterId") Long coverLetterId,

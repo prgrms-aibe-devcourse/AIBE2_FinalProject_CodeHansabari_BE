@@ -130,17 +130,16 @@ public class MemberService {
         Member member = findById(memberId);
 
         MDC.put("spanId", "coverletter-repository");
-        int coverLetterCount = coverLetterRepository.findByMember(member).size();
+        long coverLetterCount = memberRepository.countCoverLettersByMember(member);
 
         MDC.put("spanId", "resume-repository");
-        int resumeCount = resumeRepository.findByIdAndMember(null, member) != null ?
-                member.getResumes().size() : 0;
+        long resumeCount = memberRepository.countResumesByMember(member);
 
         MDC.put("spanId", "member-detail-service");
         log.info("회원 상세 조회 완료: memberId={}, email={}, 자소서={}개, 이력서={}개",
-                memberId, member.getEmail(), coverLetterCount, resumeCount);
+                memberId, member.getEmail(), (int)coverLetterCount, (int)resumeCount);
 
-        return MemberDetailResponse.from(member, coverLetterCount, resumeCount);
+        return MemberDetailResponse.from(member, (int)coverLetterCount, (int)resumeCount);
     }
 
     /**
