@@ -62,7 +62,10 @@ public class SecurityConfig {
                                 "/auth/google/url",
                                 "/auth/quick-login/**", // 개발용
                                 "/actuator/**",
-                                "/actuator/prometheus"
+                                "/actuator/prometheus",
+                                "/api/test/**",
+                                "/api/v1/admin/analysis/**",
+                                "/api/internal/**"
                         ).permitAll()
                                 .anyRequest().hasAnyRole("ADMIN", "ROOT")
 //                        .requestMatchers("/api/crawl/**").hasAnyRole("ADMIN", "ROOT")

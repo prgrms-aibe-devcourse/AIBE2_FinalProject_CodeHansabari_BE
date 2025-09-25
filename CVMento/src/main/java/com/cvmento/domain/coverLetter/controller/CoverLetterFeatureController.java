@@ -1,35 +1,25 @@
 package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.controller.interfaces.CoverLetterFeatureControllerInterface;
-import com.cvmento.domain.coverLetter.dto.response.CoverLetterFeatureData;
-import com.cvmento.domain.coverLetter.dto.response.RawCoverLetterFeatureData;
-import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
-import com.cvmento.domain.coverLetter.entity.RawCoverLetterFeature;
-import com.cvmento.domain.coverLetter.enums.FeaturesCategory;
-import com.cvmento.domain.coverLetter.service.CoverLetterFeatureQueryService;
-import com.cvmento.domain.coverLetter.service.CoverLetterFeatureService;
-import com.cvmento.domain.coverLetter.service.FarthestFirstClusteringService;
-import com.cvmento.domain.coverLetter.service.RawCoverLetterFeatureQueryService;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.subBackend.client.FeatureClient;
+import com.cvmento.global.subBackend.client.JobClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
- * 자소서 특징 추출 및 조회 API
+ * 자소서 특징 추출 및 조회 API (Sub Backend 위임)
  */
 @RestController
 @RequestMapping("/api/cover-letter-features")
@@ -37,79 +27,157 @@ import java.util.Map;
 @Slf4j
 public class CoverLetterFeatureController implements CoverLetterFeatureControllerInterface {
 
-    private final CoverLetterFeatureService coverLetterFeatureService;
-    // private final FarthestFirstClusteringService farthestFirstClusteringService;  // 임시로 비활성화 (다른 서버로 분리 예정)
-    private final CoverLetterFeatureQueryService coverLetterFeatureQueryService;
-    private final RawCoverLetterFeatureQueryService rawCoverLetterFeatureQueryService;
+    private final JobClient jobClient;
+    private final FeatureClient featureClient;
 
     /**
-     * 크롤링된 자소서에서 특징 추출
+     * 크롤링된 자소서에서 특징 추출 (Sub 백엔드로 위임)
      */
     @PostMapping("/extract")
     @Override
-    public ResponseEntity<CommonResponse<List<RawCoverLetterFeature>>> extractFeatures(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<CommonResponse<Map<String, Object>>> extractFeatures(@AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "feature-extraction-controller");
 
         String userEmail = userDetails.getUsername();
         log.info("자소서 특징 추출 실행 요청 - 사용자: {}", userEmail);
 
-        List<RawCoverLetterFeature> rawFeatures = coverLetterFeatureService.extractFeaturesFromCrawledData();
-        log.info("특징 추출 실행 성공 - 추출된 특징 개수: {}", rawFeatures.size());
-        return ResponseEntity.ok(CommonResponse.success("특징 추출이 완료되었습니다. raw_features 테이블에 저장되었습니다.", rawFeatures));
+        try {
+            // 1. 먼저 활성 Job이 있는지 확인
+            ResponseEntity<Map<String, Object>> activeJobResponse = jobClient.getLatestActiveJobStatus();
+            Map<String, Object> activeJobStatus = activeJobResponse.getBody();
+
+            if (activeJobStatus != null && (Boolean) activeJobStatus.getOrDefault("hasActiveJob", false)) {
+                String activeJobType = (String) activeJobStatus.get("jobType");
+                String activeStatus = (String) activeJobStatus.get("status");
+                String activeJobCreatedBy = (String) activeJobStatus.getOrDefault("createdBy", "SYSTEM");
+
+                log.warn("특징 추출 요청 거부 - 활성 Job 존재: {} ({}), 생성자: {}, 요청자: {}",
+                        activeJobType, activeStatus, activeJobCreatedBy, userEmail);
+
+                return ResponseEntity.badRequest().body(CommonResponse.error(
+                        "JOB_ALREADY_ACTIVE",
+                        String.format("현재 %s 작업이 진행 중입니다. 작업 완료 후 다시 시도해주세요. (진행중인 작업 생성자: %s)",
+                                getJobTypeKorean(activeJobType), activeJobCreatedBy)
+                ));
+            }
+
+            // 2. 활성 Job이 없으면 특징 추출 시작
+            Map<String, Object> jobRequest = Map.of(
+                    "jobId", java.util.UUID.randomUUID().toString(),
+                    "task", "FEATURE_EXTRACTION"
+            );
+            Map<String, Object> response = jobClient.startJob(jobRequest);
+            log.info("Sub 백엔드 특징 추출 요청 성공 - 사용자: {}", userEmail);
+
+            return ResponseEntity.ok(CommonResponse.success("특징 추출 작업이 시작되었습니다.", response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 특징 추출 요청 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("FEATURE_EXTRACTION_ERROR", "특징 추출 요청 실패"));
+        }
     }
 
     /**
-     * 임베딩 기반 특징 중복제거 수행
+     * 임베딩 기반 특징 중복제거 수행 (Sub 백엔드로 위임)
      */
-    // @PostMapping("/deduplicate")  // 임시로 비활성화 (다른 서버로 분리 예정)
-//    public ResponseEntity<CommonResponse<List<CoverLetterFeature>>> deduplicateFeatures(
-//            @AuthenticationPrincipal UserDetails userDetails) {
-//        MDC.put("spanId", "feature-deduplication-controller");
-//
-//        String userEmail = userDetails.getUsername();
-//        log.info("임베딩 기반 특징 중복제거 실행 요청 - 사용자: {}", userEmail);
-//
-//        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
-//        log.info("특징 중복제거 실행 성공 - 최종 특징 개수: {}", finalFeatures.size());
-//        return ResponseEntity.ok(CommonResponse.success("Farthest-First 클러스터링 기반 특징 중복제거가 완료되었습니다. cover_letter_features 테이블에 저장되었습니다.", finalFeatures));
-//    }
+    @PostMapping("/deduplicate")
+    @Override
+    public ResponseEntity<CommonResponse<Map<String, Object>>> deduplicateFeatures(@AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "feature-deduplication-controller");
 
+        String userEmail = userDetails.getUsername();
+        log.info("임베딩 기반 특징 중복제거 실행 요청 - 사용자: {}", userEmail);
 
-    // @PostMapping("/process")  // 임시로 비활성화 (다른 서버로 분리 예정)
-//    @Override
-//    public ResponseEntity<CommonResponse<Object>> extractFeaturesWithRealtimeAPI(UserDetails userDetails) {
-//        log.info("전체 특징 처리 시작 - 사용자: {}", userDetails.getUsername());
-//
-//        // 1단계: 특징 추출
-//        log.info("1단계: 특징 추출 시작");
-//        List<RawCoverLetterFeature> rawFeatures = coverLetterFeatureService.extractFeaturesFromCrawledData();
-//        log.info("1단계 완료: {}개 특징 추출", rawFeatures.size());
-//
-//        // 2단계: 중복제거
-//        log.info("2단계: Farthest-First 클러스터링 기반 중복제거 시작");
-//        List<CoverLetterFeature> finalFeatures = farthestFirstClusteringService.deduplicateFeaturesWithFarthestFirst();
-//        log.info("2단계 완료: {}개 최종 특징 선정", finalFeatures.size());
-//
-//        // 결과 요약 생성
-//        Map<String, Object> result = new HashMap<>();
-//        result.put("rawFeaturesCount", rawFeatures.size());
-//        result.put("finalFeaturesCount", finalFeatures.size());
-//        result.put("deduplicationRatio", String.format("%.1f%%", (1.0 - (double) finalFeatures.size() / rawFeatures.size()) * 100));
-//        result.put("batchSize", 2);
-//        result.put("totalBatches", (int) Math.ceil(rawFeatures.size() / 6.0)); // 2개 자소서 * 3개 특징 = 6개
-//        result.put("status", "COMPLETE");
-//        result.put("message", "전체 특징 처리가 완료되었습니다.");
-//
-//        log.info("전체 특징 처리 완료 - 원본: {}개, 최종: {}개", rawFeatures.size(), finalFeatures.size());
-//
-//        return ResponseEntity.ok(CommonResponse.success("전체 특징 처리가 완료되었습니다.", result));
-//    }
+        try {
+            // 1. 먼저 활성 Job이 있는지 확인
+            ResponseEntity<Map<String, Object>> activeJobResponse = jobClient.getLatestActiveJobStatus();
+            Map<String, Object> activeJobStatus = activeJobResponse.getBody();
+
+            if (activeJobStatus != null && (Boolean) activeJobStatus.getOrDefault("hasActiveJob", false)) {
+                String activeJobType = (String) activeJobStatus.get("jobType");
+                String activeStatus = (String) activeJobStatus.get("status");
+                String activeJobCreatedBy = (String) activeJobStatus.getOrDefault("createdBy", "SYSTEM");
+
+                log.warn("중복제거 요청 거부 - 활성 Job 존재: {} ({}), 생성자: {}, 요청자: {}",
+                        activeJobType, activeStatus, activeJobCreatedBy, userEmail);
+
+                return ResponseEntity.badRequest().body(CommonResponse.error(
+                        "JOB_AL-READY_ACTIVE",
+                        String.format("현재 %s 작업이 진행 중입니다. 작업 완료 후 다시 시도해주세요. (진행중인 작업 생성자: %s)",
+                                getJobTypeKorean(activeJobType), activeJobCreatedBy)
+                ));
+            }
+
+            // 2. 활성 Job이 없으면 중복제거 시작
+            Map<String, Object> jobRequest = Map.of(
+                    "jobId", java.util.UUID.randomUUID().toString(),
+                    "task", "DEDUPLICATION"
+            );
+            Map<String, Object> response = jobClient.startJob(jobRequest);
+            log.info("Sub 백엔드 중복제거 요청 성공 - 사용자: {}", userEmail);
+
+            return ResponseEntity.ok(CommonResponse.success("특징 중복제거 작업이 시작되었습니다.", response));
+
+        } catch (Exception e) {
+            log.error("Sub 백엔드 특징 중복제거 요청 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("FEATURE_DEDUPLICATION_ERROR", "특징 중복제거 요청 실패"));
+        }
+    }
 
     /**
-     * 모든 특징을 페이징으로 조회 (생성일 기준 내림차순)
+     * 자소서 특징 추출 및 중복 제거 전체 프로세스 실행 (Sub 백엔드로 위임)
+     */
+    @PostMapping("/process-all")
+    @Override
+    public ResponseEntity<CommonResponse<Object>> extractFeaturesWithRealtimeAPI(@AuthenticationPrincipal UserDetails userDetails) {
+        MDC.put("spanId", "feature-process-all-controller");
+
+        String userEmail = userDetails.getUsername();
+        log.info("전체 특징 처리 프로세스 실행 요청 - 사용자: {}", userEmail);
+
+        try {
+            // 1. 먼저 활성 Job이 있는지 확인
+            ResponseEntity<Map<String, Object>> activeJobResponse = jobClient.getLatestActiveJobStatus();
+            Map<String, Object> activeJobStatus = activeJobResponse.getBody();
+
+            if (activeJobStatus != null && (Boolean) activeJobStatus.getOrDefault("hasActiveJob", false)) {
+                String activeJobType = (String) activeJobStatus.get("jobType");
+                String activeStatus = (String) activeJobStatus.get("status");
+                String activeJobCreatedBy = (String) activeJobStatus.getOrDefault("createdBy", "SYSTEM");
+
+                log.warn("전체 특징 처리 요청 거부 - 활성 Job 존재: {} ({}), 생성자: {}, 요청자: {}",
+                        activeJobType, activeStatus, activeJobCreatedBy, userEmail);
+
+                return ResponseEntity.badRequest().body(CommonResponse.error(
+                        "JOB_ALREADY_ACTIVE",
+                        String.format("현재 %s 작업이 진행 중입니다. 작업 완료 후 다시 시도해주세요. (진행중인 작업 생성자: %s)",
+                                getJobTypeKorean(activeJobType), activeJobCreatedBy)
+                ));
+            }
+
+            // 2. 활성 Job이 없으면 전체 특징 처리 프로세스 시작
+            Map<String, Object> jobRequest = Map.of(
+                    "jobId", java.util.UUID.randomUUID().toString(),
+                    "task", "FEATURE_PROCESS_ALL"
+            );
+            Map<String, Object> response = jobClient.startJob(jobRequest);
+            log.info("Sub 백엔드 전체 특징 처리 요청 성공 - 사용자: {}", userEmail);
+
+            return ResponseEntity.ok(CommonResponse.success("전체 특징 처리 작업이 시작되었습니다.", response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 전체 특징 처리 요청 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("FEATURE_PROCESS_ALL_ERROR", "전체 특징 처리 요청 실패"));
+        }
+    }
+
+    /**
+     * 모든 특징을 페이징으로 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/")
-    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getAllFeaturesWithPagination(
+    // @Override // 임시로 제거 - 인터페이스 미완성
+    public ResponseEntity<CommonResponse<Page<Map<String, Object>>>> getAllFeaturesWithPagination(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
 
@@ -119,21 +187,31 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         log.info("모든 특징 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}",
                 userEmail, pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
-                .getAllFeaturesWithPagination(pageable);
+        try {
+            Page<Map<String, Object>> response = featureClient.getAllFeatures(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    "createdAt,desc"
+            );
 
-        log.info("모든 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
-                response.getTotalElements(), response.getTotalPages());
+            log.info("모든 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
+                    response.getTotalElements(), response.getTotalPages());
 
-        return ResponseEntity.ok(CommonResponse.success(response));
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 특징 조회 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("FEATURE_FETCH_ERROR", "특징 조회 실패"));
+        }
     }
 
     /**
-     * 특정 카테고리의 특징들을 페이징으로 조회 (생성일 기준 내림차순)
+     * 특정 카테고리의 특징들을 페이징으로 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/category/{category}")
-    public ResponseEntity<CommonResponse<Page<CoverLetterFeatureData>>> getFeaturesByCategoryWithPagination(
-            @PathVariable FeaturesCategory category,
+    // @Override // 임시로 제거 - 인터페이스 미완성
+    public ResponseEntity<CommonResponse<Page<Map<String, Object>>>> getFeaturesByCategoryWithPagination(
+            @PathVariable String category,
             @PageableDefault(size = 20, sort = "duplicateCount", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
 
@@ -143,20 +221,31 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         log.info("카테고리별 특징 페이징 조회 요청 - 사용자: {}, 카테고리: {}, 페이지: {}, 크기: {}",
                 userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<CoverLetterFeatureData> response = coverLetterFeatureQueryService
-                .getFeaturesByCategoryWithPagination(category, pageable);
+        try {
+            Page<Map<String, Object>> response = featureClient.getFeaturesByCategory(
+                    category,
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    "duplicateCount,desc"
+            );
 
-        log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
-                category, response.getTotalElements(), response.getTotalPages());
+            log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
+                    category, response.getTotalElements(), response.getTotalPages());
 
-        return ResponseEntity.ok(CommonResponse.success(response));
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 카테고리별 특징 조회 실패 - 사용자: {}, 카테고리: {}, 에러: {}", userEmail, category, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("FEATURE_CATEGORY_FETCH_ERROR", "카테고리별 특징 조회 실패"));
+        }
     }
 
     /**
-     * 특징 통계 정보 조회
+     * 특징 통계 정보 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/statistics")
-    public ResponseEntity<CommonResponse<CoverLetterFeatureQueryService.FeatureStatistics>> getFeatureStatistics(
+    // @Override // 임시로 제거 - 인터페이스 미완성
+    public ResponseEntity<CommonResponse<Map<String, Object>>> getFeatureStatistics(
             @AuthenticationPrincipal UserDetails userDetails) {
 
         MDC.put("spanId", "feature-query-controller-statistics");
@@ -164,22 +253,25 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         String userEmail = userDetails.getUsername();
         log.info("특징 통계 조회 요청 - 사용자: {}", userEmail);
 
-        CoverLetterFeatureQueryService.FeatureStatistics response =
-                coverLetterFeatureQueryService.getFeatureStatistics();
+        try {
+            ResponseEntity<Map<String, Object>> response = featureClient.getFeatureStatistics();
 
-        log.info("특징 통계 조회 완료 - 총 개수: {}, EXPRESSION: {}, STRUCTURE: {}, CONTENT: {}",
-                response.totalCount(), response.expressionCount(),
-                response.structureCount(), response.contentCount());
+            log.info("특징 통계 조회 완료 - 사용자: {}", userEmail);
 
-        return ResponseEntity.ok(CommonResponse.success(response));
+            return ResponseEntity.ok(CommonResponse.success(response.getBody()));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 특징 통계 조회 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("FEATURE_STATISTICS_ERROR", "특징 통계 조회 실패"));
+        }
     }
 
     /**
-     * Raw 특징 페이징 조회
+     * Raw 특징 페이징 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/raw")
     @Override
-    public ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesPaged(
+    public ResponseEntity<CommonResponse<Page<Map<String, Object>>>> getRawFeaturesPaged(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "raw-feature-query-controller-all");
@@ -187,17 +279,31 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         String userEmail = userDetails.getUsername();
         log.info("Raw 특징 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}", userEmail, pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<RawCoverLetterFeatureData> response = rawCoverLetterFeatureQueryService.getRawFeaturesPaged(pageable);
-        return ResponseEntity.ok(CommonResponse.success(response));
+        try {
+            Page<Map<String, Object>> response = featureClient.getRawFeatures(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    "createdAt,desc"
+            );
+
+            log.info("Raw 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
+                    response.getTotalElements(), response.getTotalPages());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 Raw 특징 조회 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("RAW_FEATURE_FETCH_ERROR", "Raw 특징 조회 실패"));
+        }
     }
 
     /**
-     * 카테고리별 Raw 특징 페이징 조회
+     * 카테고리별 Raw 특징 페이징 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/raw/category/{category}")
     @Override
-    public ResponseEntity<CommonResponse<Page<RawCoverLetterFeatureData>>> getRawFeaturesByCategoryPaged(
-            @PathVariable FeaturesCategory category,
+    public ResponseEntity<CommonResponse<Page<Map<String, Object>>>> getRawFeaturesByCategoryPaged(
+            @PathVariable String category,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "raw-feature-query-controller-category");
@@ -205,7 +311,35 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
         String userEmail = userDetails.getUsername();
         log.info("Raw 카테고리별 특징 페이징 조회 요청 - 사용자: {}, 카테고리: {}, 페이지: {}, 크기: {}", userEmail, category, pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<RawCoverLetterFeatureData> response = rawCoverLetterFeatureQueryService.getRawFeaturesByCategoryPaged(category, pageable);
-        return ResponseEntity.ok(CommonResponse.success(response));
+        try {
+            Page<Map<String, Object>> response = featureClient.getRawFeaturesByCategory(
+                    category,
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    "createdAt,desc"
+            );
+
+            log.info("Raw 카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
+                    category, response.getTotalElements(), response.getTotalPages());
+
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 Raw 카테고리별 특징 조회 실패 - 사용자: {}, 카테고리: {}, 에러: {}", userEmail, category, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("RAW_FEATURE_CATEGORY_FETCH_ERROR", "Raw 카테고리별 특징 조회 실패"));
+        }
+    }
+
+    /**
+     * Job 타입을 한국어로 변환하는 유틸리티 메서드
+     */
+    private String getJobTypeKorean(String jobType) {
+        return switch (jobType) {
+            case "CRAWLING" -> "크롤링";
+            case "FEATURE_EXTRACTION" -> "특징 추출";
+            case "DEDUPLICATION" -> "중복 제거";
+            case "FEATURE_PROCESS_ALL" -> "전체 특징 처리";
+            default -> jobType;
+        };
     }
 }

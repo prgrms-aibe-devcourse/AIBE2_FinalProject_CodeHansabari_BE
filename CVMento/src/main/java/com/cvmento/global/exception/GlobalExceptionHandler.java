@@ -400,4 +400,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(InvalidAnalysisStepException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidAnalysisStepException(
+            InvalidAnalysisStepException ex, HttpServletRequest request) {
+        log.warn("InvalidAnalysisStepException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_ANALYSIS_STEP",
+                ex.getMessage(),
+                null
+        );
+    }
+
 }

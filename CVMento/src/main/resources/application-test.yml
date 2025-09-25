@@ -59,6 +59,12 @@ llm:
       vision:
         key: dummy-test-key-vision
 
+gemini:
+  api:
+    feature-extraction:
+      url: https://generativelanguage.googleapis.com/v1beta
+      key: dummy-test-gemini-key
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail},%X{responseTime},%X{statusCode}] %logger{36} - %msg%n"

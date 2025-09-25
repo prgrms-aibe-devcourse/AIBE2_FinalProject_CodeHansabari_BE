@@ -108,6 +108,9 @@ dependencies {
 	// Spring Boot Actuator
 	implementation "org.springframework.boot:spring-boot-starter-actuator"
 
+	implementation 'com.github.haifengl:smile-core:2.6.0'
+	implementation 'com.github.haifengl:smile-mkl:2.6.0'
+
 }
 def generated = layout.buildDirectory.dir('generated/sources/annotationProcessor/java/main')
 

@@ -5,3 +5,6 @@ public class CrawlCoverLetterNotFoundException extends RuntimeException {
         super(message);
     }
 }
+
+
+
