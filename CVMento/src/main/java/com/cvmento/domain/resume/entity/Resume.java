@@ -10,7 +10,9 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "resume")
+@Table(name = "resume", indexes = {
+    @Index(name = "idx_resume_member", columnList = "member_id")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Resume extends BaseTimeEntity {

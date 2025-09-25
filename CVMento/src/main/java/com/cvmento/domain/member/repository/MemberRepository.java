@@ -69,4 +69,10 @@ public interface MemberRepository extends JpaRepository<Member, Long>, JpaSpecif
     java.util.List<Object[]> getEmailDomainStatistics();
 
     List<Member> findByStatus(UserStatus status);
+
+    @Query("SELECT COUNT(c) FROM CoverLetter c WHERE c.member = :member")
+    long countCoverLettersByMember(@Param("member") Member member);
+
+    @Query("SELECT COUNT(r) FROM Resume r WHERE r.member = :member")
+    long countResumesByMember(@Param("member") Member member);
 }

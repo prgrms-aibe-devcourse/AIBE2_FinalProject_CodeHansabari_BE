@@ -5,8 +5,11 @@ import com.cvmento.domain.resume.dto.response.ResumeImportResponse;
 import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;
 import com.cvmento.global.aws.LambdaService;
+import com.cvmento.global.exception.customException.FileSizeExceededException;
+import com.cvmento.global.exception.customException.InvalidFileException;
 import com.cvmento.global.exception.customException.LambdaException;
 import com.cvmento.global.exception.customException.ResumeException;
+import com.cvmento.global.exception.customException.UnsupportedFileTypeException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -135,7 +138,7 @@ class ResumeImportServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> resumeImportService.importResume(emptyFile, MEMBER_EMAIL))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidFileException.class)
                     .hasMessage("파일이 비어있습니다.");
 
             log.info("✅ 빈 파일 검증 예외 처리 확인");
@@ -154,8 +157,8 @@ class ResumeImportServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> resumeImportService.importResume(unsupportedFile, MEMBER_EMAIL))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("지원하지 않는 파일 형식입니다. PDF 또는 이미지 파일만 업로드 가능합니다.");
+                    .isInstanceOf(UnsupportedFileTypeException.class)
+                    .hasMessageContaining("지원하지 않는 파일 형식입니다");
 
             log.info("✅ 지원하지 않는 파일 형식 검증 예외 처리 확인");
             log.info("=== 테스트 완료 ===\n");
@@ -173,8 +176,8 @@ class ResumeImportServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> resumeImportService.importResume(oversizedFile, MEMBER_EMAIL))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("파일 크기는 10MB를 초과할 수 없습니다.");
+                    .isInstanceOf(FileSizeExceededException.class)
+                    .hasMessageContaining("파일 크기가 제한을 초과했습니다");
 
             log.info("✅ 파일 크기 초과 검증 예외 처리 확인");
             log.info("=== 테스트 완료 ===\n");

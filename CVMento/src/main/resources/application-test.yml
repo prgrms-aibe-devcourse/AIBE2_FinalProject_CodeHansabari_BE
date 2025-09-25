@@ -1,14 +1,18 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL  # MySQL 호환 모드 추가
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:mysql://localhost:3309/aibe2?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     show-sql: true  # 테스트에서 SQL 로그 보기
     hibernate:
-      ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
+      ddl-auto: update  # MySQL이므로 update로 변경
+    database-platform: org.hibernate.dialect.MySQL8Dialect  # MySQL 방언으로 변경
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: never
   data:
     redis:
       host: localhost
@@ -69,9 +73,44 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail},%X{responseTime},%X{statusCode}] %logger{36} - %msg%n"
   level:
-    com.cvmento: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.data.redis: DEBUG
+    com.cvmento: INFO  # 벤치마크 중에는 INFO 레벨로
+    org.springframework.security: WARN
+    org.springframework.data.redis: WARN
 
 server:
   port: 8080
+
+cloud:
+  aws:
+    region:
+      static: ap-northeast-2
+    lambda:
+      function-name: test-dummy-function
+
+resume:
+  import:
+    strategy: lambda
+
+gemini:
+  api:
+    feature-extraction:
+      url: https://generativelanguage.googleapis.com/v1beta
+      key: dummy-test-gemini-key
+
+# 임베딩 모델 설정
+embedding:
+  model:
+    url: "djl://ai.djl.huggingface.pytorch/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    threshold: 0.75
+  cache:
+    dir: "${user.home}/.djl-cache"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
