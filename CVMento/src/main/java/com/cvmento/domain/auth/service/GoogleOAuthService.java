@@ -123,9 +123,11 @@ public class GoogleOAuthService {
             );
 
         } catch (GoogleApiException | InvalidAuthorizationCodeException e) {
+            metricsService.incrementErrorCount("GOOGLE_OAUTH_LOGIN_FAILED");
             throw e;
         } catch (Exception e) {
             log.error("구글 OAuth 로그인 실패", e);
+            metricsService.incrementErrorCount("GOOGLE_OAUTH_LOGIN_FAILED");
             throw new GoogleApiException("구글 로그인 처리 중 오류가 발생했습니다.", e);
         }
     }
@@ -152,6 +154,8 @@ public class GoogleOAuthService {
 
             log.info("구글 토큰 로그인 성공 - memberId: {}", member.getMemberId());
 
+            metricsService.incrementLoginCount();
+
             return new LoginResponse(
                     "구글 로그인이 완료되었습니다.",
                     MemberInfo.from(member),
@@ -159,9 +163,11 @@ public class GoogleOAuthService {
             );
 
         } catch (InvalidTokenException e) {
+            metricsService.incrementErrorCount("GOOGLE_TOKEN_LOGIN_FAILED");
             throw e;
         } catch (Exception e) {
             log.error("구글 토큰 로그인 실패", e);
+            metricsService.incrementErrorCount("GOOGLE_TOKEN_LOGIN_FAILED");
             throw new InvalidTokenException("Google ID Token 검증에 실패했습니다.");
         }
     }
@@ -185,6 +191,7 @@ public class GoogleOAuthService {
                     GOOGLE_TOKEN_URL, HttpMethod.POST, entity, String.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_EXCHANGE_FAILED");
                 throw new InvalidAuthorizationCodeException("구글 토큰 교환에 실패했습니다.");
             }
 
@@ -192,6 +199,7 @@ public class GoogleOAuthService {
 
             if (jsonNode.has("error")) {
                 String error = jsonNode.get("error").asText();
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_EXCHANGE_ERROR");
                 throw new InvalidAuthorizationCodeException("구글 토큰 교환 오류: " + error);
             }
 
@@ -204,6 +212,7 @@ public class GoogleOAuthService {
         } catch (InvalidAuthorizationCodeException e) {
             throw e;
         } catch (Exception e) {
+            metricsService.incrementErrorCount("GOOGLE_API_COMMUNICATION_ERROR");
             throw new GoogleApiException("구글 API 통신 중 오류가 발생했습니다.", e);
         }
     }
@@ -218,6 +227,7 @@ public class GoogleOAuthService {
                     GOOGLE_USER_INFO_URL, HttpMethod.GET, entity, String.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
+                metricsService.incrementErrorCount("GOOGLE_USER_INFO_FAILED");
                 throw new GoogleApiException("구글 사용자 정보 조회에 실패했습니다.");
             }
 
@@ -227,6 +237,7 @@ public class GoogleOAuthService {
         } catch (GoogleApiException e) {
             throw e;
         } catch (Exception e) {
+            metricsService.incrementErrorCount("GOOGLE_USER_INFO_ERROR");
             throw new GoogleApiException("구글 사용자 정보 조회 중 오류가 발생했습니다.", e);
         }
     }
@@ -242,6 +253,7 @@ public class GoogleOAuthService {
             ResponseEntity<String> response = restTemplate.getForEntity(verifyUrl, String.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_VERIFY_FAILED");
                 throw new InvalidTokenException("Google 토큰 검증에 실패했습니다.");
             }
 
@@ -250,17 +262,20 @@ public class GoogleOAuthService {
             // 에러 체크
             if (jsonNode.has("error")) {
                 String error = jsonNode.get("error").asText();
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_INVALID");
                 throw new InvalidTokenException("유효하지 않은 토큰입니다: " + error);
             }
 
             // audience(클라이언트 ID) 검증
             String audience = jsonNode.get("aud").asText();
             if (!googleClientId.equals(audience)) {
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_INVALID_AUDIENCE");
                 throw new InvalidTokenException("잘못된 클라이언트 ID입니다.");
             }
 
             // 토큰이 아직 유효한지 확인 (Google이 이미 검증해주지만 추가 확인)
             if (!jsonNode.has("email_verified") || !jsonNode.get("email_verified").asBoolean()) {
+                metricsService.incrementErrorCount("GOOGLE_EMAIL_NOT_VERIFIED");
                 throw new InvalidTokenException("이메일이 인증되지 않은 구글 계정입니다.");
             }
 
@@ -272,6 +287,7 @@ public class GoogleOAuthService {
             throw e;
         } catch (Exception e) {
             log.error("Error during Google ID Token verification", e);
+            metricsService.incrementErrorCount("GOOGLE_TOKEN_VERIFY_ERROR");
             throw new InvalidTokenException("ID Token 검증 중 오류가 발생했습니다.");
         }
     }
@@ -334,6 +350,7 @@ public class GoogleOAuthService {
             } catch (Exception e) {
                 log.error("신규 사용자 토큰 초기화 실패 - memberId: {}, 오류: {}",
                         savedMember.getMemberId(), e.getMessage());
+                metricsService.incrementErrorCount("NEW_USER_TOKEN_INIT_FAILED");
             }
 
             return savedMember;

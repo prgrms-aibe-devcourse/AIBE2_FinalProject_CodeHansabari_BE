@@ -2,7 +2,9 @@ package com.cvmento.global.exception;
 
 
 import com.cvmento.global.exception.customException.*;
+import com.cvmento.global.common.MetricsService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +21,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final MetricsService metricsService;
 
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
             HttpServletRequest request,
@@ -42,6 +47,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationError(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("VALIDATION_ERROR");
+
         Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(
                         FieldError::getField,
@@ -61,6 +68,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidAuthorizationCodeException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidAuthorizationCodeException(
             InvalidAuthorizationCodeException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("INVALID_AUTHORIZATION_CODE");
+
         log.warn("Invalid authorization code: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -74,6 +83,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidTokenException(
             InvalidTokenException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("INVALID_TOKEN");
+
         log.warn("Invalid token: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -87,6 +98,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(GoogleApiException.class)
     public ResponseEntity<Map<String, Object>> handleGoogleApiException(
             GoogleApiException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("GOOGLE_API_ERROR");
+
         log.error("Google API error: {}", ex.getMessage(), ex);
         return buildErrorResponse(
                 request,
@@ -96,9 +109,12 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("ACCESS_DENIED");
+
         log.warn("Access denied: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -112,6 +128,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SelfActionNotAllowedException.class)
     public ResponseEntity<Map<String, Object>> handleSelfActionNotAllowed(
             SelfActionNotAllowedException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("SELF_ACTION_NOT_ALLOWED");
+
         log.warn("SelfActionNotAllowedException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -124,6 +142,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CoverLetterAiException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterAiException(CoverLetterAiException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("AI_SERVICE_ERROR");
+
         log.error("CoverLetterAiException: {}", ex.getMessage(), ex);
         return buildErrorResponse(
                 request,
@@ -136,6 +156,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MemberNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleMemberNotFoundException(MemberNotFoundException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("MEMBER_NOT_FOUND");
+
         log.warn("MemberNotFoundException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -148,14 +170,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CoverLetterException.class)
     public ResponseEntity<Map<String, Object>> handleCoverLetterException(CoverLetterException ex, HttpServletRequest request) {
-        log.warn("CoverLetterException: {}", ex.getMessage());
-
         // "찾을 수 없습니다" 메시지면 404, 그 외는 400
         HttpStatus status = ex.getMessage().contains("찾을 수 없습니다") ?
                 HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
 
         String errorCode = status == HttpStatus.NOT_FOUND ?
                 "COVER_LETTER_NOT_FOUND" : "COVER_LETTER_ERROR";
+
+        metricsService.incrementErrorCount(errorCode);
+
+        log.warn("CoverLetterException: {}", ex.getMessage());
 
         return buildErrorResponse(
                 request,
@@ -168,6 +192,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InterviewException.class)
     public ResponseEntity<Map<String, Object>> handleInterviewException(InterviewException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("INTERVIEW_SERVICE_ERROR");
+
         log.error("InterviewException: {}", ex.getMessage(), ex);
         return buildErrorResponse(
                 request,
@@ -180,6 +206,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InterviewLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleInterviewLimitExceededException(InterviewLimitExceededException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("INTERVIEW_LIMIT_EXCEEDED");
+
         log.error("InterviewLimitExceededException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -192,6 +220,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResumeException.class)
     public ResponseEntity<Map<String, Object>> handleResumeException(ResumeException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("RESUME_ERROR");
+
         log.warn("ResumeException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -204,6 +234,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResumeNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResumeNotFoundException(ResumeNotFoundException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("RESUME_NOT_FOUND");
+
         log.warn("ResumeNotFoundException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -216,8 +248,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(LambdaException.class)
     public ResponseEntity<Map<String, Object>> handleLambdaException(LambdaException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("LAMBDA_SERVICE_ERROR");
+
         log.error("Lambda 서비스 오류: {}", ex.getMessage(), ex);
-        
+
         return buildErrorResponse(
                 request,
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -226,10 +260,11 @@ public class GlobalExceptionHandler {
                 null
         );
     }
-  
+
     @ExceptionHandler(UsageLimitExceededException.class)
     public ResponseEntity<Map<String, Object>> handleUsageLimitExceededException(
             UsageLimitExceededException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("USAGE_LIMIT_EXCEEDED");
 
         log.warn("사용량 제한 초과 - 기능: {}, 필요토큰: {}, 보유토큰: {}",
                 ex.getUsageType().getDescription(), ex.getRequiredTokens(), ex.getRemainingTokens());
@@ -312,6 +347,8 @@ public class GlobalExceptionHandler {
             AiInvalidRequestException ex,
             HttpServletRequest request
     ) {
+        metricsService.incrementErrorCount("AI_INVALID_REQUEST");
+
         log.warn("AiInvalidRequestException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -325,6 +362,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnsupportedFileTypeException.class)
     public ResponseEntity<Map<String, Object>> handleUnsupportedFileTypeException(
             UnsupportedFileTypeException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("UNSUPPORTED_FILE_TYPE");
+
         log.warn("UnsupportedFileTypeException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -338,6 +377,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FileSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> handleFileSizeExceededException(
             FileSizeExceededException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("FILE_SIZE_EXCEEDED");
+
         log.warn("FileSizeExceededException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -351,6 +392,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidFileException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidFileException(
             InvalidFileException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("INVALID_FILE");
+
         log.warn("InvalidFileException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -364,6 +407,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResumeValidationException.class)
     public ResponseEntity<Map<String, Object>> handleResumeValidationException(
             ResumeValidationException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("RESUME_VALIDATION_ERROR");
+
         log.warn("ResumeValidationException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
@@ -377,6 +422,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResumeConversionException.class)
     public ResponseEntity<Map<String, Object>> handleResumeConversionException(
             ResumeConversionException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("RESUME_CONVERSION_ERROR");
+
         log.error("ResumeConversionException: {}", ex.getMessage(), ex);
         return buildErrorResponse(
                 request,
@@ -390,11 +437,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidStatusException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidStatusException(
             InvalidStatusException ex, HttpServletRequest request) {
+        metricsService.incrementErrorCount("INVALID_STATUS");
+
         log.warn("InvalidStatusException: {}", ex.getMessage());
         return buildErrorResponse(
                 request,
                 HttpStatus.BAD_REQUEST,
                 "INVALID_STATUS",
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(InvalidAnalysisStepException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidAnalysisStepException(
+            InvalidAnalysisStepException ex, HttpServletRequest request) {
+        log.warn("InvalidAnalysisStepException: {}", ex.getMessage());
+        return buildErrorResponse(
+                request,
+                HttpStatus.BAD_REQUEST,
+                "INVALID_ANALYSIS_STEP",
                 ex.getMessage(),
                 null
         );
