@@ -66,15 +66,14 @@ public class SecurityConfig {
                                 "/auth/google/url",
                                 "/auth/quick-login/**", // 개발용
                                 "/actuator/**",
-                                "/actuator/prometheus",
-                                "/api/test/**",
-                                "/api/v1/admin/analysis/**"
+                                "/actuator/prometheus"
                         ).permitAll()
-//                        .requestMatchers("/api/crawl/").hasAnyRole("ADMIN", "ROOT")
-//                        .requestMatchers("/api/v1/admin/").hasAnyRole("ADMIN", "ROOT")
-//                        .anyRequest().authenticated()
+                        .requestMatchers("/api/jobs/**").hasAnyRole("ADMIN", "ROOT")
+                        .requestMatchers("/api/cover-letter-features/**").hasAnyRole("ADMIN", "ROOT")
+                        .requestMatchers("/api/crawled-cover-letters/**").hasAnyRole("ADMIN", "ROOT")
+                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "ROOT")
                         .requestMatchers("/api/internal/**").authenticated() // API Key로 인증된 요청만 허용
-                        .anyRequest().hasAnyRole("ADMIN", "ROOT")
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)
