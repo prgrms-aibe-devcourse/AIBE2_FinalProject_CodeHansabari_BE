@@ -35,6 +35,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -78,12 +79,13 @@ public class GoogleOAuthService {
         String loginUrl = UriComponentsBuilder.fromUriString(GOOGLE_AUTH_URL)
                 .queryParam("client_id", googleClientId)
                 .queryParam("redirect_uri", redirectUri)
-                .queryParam("scope", "openid profile email")
+                .queryParam("scope", String.join(" ", List.of("openid", "profile", "email"))) // 공백 포함 OK
                 .queryParam("response_type", "code")
                 .queryParam("state", state)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .build(true)
+                .build(false)
+                .encode()
                 .toUriString();
 
         log.info("구글 OAuth URL 생성 완료");
