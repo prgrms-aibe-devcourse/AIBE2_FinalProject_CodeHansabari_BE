@@ -15,7 +15,7 @@ import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.dto.MemberDetailInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
@@ -254,10 +254,9 @@ public class AuthController implements AuthControllerInterface {
         return ResponseEntity.ok(CommonResponse.success(statusResponse));
     }
 
-    /**
-     * 개발용 테스트 로그인
-     */
-
+//    /**
+//     * 개발용 테스트 로그인
+//     */
 //    @PostMapping("/test-login")
 //    @Operation(summary = "개발용 테스트 로그인", description = "개발/테스트용 임시 로그인입니다.")
 //    @ApiResponse(responseCode = "200", description = "테스트 로그인 성공")

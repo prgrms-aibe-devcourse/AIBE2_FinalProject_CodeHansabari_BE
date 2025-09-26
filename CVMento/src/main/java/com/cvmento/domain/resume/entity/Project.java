@@ -49,11 +49,9 @@ public class Project extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private ProjectType projectType;
 
-    // 연관관계
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectTechStack> projectTechStacks;
 
-    // 생성자
     private Project(Resume resume, Career career, LocalDate startDate, LocalDate endDate,
                     String name, String description, String detailedDescription,
                     String repositoryUrl, String deployUrl, ProjectType projectType) {
@@ -69,7 +67,6 @@ public class Project extends BaseTimeEntity {
         this.projectType = projectType;
     }
 
-    // 정적 팩토리 메서드
     public static Project createProject(Resume resume, Career career, LocalDate startDate,
                                         LocalDate endDate, String name, String description,
                                         String detailedDescription, String repositoryUrl,
@@ -78,28 +75,4 @@ public class Project extends BaseTimeEntity {
                 detailedDescription, repositoryUrl, deployUrl, projectType);
     }
 
-    // 비즈니스 메서드
-    public void updateProjectPeriod(LocalDate startDate, LocalDate endDate) {
-        this.startDate = startDate;
-        this.endDate = endDate;
-    }
-
-    public void updateProjectInfo(String name, String description, String detailedDescription) {
-        this.name = name;
-        this.description = description;
-        this.detailedDescription = detailedDescription;
-    }
-
-    public void updateProjectUrls(String repositoryUrl, String deployUrl) {
-        this.repositoryUrl = repositoryUrl;
-        this.deployUrl = deployUrl;
-    }
-
-    public void updateProjectType(ProjectType projectType) {
-        this.projectType = projectType;
-    }
-
-    public void linkToCareer(Career career) {
-        this.career = career;
-    }
 }

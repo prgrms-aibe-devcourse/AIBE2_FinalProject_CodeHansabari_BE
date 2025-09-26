@@ -1,14 +1,16 @@
 package com.cvmento.domain.auth.service;
 
+import com.cvmento.domain.auth.dto.GoogleUserInfo;
 import com.cvmento.domain.auth.dto.request.GoogleLoginRequest;
 import com.cvmento.domain.auth.dto.request.GoogleTokenRequest;
 import com.cvmento.domain.auth.dto.response.GoogleLoginUrlResponse;
+import com.cvmento.domain.auth.dto.response.GoogleTokenResponse;
 import com.cvmento.domain.auth.dto.response.LoginResponse;
 import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.util.CookieUtil;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
@@ -31,7 +33,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -74,7 +75,7 @@ public class GoogleOAuthService {
         String state = UUID.randomUUID().toString();
         String redirectUri = StringUtils.hasText(customRedirectUri) ? customRedirectUri : defaultRedirectUri;
 
-        String loginUrl = UriComponentsBuilder.fromHttpUrl(GOOGLE_AUTH_URL)
+        String loginUrl = UriComponentsBuilder.fromUriString(GOOGLE_AUTH_URL)
                 .queryParam("client_id", googleClientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", "openid profile email")
@@ -82,7 +83,7 @@ public class GoogleOAuthService {
                 .queryParam("state", state)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .encode(StandardCharsets.UTF_8)
+                .build(true)
                 .toUriString();
 
         log.info("구글 OAuth URL 생성 완료");
@@ -101,7 +102,7 @@ public class GoogleOAuthService {
             GoogleTokenResponse tokenResponse = exchangeCodeForToken(request.code(), request.redirectUri());
 
             MDC.put("spanId", "google-userinfo-api");
-            GoogleUserInfo userInfo = getUserInfoFromGoogle(tokenResponse.getAccessToken());
+            GoogleUserInfo userInfo = getUserInfoFromGoogle(tokenResponse.accessToken());
 
             MDC.put("spanId", "google-oauth-service");
             Member member = findOrCreateMember(userInfo);
@@ -123,9 +124,11 @@ public class GoogleOAuthService {
             );
 
         } catch (GoogleApiException | InvalidAuthorizationCodeException e) {
+            metricsService.incrementErrorCount("GOOGLE_OAUTH_LOGIN_FAILED");
             throw e;
         } catch (Exception e) {
             log.error("구글 OAuth 로그인 실패", e);
+            metricsService.incrementErrorCount("GOOGLE_OAUTH_LOGIN_FAILED");
             throw new GoogleApiException("구글 로그인 처리 중 오류가 발생했습니다.", e);
         }
     }
@@ -152,6 +155,8 @@ public class GoogleOAuthService {
 
             log.info("구글 토큰 로그인 성공 - memberId: {}", member.getMemberId());
 
+            metricsService.incrementLoginCount();
+
             return new LoginResponse(
                     "구글 로그인이 완료되었습니다.",
                     MemberInfo.from(member),
@@ -159,9 +164,11 @@ public class GoogleOAuthService {
             );
 
         } catch (InvalidTokenException e) {
+            metricsService.incrementErrorCount("GOOGLE_TOKEN_LOGIN_FAILED");
             throw e;
         } catch (Exception e) {
             log.error("구글 토큰 로그인 실패", e);
+            metricsService.incrementErrorCount("GOOGLE_TOKEN_LOGIN_FAILED");
             throw new InvalidTokenException("Google ID Token 검증에 실패했습니다.");
         }
     }
@@ -185,6 +192,7 @@ public class GoogleOAuthService {
                     GOOGLE_TOKEN_URL, HttpMethod.POST, entity, String.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_EXCHANGE_FAILED");
                 throw new InvalidAuthorizationCodeException("구글 토큰 교환에 실패했습니다.");
             }
 
@@ -192,6 +200,7 @@ public class GoogleOAuthService {
 
             if (jsonNode.has("error")) {
                 String error = jsonNode.get("error").asText();
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_EXCHANGE_ERROR");
                 throw new InvalidAuthorizationCodeException("구글 토큰 교환 오류: " + error);
             }
 
@@ -204,6 +213,7 @@ public class GoogleOAuthService {
         } catch (InvalidAuthorizationCodeException e) {
             throw e;
         } catch (Exception e) {
+            metricsService.incrementErrorCount("GOOGLE_API_COMMUNICATION_ERROR");
             throw new GoogleApiException("구글 API 통신 중 오류가 발생했습니다.", e);
         }
     }
@@ -218,6 +228,7 @@ public class GoogleOAuthService {
                     GOOGLE_USER_INFO_URL, HttpMethod.GET, entity, String.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
+                metricsService.incrementErrorCount("GOOGLE_USER_INFO_FAILED");
                 throw new GoogleApiException("구글 사용자 정보 조회에 실패했습니다.");
             }
 
@@ -227,21 +238,23 @@ public class GoogleOAuthService {
         } catch (GoogleApiException e) {
             throw e;
         } catch (Exception e) {
+            metricsService.incrementErrorCount("GOOGLE_USER_INFO_ERROR");
             throw new GoogleApiException("구글 사용자 정보 조회 중 오류가 발생했습니다.", e);
         }
     }
 
     /**
-     * Google의 tokeninfo API를 사용한 안전한 ID Token 검증
+     * Google의 tokenInfo API를 사용한 안전한 ID Token 검증
      */
     private GoogleUserInfo verifyGoogleIdToken(String idToken) {
         try {
-            // Google의 tokeninfo API로 검증
+            // Google의 tokenInfo API로 검증
             String verifyUrl = GOOGLE_TOKEN_INFO_URL + "?id_token=" + idToken;
 
             ResponseEntity<String> response = restTemplate.getForEntity(verifyUrl, String.class);
 
             if (response.getStatusCode() != HttpStatus.OK) {
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_VERIFY_FAILED");
                 throw new InvalidTokenException("Google 토큰 검증에 실패했습니다.");
             }
 
@@ -250,17 +263,20 @@ public class GoogleOAuthService {
             // 에러 체크
             if (jsonNode.has("error")) {
                 String error = jsonNode.get("error").asText();
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_INVALID");
                 throw new InvalidTokenException("유효하지 않은 토큰입니다: " + error);
             }
 
             // audience(클라이언트 ID) 검증
             String audience = jsonNode.get("aud").asText();
             if (!googleClientId.equals(audience)) {
-                throw new InvalidTokenException("잘못된 클라이언트 ID입니다.");
+                metricsService.incrementErrorCount("GOOGLE_TOKEN_INVALID_AUDIENCE");
+                throw new InvalidTokenException("잘못된 클라이언트 ID 입니다.");
             }
 
             // 토큰이 아직 유효한지 확인 (Google이 이미 검증해주지만 추가 확인)
             if (!jsonNode.has("email_verified") || !jsonNode.get("email_verified").asBoolean()) {
+                metricsService.incrementErrorCount("GOOGLE_EMAIL_NOT_VERIFIED");
                 throw new InvalidTokenException("이메일이 인증되지 않은 구글 계정입니다.");
             }
 
@@ -272,6 +288,7 @@ public class GoogleOAuthService {
             throw e;
         } catch (Exception e) {
             log.error("Error during Google ID Token verification", e);
+            metricsService.incrementErrorCount("GOOGLE_TOKEN_VERIFY_ERROR");
             throw new InvalidTokenException("ID Token 검증 중 오류가 발생했습니다.");
         }
     }
@@ -287,7 +304,7 @@ public class GoogleOAuthService {
 
     private Member findOrCreateMember(GoogleUserInfo userInfo) {
         MDC.put("spanId", "member-repository");
-        Optional<Member> existingMember = memberRepository.findByGoogleId(userInfo.getGoogleId());
+        Optional<Member> existingMember = memberRepository.findByGoogleId(userInfo.googleId());
 
         if (existingMember.isPresent()) {
             Member member = existingMember.get();
@@ -295,9 +312,9 @@ public class GoogleOAuthService {
             // 프로필 정보 업데이트 (null 안전성 개선)
             boolean needsUpdate = false;
             String currentName = member.getName();
-            String newName = userInfo.getName();
+            String newName = userInfo.name();
             String currentPicture = member.getPicture();
-            String newPicture = userInfo.getPicture();
+            String newPicture = userInfo.picture();
 
             if ((currentName == null && newName != null) ||
                     (currentName != null && !currentName.equals(newName)) ||
@@ -322,8 +339,8 @@ public class GoogleOAuthService {
             return member;
         } else {
             // 새 사용자 생성
-            Member newMember = new Member(userInfo.getGoogleId(), userInfo.getEmail(),
-                    userInfo.getName(), userInfo.getPicture());
+            Member newMember = new Member(userInfo.googleId(), userInfo.email(),
+                    userInfo.name(), userInfo.picture());
             newMember.updateLastLoginAt(LocalDateTime.now());
             Member savedMember = memberRepository.save(newMember);
 
@@ -334,6 +351,7 @@ public class GoogleOAuthService {
             } catch (Exception e) {
                 log.error("신규 사용자 토큰 초기화 실패 - memberId: {}, 오류: {}",
                         savedMember.getMemberId(), e.getMessage());
+                metricsService.incrementErrorCount("NEW_USER_TOKEN_INIT_FAILED");
             }
 
             return savedMember;
@@ -345,41 +363,5 @@ public class GoogleOAuthService {
                 Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
         cookieUtil.addRefreshTokenCookie(response, tokenDto.refreshToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getRefreshTokenExpirationTime()));
-    }
-
-    // DTO 클래스들
-    public static class GoogleTokenResponse {
-        private final String accessToken;
-        private final String idToken;
-        private final int expiresIn;
-
-        public GoogleTokenResponse(String accessToken, String idToken, int expiresIn) {
-            this.accessToken = accessToken;
-            this.idToken = idToken;
-            this.expiresIn = expiresIn;
-        }
-
-        public String getAccessToken() { return accessToken; }
-        public String getIdToken() { return idToken; }
-        public int getExpiresIn() { return expiresIn; }
-    }
-
-    public static class GoogleUserInfo {
-        private final String googleId;
-        private final String email;
-        private final String name;
-        private final String picture;
-
-        public GoogleUserInfo(String googleId, String email, String name, String picture) {
-            this.googleId = googleId;
-            this.email = email;
-            this.name = name;
-            this.picture = picture;
-        }
-
-        public String getGoogleId() { return googleId; }
-        public String getEmail() { return email; }
-        public String getName() { return name; }
-        public String getPicture() { return picture; }
     }
 }

@@ -12,7 +12,9 @@ import java.util.List;
 
 @Entity
 @Getter
-@Table(name = "cover_letter")
+@Table(name = "cover_letter", indexes = {
+    @Index(name = "idx_cover_letter_member", columnList = "member_id")
+})
 public class CoverLetter extends BaseTimeEntity {
 
     @Id
@@ -45,14 +47,18 @@ public class CoverLetter extends BaseTimeEntity {
 
     protected CoverLetter() {}
 
-    // 기본 생성자 (기존 호환성 유지)
+    /**
+     * 자소서 생성자
+     */
     public CoverLetter(String title, String content, Member member) {
         this.title = title;
         this.content = content;
         this.member = member;
     }
 
-    // 확장 생성자 (경력 정보 포함)
+    /**
+     * 자소서 생성자 (지원분야, 경력 포함)
+     */
     public CoverLetter(String title, String content, String jobField,
                        Integer experienceYears, Member member) {
         this.title = title;
@@ -61,7 +67,10 @@ public class CoverLetter extends BaseTimeEntity {
         this.experienceYears = experienceYears;
         this.member = member;
     }
-    // 총 경력을 문자열로 반환하는 헬퍼 메서드
+
+    /**
+     * 경력 년수 문자열 반환 (0년 = 신입)
+     */
     public String getTotalExperienceString() {
         if (experienceYears == null || experienceYears == 0) {
             return "신입";
@@ -69,7 +78,9 @@ public class CoverLetter extends BaseTimeEntity {
         return experienceYears + "년";
     }
 
-    // 자소서 정보 업데이트 메서드
+    /**
+     * 자소서 수정 메서드
+     */
     public void updateCoverLetter(String title, String content, String jobField, Integer experienceYears) {
         this.title = title;
         this.content = content;
@@ -77,17 +88,24 @@ public class CoverLetter extends BaseTimeEntity {
         this.experienceYears = experienceYears;
     }
 
-    // 소프트 삭제 메서드
+    /**
+     * 자소서 소프트 삭제 메서드
+     */
     public void delete() {
         this.status = CoverLetterStatus.DELETED;
     }
 
-    // 활성 상태 확인
+    /**
+     * 자소서 활성 상태 확인
+     */
     public boolean isActive() {
         return this.status == CoverLetterStatus.ACTIVE;
     }
 
-    //자소서 복구 메서드 (소프트 삭제 상태에서 활성 상태로 변경)
+    /**
+     * 자소서 복구 메서드
+     * 삭제된 상태에서만 복구 가능
+     */
     public void restore() {
         if (this.status != CoverLetterStatus.DELETED) {
             throw new IllegalStateException("삭제된 상태의 자소서만 복구할 수 있습니다.");
@@ -95,7 +113,7 @@ public class CoverLetter extends BaseTimeEntity {
         this.status = CoverLetterStatus.ACTIVE;
     }
 
-    //삭제된 상태인지 확인
+    /** 자소서 삭제 상태 확인 */
     public boolean isDeleted() {
         return this.status == CoverLetterStatus.DELETED;
     }

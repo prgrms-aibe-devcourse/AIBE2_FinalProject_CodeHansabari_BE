@@ -5,12 +5,16 @@ import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.common.util.CookieUtil;
+import com.cvmento.global.common.services.MetricsService;
+import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.security.JwtUtil;
 import com.cvmento.global.security.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,19 +33,20 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final CookieUtil cookieUtil;
     private final JwtUtil jwtUtil;
+    private final MetricsService metricsService;
 
     /**
-     * UserDetails에서 Member 엔티티를 추출합니다.
+     * UserDetails 에서 Member 엔티티를 추출합니다.
      *
      * @param userDetails 인증된 사용자 정보
-     * @return DB에서 조회한 Member 엔티티
+     * @return DB 에서 조회한 Member 엔티티
      * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
      */
     public Member getMemberFromUserDetails(UserDetails userDetails) {
         MDC.put("spanId", "auth-service");
 
         if (userDetails == null) {
-            throw new IllegalArgumentException("UserDetails가 null입니다.");
+            throw new IllegalArgumentException("UserDetails가 null 입니다.");
         }
 
         MDC.put("spanId", "member-repository");
@@ -79,15 +84,15 @@ public class AuthService {
      *
      * @param request  클라이언트 요청
      * @param response 클라이언트 응답
-     * @return 갱신된 토큰 DTO
      */
     @Transactional
-    public TokenDto refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
+    public void refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
         MDC.put("spanId", "token-refresh-service");
 
         Optional<String> refreshTokenOpt = cookieUtil.getRefreshTokenFromCookies(request);
 
         if (refreshTokenOpt.isEmpty()) {
+            metricsService.incrementErrorCount("REFRESH_TOKEN_NOT_FOUND");
             throw new IllegalArgumentException("Refresh token not found");
         }
 
@@ -95,16 +100,19 @@ public class AuthService {
 
         if (!jwtUtil.isValidToken(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
+            metricsService.incrementErrorCount("INVALID_REFRESH_TOKEN_FORMAT");
             throw new IllegalArgumentException("Invalid refresh token format");
         }
 
         if (!jwtUtil.isRefreshToken(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
+            metricsService.incrementErrorCount("WRONG_TOKEN_TYPE");
             throw new IllegalArgumentException("Wrong token type - not a refresh token");
         }
 
         if (jwtUtil.isTokenExpired(refreshToken)) {
             cookieUtil.deleteAllAuthCookies(response);
+            metricsService.incrementErrorCount("REFRESH_TOKEN_EXPIRED");
             throw new IllegalArgumentException("Refresh token expired");
         }
 
@@ -116,13 +124,23 @@ public class AuthService {
             cookieUtil.addAccessTokenCookie(response, tokenDto.accessToken(),
                     Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
 
+            // 🔄 토큰 갱신 시 사용자 캐시도 함께 갱신
             String userId = jwtUtil.extractUserId(refreshToken);
             log.info("토큰 갱신 성공 - userId: {}", userId);
-            return tokenDto;
+            String userEmail = jwtUtil.extractEmail(refreshToken);
+
+            MDC.put("spanId", "member-repository");
+            Member member = memberRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다: " + userEmail));
+
+            MDC.put("spanId", "token-refresh-service");
+            // 캐시 갱신 (최신 Member 정보로 업데이트)
+            cacheUserOnTokenRefresh(member);
 
         } catch (IllegalArgumentException e) {
             cookieUtil.deleteAllAuthCookies(response);
             log.debug("토큰 갱신 실패: {}", e.getMessage());
+            metricsService.incrementErrorCount("REFRESH_TOKEN_VALIDATION_FAILED");
             throw new IllegalArgumentException("Refresh token validation failed");
         }
     }
@@ -144,7 +162,18 @@ public class AuthService {
         MDC.put("spanId", "logout-service");
         cookieUtil.deleteAllAuthCookies(response);
 
+        // 🗑️ 로그아웃 시 캐시에서 사용자 정보 삭제
+        evictUserCacheOnLogout(member);
+
         log.info("사용자 로그아웃 완료 - memberId: {}", member.getMemberId());
+    }
+
+    /**
+     * 로그아웃 시 캐시에서 사용자 정보 삭제
+     */
+    @CacheEvict(value = "memberCache", key = "#member.email")
+    public void evictUserCacheOnLogout(Member member) {
+        log.info("🗑️ 로그아웃 시 캐시 삭제: {} (ID: {})", member.getEmail(), member.getMemberId());
     }
 
     /**
@@ -187,9 +216,27 @@ public class AuthService {
     }
 
     /**
+     * 로그인 시 캐시에 사용자 정보 저장
+     */
+    @CachePut(value = "memberCache", key = "#member.email")
+    public Member cacheUserOnLogin(Member member) {
+        log.info("🚀 로그인 시 캐시 저장: {} (ID: {})", member.getEmail(), member.getMemberId());
+        return member;
+    }
+
+    /**
+     * 토큰 갱신 시 캐시에 사용자 정보 갱신
+     */
+    @CachePut(value = "memberCache", key = "#member.email")
+    public Member cacheUserOnTokenRefresh(Member member) {
+        log.info("🔄 토큰 갱신 시 캐시 갱신: {} (ID: {})", member.getEmail(), member.getMemberId());
+        return member;
+    }
+
+    /**
      * 토큰을 생성하고 쿠키에 설정합니다.
      */
-    public TokenDto generateTokensAndSetCookies(Member member, HttpServletResponse response) {
+    public void generateTokensAndSetCookies(Member member, HttpServletResponse response) {
         MDC.put("spanId", "token-generation-service");
 
         TokenDto tokenDto = tokenService.generateTokens(member.getMemberId().toString(), member.getEmail());
@@ -199,8 +246,10 @@ public class AuthService {
         cookieUtil.addRefreshTokenCookie(response, tokenDto.refreshToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getRefreshTokenExpirationTime()));
 
-        log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
+        // 🔥 로그인 성공 시 캐시에 사용자 정보 저장
+        cacheUserOnLogin(member);
 
-        return tokenDto;
+        metricsService.incrementLoginCount();
+        log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
     }
 }

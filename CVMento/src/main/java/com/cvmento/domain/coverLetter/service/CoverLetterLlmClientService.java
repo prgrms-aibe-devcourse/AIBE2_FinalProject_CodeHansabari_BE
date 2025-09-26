@@ -4,6 +4,7 @@ import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.client.CoverLetterLlmFeignClient;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
@@ -30,6 +31,7 @@ public class CoverLetterLlmClientService {
     private final CoverLetterLlmFeignClient coverLetterLlmFeignClient;
     private final ObjectMapper objectMapper;
     private final OpenAiResponseParser openAiResponseParser;
+    private final MetricsService metricsService;
 
     /**
      * 입력 배열을 분석 요청하고 결과를 파싱한다 (Responses API)
@@ -40,9 +42,14 @@ public class CoverLetterLlmClientService {
     public LlmAnalysisResponse analyze(List<InputItem> inputItems) {
         MDC.put("spanId", "llm-client-service");
 
-        validateInputItems(inputItems);
-        LlmRequest request = createLlmRequest(inputItems);
-        return callLlmApi(request);
+        try {
+            validateInputItems(inputItems);
+            LlmRequest request = createLlmRequest(inputItems);
+            return callLlmApi(request);
+        } catch (IllegalArgumentException e) {
+            metricsService.incrementErrorCount("LLM_INVALID_INPUT");
+            throw e;
+        }
     }
 
     private void validateInputItems(List<InputItem> inputItems) {
@@ -66,15 +73,10 @@ public class CoverLetterLlmClientService {
             MDC.put("spanId", "openai-llm-api");
             String rawResponse = getRawResponse(request);
 
-            MDC.put("spanId", "llm-response-parsing");
-            log.info("LLM 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
             LlmAnalysisResponse response = parseResponse(rawResponse);
 
             MDC.put("spanId", "llm-client-service");
-            log.info("LLM 응답 파싱 완료 - 피드백길이: {}, 개선내용길이: {}",
-                    response.feedback() != null ? response.feedback().length() : 0,
-                    response.improvedContent() != null ? response.improvedContent().length() : 0);
+            log.info("LLM 응답 파싱 완료");
 
             validateResponse(response);
 
@@ -82,9 +84,11 @@ public class CoverLetterLlmClientService {
 
         } catch (AiInvalidRequestException e) {
             log.warn("부적절한 요청 감지 - {}", e.getMessage());
+            metricsService.incrementErrorCount("LLM_INVALID_REQUEST_DETECTED");
             throw e;
         } catch (Exception e) {
             log.error("LLM API 호출 실패 - 모델: {}, 오류: {}", request.model(), e.getMessage(), e);
+            metricsService.incrementErrorCount("LLM_API_CALL_FAILED");
             throw new CoverLetterAiException("LLM 서비스 호출에 실패했습니다.", e);
         }
     }
@@ -95,6 +99,7 @@ public class CoverLetterLlmClientService {
     private void validateResponse(LlmAnalysisResponse response) {
         if (isInvalidResponse(response)) {
             log.warn("부적절한 응답 감지 - 거절 또는 품질 미달");
+            metricsService.incrementErrorCount("LLM_RESPONSE_INVALID");
             throw new AiInvalidRequestException(
                     "AI 요청이 잘못되었습니다. 자소서 내용과 관련된 요청만 가능합니다."
             );
@@ -108,12 +113,14 @@ public class CoverLetterLlmClientService {
         // 1. 품질 미달 체크
         if (isLowQualityResponse(response)) {
             log.debug("품질 미달 응답 감지");
+            metricsService.incrementErrorCount("LLM_RESPONSE_LOW_QUALITY");
             return true;
         }
 
         // 2. 거절 키워드 체크 (feedback과 improvedContent 모두)
         if (containsRejectionKeywords(response)) {
             log.debug("거절 키워드 감지");
+            metricsService.incrementErrorCount("LLM_RESPONSE_REJECTED");
             return true;
         }
 
@@ -131,11 +138,7 @@ public class CoverLetterLlmClientService {
         }
 
         // 2. 피드백이 완전히 비어있음
-        if (response.feedback() == null || response.feedback().trim().isEmpty()) {
-            return true;
-        }
-
-        return false;
+        return response.feedback() == null || response.feedback().trim().isEmpty();
     }
 
     /**
@@ -193,6 +196,7 @@ public class CoverLetterLlmClientService {
             return coverLetterLlmFeignClient.analyzeRaw(request);
         } catch (Exception e) {
             log.error("LLM API 원본 응답 받기 실패: {}", e.getMessage());
+            metricsService.incrementErrorCount("LLM_RAW_RESPONSE_FAILED");
             throw new CoverLetterAiException("LLM API 호출 실패", e);
         }
     }
@@ -208,6 +212,7 @@ public class CoverLetterLlmClientService {
         } catch (Exception e) {
             log.error("OpenAI 응답 파싱 실패 - 응답길이: {}, 오류: {}",
                     rawResponse.length(), e.getMessage());
+            metricsService.incrementErrorCount("LLM_RESPONSE_PARSE_FAILED");
             throw new CoverLetterAiException("LLM 응답 파싱에 실패했습니다.", e);
         }
     }
@@ -240,18 +245,19 @@ public class CoverLetterLlmClientService {
                     improvedContent = contentJson.get("improvedContent").asText();
                 }
 
-                log.info("JSON 파싱 성공 - feedback: {}chars, improved: {}chars",
-                        feedback.length(), improvedContent.length());
+                log.info("JSON 파싱 성공");
 
                 return new LlmAnalysisResponse(feedback, improvedContent);
             } else {
                 // JSON이 아닌 경우 전체를 improvedContent로 사용
                 log.warn("JSON 형식이 아닌 응답 - 전체를 improvedContent로 처리");
+                metricsService.incrementErrorCount("LLM_RESPONSE_NON_JSON");
                 return new LlmAnalysisResponse("", cleanedText);
             }
         } catch (Exception e) {
             log.error("실제 content 파싱 실패 - 텍스트길이: {}, 오류: {}",
                     text.length(), e.getMessage());
+            metricsService.incrementErrorCount("LLM_CONTENT_PARSE_FAILED");
             return new LlmAnalysisResponse("", text);
         }
     }

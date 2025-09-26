@@ -111,8 +111,6 @@ public class ResumeController implements ResumeControllerInterface {
         Pageable pageable = PageRequest.of(page, size);
         Page<ResumeThumbnailResponse> resumePage = resumeService.getResumeList(memberEmail, pageable);
 
-        log.info("이력서 목록 조회 완료 - 총 개수: {}", resumePage.getTotalElements());
-
         return ResponseEntity.ok(CommonResponse.success("이력서 목록을 성공적으로 조회했습니다.", resumePage));
     }
 

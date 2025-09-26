@@ -44,7 +44,9 @@ public class AdditionalInfo extends BaseTimeEntity {
     @Column(length = 50)
     private String languageLevel;
 
-    // 생성자
+    /**
+     * 생성자
+     */
     private AdditionalInfo(Resume resume, LocalDate startDate, LocalDate endDate,
                            AdditionalInfoCategory category, String activityName,
                            String relatedOrganization, String detailedContent,
@@ -60,7 +62,7 @@ public class AdditionalInfo extends BaseTimeEntity {
         this.languageLevel = languageLevel;
     }
 
-    // 정적 팩토리 메서드
+    /** 생성 메서드 */
     public static AdditionalInfo createAdditionalInfo(Resume resume, LocalDate startDate,
                                                       LocalDate endDate, AdditionalInfoCategory category,
                                                       String activityName, String relatedOrganization,
@@ -70,28 +72,9 @@ public class AdditionalInfo extends BaseTimeEntity {
                 relatedOrganization, detailedContent, certificateNumber, languageLevel);
     }
 
-    // 비즈니스 메서드
+    /** 수정 메서드 */
     public void updatePeriod(LocalDate startDate, LocalDate endDate) {
         this.startDate = startDate;
         this.endDate = endDate;
-    }
-
-    public void updateBasicInfo(AdditionalInfoCategory category, String activityName,
-                                String relatedOrganization) {
-        this.category = category;
-        this.activityName = activityName;
-        this.relatedOrganization = relatedOrganization;
-    }
-
-    public void updateDetailedContent(String detailedContent) {
-        this.detailedContent = detailedContent;
-    }
-
-    public void updateCertificateInfo(String certificateNumber) {
-        this.certificateNumber = certificateNumber;
-    }
-
-    public void updateLanguageLevel(String languageLevel) {
-        this.languageLevel = languageLevel;
     }
 }

@@ -9,10 +9,12 @@ import com.cvmento.domain.coverLetter.dto.response.FeedbackItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.repository.CoverLetterFeatureRepository;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -32,12 +34,15 @@ public class CoverLetterAiService {
     private final CoverLetterLlmPromptService llmPromptService;
     private final CoverLetterLlmClientService llmClientService;
     private final ObjectMapper objectMapper;
+    private final MetricsService metricsService;
 
     /**
      * 자소서 AI 개선 메인 메서드 (경력 정보 포함)
      */
-    public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request, String userEmail) {
+    public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request) {
         MDC.put("spanId", "coverletter-ai-service");
+
+        Timer.Sample sample = metricsService.startLlmApiCallTimer();
 
         try {
             // 1. 특징 데이터 로드
@@ -67,42 +72,51 @@ public class CoverLetterAiService {
             // 5. 최종 응답 생성
             CoverLetterAiResponse result = buildResponse(feedback, llmResponse.improvedContent());
 
-            log.info("자소서 AI 첨삭 완료 - 강점: {}개, 개선사항: {}개, 개선내용길이: {}",
-                    feedback.strengths().size(), feedback.improvements().size(),
-                    result.improvedContent().length());
-
+            metricsService.stopLlmApiCallTimer(sample);
             return result;
 
         } catch (AiInvalidRequestException e) {
+            metricsService.stopLlmApiCallTimer(sample);
+            metricsService.incrementErrorCount("AI_INVALID_REQUEST");
             throw e;
 
         } catch (Exception e) {
+            metricsService.stopLlmApiCallTimer(sample);
+            metricsService.incrementErrorCount("COVER_LETTER_AI_ERROR");
             logError(e, request);
             throw new CoverLetterAiException("AI 개선 처리 중 오류가 발생했습니다.", e);
         }
     }
 
-    /** DB에서 우수 자소서 특징 데이터를 조회 */
+    /** DB 에서 우수 자소서 특징 데이터를 조회 */
     private List<CoverLetterFeatureDto> loadCoverLetterFeatures() {
         MDC.put("spanId", "feature-repository");
-        List<CoverLetterFeature> features = coverLetterFeatureRepository.findAll();
 
-        MDC.put("spanId", "coverletter-ai-service");
-        if (features.isEmpty()) {
-            log.warn("우수 자소서 특징 데이터가 없습니다.");
+        try {
+            List<CoverLetterFeature> features = coverLetterFeatureRepository.findAll();
+
+            MDC.put("spanId", "coverletter-ai-service");
+            if (features.isEmpty()) {
+                log.warn("우수 자소서 특징 데이터가 없습니다.");
+                metricsService.incrementErrorCount("COVER_LETTER_FEATURES_EMPTY");
+            }
+
+            return features.stream()
+                    .map(f -> new CoverLetterFeatureDto(f.getFeaturesCategory().name(), f.getDescription()))
+                    .toList();
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("COVER_LETTER_FEATURES_LOAD_ERROR");
+            throw e;
         }
-
-        return features.stream()
-                .map(f -> new CoverLetterFeatureDto(f.getFeaturesCategory().name(), f.getDescription()))
-                .toList();
     }
 
-    /** LLM API에서 반환된 피드백 JSON을 파싱 */
+    /** LLM API 에서 반환된 피드백 JSON을 파싱 */
     private CoverLetterFeedback parseFeedback(String feedbackJson) {
         MDC.put("spanId", "feedback-parsing-service");
 
         if (feedbackJson == null || feedbackJson.trim().isEmpty()) {
             log.warn("피드백 JSON이 비어있음");
+            metricsService.incrementErrorCount("FEEDBACK_JSON_EMPTY");
             return createDefaultFeedback();
         }
 
@@ -114,6 +128,7 @@ public class CoverLetterAiService {
             return validateAndCorrectFeedback(feedback);
         } catch (JsonProcessingException e) {
             log.error("피드백 JSON 파싱 실패 - 길이: {}", feedbackJson.length(), e);
+            metricsService.incrementErrorCount("FEEDBACK_JSON_PARSE_ERROR");
             return createDefaultFeedback();
         }
     }
@@ -149,6 +164,7 @@ public class CoverLetterAiService {
     private CoverLetterAiResponse buildResponse(CoverLetterFeedback feedback, String improvedContent) {
         if (improvedContent == null || improvedContent.trim().isEmpty()) {
             log.warn("개선된 자소서 내용이 비어있습니다.");
+            metricsService.incrementErrorCount("IMPROVED_CONTENT_EMPTY");
             improvedContent = "개선된 내용을 생성하는 중 오류가 발생했습니다.";
         }
         return new CoverLetterAiResponse(feedback, improvedContent.trim());

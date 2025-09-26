@@ -9,6 +9,7 @@ import com.cvmento.global.exception.customException.UsageLimitExceededException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -76,10 +77,8 @@ public class UsageTokenService {
     public TokenUsageInfo getTokenUsage(String userEmail) {
         MDC.put("spanId", "token-usage-service");
 
-        // 이메일로 Member 조회
-        MDC.put("spanId", "member-repository");
-        Member member = memberRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다"));
+        // 이메일로 Member 조회 (캐시 적용)
+        Member member = findMemberByEmailCached(userEmail);
 
         MDC.put("spanId", "token-usage-service");
         // 사용자 토큰 키 생성
@@ -95,9 +94,6 @@ public class UsageTokenService {
             initializeUserTokens(member.getMemberId());
             currentTokens = UsageType.MAX_TOKENS;
         }
-
-        log.info("토큰 사용량 조회 완료 - 사용자: {}, 남은토큰: {}/{}",
-                member.getMemberId(), currentTokens, UsageType.MAX_TOKENS);
 
         // 토큰 정보 반환
         return new TokenUsageInfo(
@@ -120,9 +116,6 @@ public class UsageTokenService {
         MDC.put("spanId", "redis-token-write");
         // 최대 토큰으로 설정
         redisTemplate.opsForValue().set(tokenKey, UsageType.MAX_TOKENS);
-
-        MDC.put("spanId", "token-initialization-service");
-        log.info("사용자 토큰 초기화 완료 - 사용자 ID: {}, 토큰: {}개", memberId, UsageType.MAX_TOKENS);
     }
 
     /**
@@ -187,5 +180,38 @@ public class UsageTokenService {
         } catch (Exception e) {
             log.error("전체 토큰 충전 중 오류 발생", e);
         }
+    }
+
+    /**
+     * 캐시 적용 버전
+     */
+    @Cacheable(value = "memberCache", key = "#email")
+    public Member findMemberByEmailCached(String email) {
+        MDC.put("spanId", "member-repository");
+        log.info("🔥 DB 조회 (사용량토큰 캐시 적용): {}", email);
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다"));
+        MDC.put("spanId", "token-usage-service");
+        return member;
+    }
+
+    /**
+     * 캐시 미적용 버전 (벤치마크 비교용)
+     */
+    public Member findMemberByEmailNoCache(String email) {
+        MDC.put("spanId", "member-repository");
+        log.info("🔥 DB 조회 (사용량토큰 캐시 미적용): {}", email);
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다"));
+        MDC.put("spanId", "token-usage-service");
+        return member;
+    }
+
+    /**
+     * 벤치마크 테스트용 public 메서드
+     */
+    @Cacheable(value = "memberCache", key = "#email")
+    public Member findMemberByEmailForBenchmark(String email) {
+        return findMemberByEmailCached(email);
     }
 }

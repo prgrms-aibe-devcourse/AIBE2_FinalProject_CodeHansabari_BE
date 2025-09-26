@@ -19,6 +19,21 @@ spring:
           llm-client:
             connect-timeout: 60000
             read-timeout: 60000
+          sub-backend-job: # JobClient용
+            connect-timeout: 5000
+            read-timeout: 180000
+          sub-backend-feature: # FeatureClient용
+            connect-timeout: 5000
+            read-timeout: 180000
+          sub-backend-crawl: # CrawlClient용
+            connect-timeout: 5000
+            read-timeout: 180000
+          sub-backend-status:
+            connect-timeout: 5000
+            read-timeout: 180000
+          sub-backend-test:
+            connect-timeout: 5000
+            read-timeout: 180000
 
 redis:
   keys:

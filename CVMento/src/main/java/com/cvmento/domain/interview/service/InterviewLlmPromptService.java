@@ -20,7 +20,7 @@ public class InterviewLlmPromptService {
     public List<InputItem> buildQnaGenerationInputItems(CoverLetter coverLetter) {
         MDC.put("spanId", "prompt-building-service");
 
-        log.info("초기 Q&A 입력 배열 생성 - 자소서ID: {}, 지원분야: {}",
+        log.info("초기 Q&A 입력 배열 생성 - 자소서 ID: {}, 지원분야: {}",
                 coverLetter.getCoverLetterId(), coverLetter.getJobField());
 
         String systemMessage = buildQnaSystemMessage();
@@ -41,7 +41,7 @@ public class InterviewLlmPromptService {
     public List<InputItem> buildAdditionalQnaInputItems(CoverLetter coverLetter, List<String> existingQuestions) {
         MDC.put("spanId", "prompt-building-service");
 
-        log.info("추가 Q&A 입력 배열 생성 - 자소서ID: {}, 기존질문수: {}",
+        log.info("추가 Q&A 입력 배열 생성 - 자소서 ID: {}, 기존질문수: {}",
                 coverLetter.getCoverLetterId(), existingQuestions.size());
 
         String systemMessage = buildQnaSystemMessage();

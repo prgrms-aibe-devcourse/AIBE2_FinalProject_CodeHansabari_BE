@@ -22,13 +22,12 @@ public class CareerTechStack extends BaseTimeEntity {
     @JoinColumn(name = "tech_stack_id", nullable = false)
     private TechStack techStack;
 
-    // 생성자
     private CareerTechStack(Career career, TechStack techStack) {
         this.career = career;
         this.techStack = techStack;
     }
 
-    // 정적 팩토리 메서드
+    /** 생성 메서드 */
     public static CareerTechStack createCareerTechStack(Career career, TechStack techStack) {
         return new CareerTechStack(career, techStack);
     }

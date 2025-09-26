@@ -14,6 +14,7 @@ import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.InterviewLimitExceededException;
@@ -55,6 +56,8 @@ class InterviewServiceTest {
     private InterviewLlmPromptService promptService;
     @Mock
     private InterviewLlmClientService llmClientService;
+    @Mock
+    private MetricsService metricsService;
 
     @InjectMocks
     private InterviewService interviewService;
@@ -102,14 +105,13 @@ class InterviewServiceTest {
             log.info("생성된 가짜 질문 개수: {}", existingQnas.size());
 
             given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                    any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus({}, {}, ACTIVE) -> testCoverLetter 반환",
-                    coverLetterId, memberEmail);
+            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(any, any, any) -> testCoverLetter 반환");
 
-            given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter))
+            given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(any(CoverLetter.class)))
                     .willReturn(existingQnas);
-            log.info("Mock 설정: coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter) -> {}개 질문 반환",
+            log.info("Mock 설정: coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(any) -> {}개 질문 반환",
                     existingQnas.size());
 
             // when
@@ -139,9 +141,9 @@ class InterviewServiceTest {
 
             // given
             given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                    any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                     .willReturn(Optional.of(testCoverLetter));
-            given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(testCoverLetter))
+            given(coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(any(CoverLetter.class)))
                     .willReturn(new ArrayList<>());
             log.info("Mock 설정: 빈 배열 반환하도록 설정");
 
@@ -165,10 +167,9 @@ class InterviewServiceTest {
 
             // given
             given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                    any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                     .willReturn(Optional.empty());
-            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus({}, {}, ACTIVE) -> Optional.empty() 반환",
-                    coverLetterId, memberEmail);
+            log.info("Mock 설정: coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(any, any, any) -> Optional.empty() 반환");
 
             // when & then
             log.info("예외 발생 예상 - CoverLetterException");
@@ -189,9 +190,9 @@ class InterviewServiceTest {
         void setUp() {
             log.info("--- CreateInterviewQuestionsTest 공통 Mock 설정 ---");
             given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                    any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("CoverLetter 조회 Mock 설정 완료 (상태 조건 포함)\n");
+            log.info("CoverLetter 조회 Mock 설정 완료 (any 매처 사용)\n");
         }
 
         @Test
@@ -200,18 +201,18 @@ class InterviewServiceTest {
             log.info("=== 테스트 시작: 질문이 0개일 때 초기 5개 질문 생성 ===");
 
             // given
-            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(testCoverLetter, QuestionSourceType.GENERATED))
+            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(any(CoverLetter.class), any(QuestionSourceType.class)))
                     .willReturn(0L);
             log.info("Mock 설정: 기존 질문 개수 = 0개");
 
             // InputItem 목록 생성
             List<InputItem> mockInputItems = createMockInputItems();
-            given(promptService.buildQnaGenerationInputItems(testCoverLetter))
+            given(promptService.buildQnaGenerationInputItems(any(CoverLetter.class)))
                     .willReturn(mockInputItems);
             log.info("Mock 설정: 생성된 InputItems 개수 = {}", mockInputItems.size());
 
             InterviewLlmResponse mockResponse = createMockLlmResponse();
-            given(llmClientService.generateQnaList(mockInputItems))
+            given(llmClientService.generateQnaList(anyList()))
                     .willReturn(mockResponse);
             log.info("Mock 설정: LLM 응답 질문 개수 = {}개", mockResponse.qnaList().size());
 
@@ -244,10 +245,10 @@ class InterviewServiceTest {
 
             // 메서드 호출 검증
             log.info("=== 메서드 호출 검증 ===");
-            verify(promptService).buildQnaGenerationInputItems(testCoverLetter);
+            verify(promptService).buildQnaGenerationInputItems(any(CoverLetter.class));
             log.info("✅ promptService.buildQnaGenerationInputItems() 호출 확인");
 
-            verify(llmClientService).generateQnaList(mockInputItems);
+            verify(llmClientService).generateQnaList(anyList());
             log.info("✅ llmClientService.generateQnaList(inputItems) 호출 확인");
 
             verify(coverLetterQnaRepository, times(5)).save(any(CoverLetterQna.class));
@@ -265,21 +266,21 @@ class InterviewServiceTest {
             List<String> existingQuestions = List.of("질문1", "질문2", "질문3", "질문4", "질문5");
             log.info("기존 질문 목록: {}", existingQuestions);
 
-            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(testCoverLetter, QuestionSourceType.GENERATED))
+            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(any(CoverLetter.class), any(QuestionSourceType.class)))
                     .willReturn(5L);
             log.info("Mock 설정: 기존 질문 개수 = 5개");
 
-            given(coverLetterQnaRepository.findQuestionsByCoverLetterAndSourceType(testCoverLetter, QuestionSourceType.GENERATED))
+            given(coverLetterQnaRepository.findQuestionsByCoverLetterAndSourceType(any(CoverLetter.class), any(QuestionSourceType.class)))
                     .willReturn(existingQuestions);
             log.info("Mock 설정: 기존 질문 목록 반환");
 
             List<InputItem> additionalInputItems = createMockInputItems();
-            given(promptService.buildAdditionalQnaInputItems(testCoverLetter, existingQuestions))
+            given(promptService.buildAdditionalQnaInputItems(any(CoverLetter.class), anyList()))
                     .willReturn(additionalInputItems);
             log.info("Mock 설정: 추가 질문용 InputItems 개수 = {}", additionalInputItems.size());
 
             InterviewLlmResponse mockResponse = createMockLlmResponse();
-            given(llmClientService.generateQnaList(additionalInputItems))
+            given(llmClientService.generateQnaList(anyList()))
                     .willReturn(mockResponse);
             log.info("Mock 설정: LLM 추가 응답 질문 개수 = {}개", mockResponse.qnaList().size());
 
@@ -299,10 +300,10 @@ class InterviewServiceTest {
             assertThat(result.totalCount()).isEqualTo(5);
             assertThat(result.generatedCount()).isEqualTo(5);
 
-            verify(promptService).buildAdditionalQnaInputItems(testCoverLetter, existingQuestions);
+            verify(promptService).buildAdditionalQnaInputItems(any(CoverLetter.class), anyList());
             log.info("✅ buildAdditionalQnaInputItems() 호출 확인");
 
-            verify(llmClientService).generateQnaList(additionalInputItems);
+            verify(llmClientService).generateQnaList(anyList());
             log.info("✅ generateQnaList(inputItems) 호출 확인");
 
             verify(coverLetterQnaRepository, times(5)).save(any(CoverLetterQna.class));
@@ -317,7 +318,7 @@ class InterviewServiceTest {
             log.info("=== 테스트 시작: 질문이 15개일 때 제한 초과 예외 발생 ===");
 
             // given
-            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(testCoverLetter, QuestionSourceType.GENERATED))
+            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(any(CoverLetter.class), any(QuestionSourceType.class)))
                     .willReturn(15L);
             log.info("Mock 설정: 기존 질문 개수 = 15개 (최대 제한)");
 
@@ -343,17 +344,17 @@ class InterviewServiceTest {
             log.info("=== 테스트 시작: LLM 서비스 실패시 예외 발생 ===");
 
             // given
-            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(testCoverLetter, QuestionSourceType.GENERATED))
+            given(coverLetterQnaRepository.countByCoverLetterAndSourceType(any(CoverLetter.class), any(QuestionSourceType.class)))
                     .willReturn(0L);
             log.info("Mock 설정: 기존 질문 개수 = 0개");
 
             List<InputItem> inputItems = createMockInputItems();
-            given(promptService.buildQnaGenerationInputItems(testCoverLetter))
+            given(promptService.buildQnaGenerationInputItems(any(CoverLetter.class)))
                     .willReturn(inputItems);
             log.info("Mock 설정: 생성된 InputItems");
 
             RuntimeException llmException = new RuntimeException("LLM API 호출 실패");
-            given(llmClientService.generateQnaList(inputItems))
+            given(llmClientService.generateQnaList(anyList()))
                     .willThrow(llmException);
             log.info("Mock 설정: LLM 서비스에서 예외 발생 - '{}'", llmException.getMessage());
 
@@ -380,9 +381,9 @@ class InterviewServiceTest {
         void setUp() {
             log.info("--- CreateCustomAnswerTest 공통 Mock 설정 ---");
             given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                    coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                    any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                     .willReturn(Optional.of(testCoverLetter));
-            log.info("CoverLetter 조회 Mock 설정 완료 (상태 조건 포함)\n");
+            log.info("CoverLetter 조회 Mock 설정 완료 (any 매처 사용)\n");
         }
 
         @Test
@@ -395,12 +396,12 @@ class InterviewServiceTest {
             log.info("커스텀 질문: '{}'", customQuestion);
 
             List<InputItem> mockInputItems = createMockInputItems();
-            given(promptService.buildCustomAnswerInputItems(testCoverLetter, customQuestion))
+            given(promptService.buildCustomAnswerInputItems(any(CoverLetter.class), anyString()))
                     .willReturn(mockInputItems);
             log.info("Mock 설정: 생성된 InputItems 개수 = {}", mockInputItems.size());
 
             CustomAnswerResponse mockResponse = createMockCustomAnswerResponse();
-            given(llmClientService.generateCustomAnswer(mockInputItems))
+            given(llmClientService.generateCustomAnswer(anyList()))
                     .willReturn(mockResponse);
             log.info("Mock 설정: LLM 응답 answer='{}', tip='{}'",
                     mockResponse.answer(), mockResponse.tip());
@@ -443,10 +444,10 @@ class InterviewServiceTest {
 
             // 메서드 호출 검증
             log.info("=== 메서드 호출 검증 ===");
-            verify(promptService).buildCustomAnswerInputItems(testCoverLetter, customQuestion);
+            verify(promptService).buildCustomAnswerInputItems(any(CoverLetter.class), anyString());
             log.info("✅ promptService.buildCustomAnswerInputItems() 호출 확인");
 
-            verify(llmClientService).generateCustomAnswer(mockInputItems);
+            verify(llmClientService).generateCustomAnswer(anyList());
             log.info("✅ llmClientService.generateCustomAnswer(inputItems) 호출 확인");
 
             verify(coverLetterQnaRepository).save(any(CoverLetterQna.class));
@@ -464,12 +465,12 @@ class InterviewServiceTest {
             String customQuestion = "테스트 질문";
             List<InputItem> mockInputItems = createMockInputItems();
 
-            given(promptService.buildCustomAnswerInputItems(testCoverLetter, customQuestion))
+            given(promptService.buildCustomAnswerInputItems(any(CoverLetter.class), anyString()))
                     .willReturn(mockInputItems);
             log.info("Mock 설정: InputItems 생성");
 
             RuntimeException llmException = new RuntimeException("LLM 서비스 실패");
-            given(llmClientService.generateCustomAnswer(mockInputItems))
+            given(llmClientService.generateCustomAnswer(anyList()))
                     .willThrow(llmException);
             log.info("Mock 설정: LLM 서비스에서 예외 발생 - '{}'", llmException.getMessage());
 

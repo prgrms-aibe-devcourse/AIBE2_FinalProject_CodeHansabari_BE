@@ -15,6 +15,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +25,30 @@ public class LoggerFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
+
+    // 로깅 제외할 경로들
+    private static final List<String> EXCLUDED_PATHS = List.of(
+            "/actuator",
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/favicon.ico"
+    );
+
+    // 정적 리소스 확장자들
+    private static final List<String> STATIC_EXTENSIONS = List.of(
+            ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg",
+            ".woff", ".woff2", ".ttf", ".eot", ".map"
+    );
+
+    // 응답 본문 로깅 제외할 Content-Type들
+    private static final List<String> EXCLUDED_CONTENT_TYPES = List.of(
+            "text/css",
+            "application/javascript",
+            "text/javascript",
+            "image/",
+            "font/",
+            "application/font"
+    );
 
     public LoggerFilter(JwtUtil jwtUtil, CookieUtil cookieUtil) {
         this.jwtUtil = jwtUtil;
@@ -36,7 +61,8 @@ public class LoggerFilter extends OncePerRequestFilter {
 
         String uri = request.getRequestURI();
 
-        if (uri.startsWith("/actuator")) {
+        // 로깅 제외 경로 체크
+        if (shouldSkipLogging(uri)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -86,8 +112,12 @@ public class LoggerFilter extends OncePerRequestFilter {
                 MDC.put("businessError", businessErrorCode.toString());
             }
 
-            // 로그 출력
-            logRequestResponse(req, res, responseTime);
+            // 로그 출력 (정적 리소스는 간소화)
+            if (isStaticResource(uri)) {
+                logStaticResource(req, res, responseTime);
+            } else {
+                logRequestResponse(req, res, responseTime);
+            }
 
             // MDC 정리
             MDC.clear();
@@ -96,6 +126,56 @@ public class LoggerFilter extends OncePerRequestFilter {
         res.copyBodyToResponse();
     }
 
+    /**
+     * 로깅을 건너뛸 경로인지 확인
+     */
+    private boolean shouldSkipLogging(String uri) {
+        return EXCLUDED_PATHS.stream().anyMatch(uri::startsWith);
+    }
+
+    /**
+     * 정적 리소스인지 확인
+     */
+    private boolean isStaticResource(String uri) {
+        return STATIC_EXTENSIONS.stream().anyMatch(uri::endsWith);
+    }
+
+    /**
+     * 응답 본문을 로깅할지 결정
+     */
+    private boolean shouldLogResponseBody(String contentType, String uri) {
+        if (contentType == null) return true;
+
+        // 정적 리소스는 본문 로깅 제외
+        if (isStaticResource(uri)) return false;
+
+        // 특정 Content-Type은 본문 로깅 제외
+        return EXCLUDED_CONTENT_TYPES.stream()
+                .noneMatch(contentType.toLowerCase()::contains);
+    }
+
+    /**
+     * 정적 리소스 로깅 (간소화)
+     */
+    private void logStaticResource(ContentCachingRequestWrapper req,
+                                   ContentCachingResponseWrapper res,
+                                   long responseTime) {
+        String method = req.getMethod();
+        String uri = req.getRequestURI();
+        int status = res.getStatus();
+
+        if (status >= 400) {
+            log.warn("Static Resource Error - {} {} | Status: {} | Time: {}ms",
+                    method, uri, status, responseTime);
+        } else {
+            log.debug("Static Resource - {} {} | Status: {} | Time: {}ms",
+                    method, uri, status, responseTime);
+        }
+    }
+
+    /**
+     * 일반 API 요청 로깅 (상세)
+     */
     private void logRequestResponse(ContentCachingRequestWrapper req,
                                     ContentCachingResponseWrapper res,
                                     long responseTime) {
@@ -103,9 +183,21 @@ public class LoggerFilter extends OncePerRequestFilter {
         String method = req.getMethod();
         String uri = req.getRequestURI();
         int status = res.getStatus();
+        String contentType = res.getContentType();
 
         String reqBody = new String(req.getContentAsByteArray(), StandardCharsets.UTF_8).trim();
-        String resBody = new String(res.getContentAsByteArray(), StandardCharsets.UTF_8).trim();
+
+        // 응답 본문 로깅 결정
+        String resBody = "";
+        if (shouldLogResponseBody(contentType, uri)) {
+            resBody = new String(res.getContentAsByteArray(), StandardCharsets.UTF_8).trim();
+            // 응답이 너무 길면 잘라내기 (10KB 제한)
+            if (resBody.length() > 10000) {
+                resBody = resBody.substring(0, 10000) + "...[truncated]";
+            }
+        } else {
+            resBody = "[binary/static content]";
+        }
 
         // 상태 코드에 따른 로그 레벨 조정
         if (status >= 500) {
