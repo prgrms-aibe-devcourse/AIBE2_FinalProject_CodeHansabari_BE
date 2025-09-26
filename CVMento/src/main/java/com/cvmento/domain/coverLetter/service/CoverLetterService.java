@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -252,9 +253,25 @@ public class CoverLetterService {
         return wantedPrefix + noPrefix;
     }
 
-    private Member findMemberByEmail(String email) {
+    // 캐시 적용 버전
+    @Cacheable(value = "memberCache", key = "#email")
+    public Member findMemberByEmail(String email) {
+        log.info("🔥 DB 조회 (캐시 적용): {}", email);
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    // 캐시 미적용 버전 (벤치마크 비교용)
+    public Member findMemberByEmailNoCache(String email) {
+        log.info("🔥 DB 조회 (캐시 미적용): {}", email);
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    // 벤치마크 테스트용 public 메서드
+    @Cacheable(value = "memberCache", key = "#email")
+    public Member findMemberByEmailForBenchmark(String email) {
+        return findMemberByEmail(email);
     }
 
     /** 활성 자소서 조회(소유자 검증) */

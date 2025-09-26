@@ -5,9 +5,9 @@ spring:
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
-    show-sql: true  # 테스트에서 SQL 로그 보기
+    show-sql: false  # 테스트에서 SQL 로그 보기
     hibernate:
-      ddl-auto: update  # MySQL이므로 update로 변경
+      ddl-auto: create-drop
     database-platform: org.hibernate.dialect.MySQL8Dialect  # MySQL 방언으로 변경
     defer-datasource-initialization: true
   sql:
@@ -47,6 +47,8 @@ app:
   cors:
     allowed-origins:
       - "http://localhost:3000"
+  internal:
+    api-key: test-sub-api-key-123
 
 llm:
   api:
@@ -67,6 +69,9 @@ logging:
     com.cvmento: INFO  # 벤치마크 중에는 INFO 레벨로
     org.springframework.security: WARN
     org.springframework.data.redis: WARN
+    com.cvmento.domain: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
 server:
   port: 8080
@@ -84,3 +89,7 @@ management:
   endpoint:
     health:
       show-details: always
+
+sub-backend:
+  url: http://localhost:8081/
+  api-key: test-sub-api-key-123

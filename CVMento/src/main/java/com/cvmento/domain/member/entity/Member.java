@@ -1,16 +1,13 @@
 package com.cvmento.domain.member.entity;
 
-import com.cvmento.domain.coverLetter.entity.CoverLetter;
 import com.cvmento.domain.member.enums.Role;
 import com.cvmento.domain.member.enums.UserStatus;
-import com.cvmento.domain.resume.entity.Resume;
 import com.cvmento.global.common.entity.BaseTimeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
@@ -45,7 +42,7 @@ public class Member extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private UserStatus status;
 
-    protected Member() {}
+    public Member() {}
 
     public Member(String googleId, String email, String name, String picture) {
         this.googleId = googleId;
@@ -64,6 +61,7 @@ public class Member extends BaseTimeEntity {
         this.status = UserStatus.ACTIVE;
     }
 
+    @JsonIgnore
     public boolean isActive() {
         return this.status == UserStatus.ACTIVE;
     }
@@ -80,11 +78,5 @@ public class Member extends BaseTimeEntity {
     public void updateLastLoginAt(LocalDateTime time) {
         this.lastLoginAt = time;
     }
-
-    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<Resume> resumes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<CoverLetter> coverLetters = new ArrayList<>();
     
 }

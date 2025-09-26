@@ -6,12 +6,15 @@ import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.common.util.CookieUtil;
 import com.cvmento.global.common.services.MetricsService;
+import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.security.JwtUtil;
 import com.cvmento.global.security.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,8 +124,18 @@ public class AuthService {
             cookieUtil.addAccessTokenCookie(response, tokenDto.accessToken(),
                     Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
 
+            // 🔄 토큰 갱신 시 사용자 캐시도 함께 갱신
             String userId = jwtUtil.extractUserId(refreshToken);
             log.info("토큰 갱신 성공 - userId: {}", userId);
+            String userEmail = jwtUtil.extractEmail(refreshToken);
+
+            MDC.put("spanId", "member-repository");
+            Member member = memberRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new MemberNotFoundException("사용자를 찾을 수 없습니다: " + userEmail));
+
+            MDC.put("spanId", "token-refresh-service");
+            // 캐시 갱신 (최신 Member 정보로 업데이트)
+            cacheUserOnTokenRefresh(member);
 
         } catch (IllegalArgumentException e) {
             cookieUtil.deleteAllAuthCookies(response);
@@ -149,7 +162,18 @@ public class AuthService {
         MDC.put("spanId", "logout-service");
         cookieUtil.deleteAllAuthCookies(response);
 
+        // 🗑️ 로그아웃 시 캐시에서 사용자 정보 삭제
+        evictUserCacheOnLogout(member);
+
         log.info("사용자 로그아웃 완료 - memberId: {}", member.getMemberId());
+    }
+
+    /**
+     * 로그아웃 시 캐시에서 사용자 정보 삭제
+     */
+    @CacheEvict(value = "memberCache", key = "#member.email")
+    public void evictUserCacheOnLogout(Member member) {
+        log.info("🗑️ 로그아웃 시 캐시 삭제: {} (ID: {})", member.getEmail(), member.getMemberId());
     }
 
     /**
@@ -192,6 +216,24 @@ public class AuthService {
     }
 
     /**
+     * 로그인 시 캐시에 사용자 정보 저장
+     */
+    @CachePut(value = "memberCache", key = "#member.email")
+    public Member cacheUserOnLogin(Member member) {
+        log.info("🚀 로그인 시 캐시 저장: {} (ID: {})", member.getEmail(), member.getMemberId());
+        return member;
+    }
+
+    /**
+     * 토큰 갱신 시 캐시에 사용자 정보 갱신
+     */
+    @CachePut(value = "memberCache", key = "#member.email")
+    public Member cacheUserOnTokenRefresh(Member member) {
+        log.info("🔄 토큰 갱신 시 캐시 갱신: {} (ID: {})", member.getEmail(), member.getMemberId());
+        return member;
+    }
+
+    /**
      * 토큰을 생성하고 쿠키에 설정합니다.
      */
     public void generateTokensAndSetCookies(Member member, HttpServletResponse response) {
@@ -203,6 +245,9 @@ public class AuthService {
                 Duration.ofMillis(tokenService.getJwtUtil().getAccessTokenExpirationTime()));
         cookieUtil.addRefreshTokenCookie(response, tokenDto.refreshToken(),
                 Duration.ofMillis(tokenService.getJwtUtil().getRefreshTokenExpirationTime()));
+
+        // 🔥 로그인 성공 시 캐시에 사용자 정보 저장
+        cacheUserOnLogin(member);
 
         metricsService.incrementLoginCount();
         log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
