@@ -11,6 +11,7 @@ import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.domain.resume.repository.ResumeRepositoryImpl;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
     private final ResumeRepositoryImpl resumeRepositoryImpl;
     private final MemberRepository memberRepository;
+    private final MetricsService metricsService;
 
     /**
      * 이력서 전체 정보 저장.
@@ -45,16 +47,26 @@ public class ResumeService {
     public void saveResume(ResumeSaveRequest request, String memberEmail) {
         MDC.put("spanId", "resume-save-service");
 
-        Member member = findMemberByEmail(memberEmail);
+        try {
+            Member member = findMemberByEmail(memberEmail);
 
-        Resume resume = createAndSaveResume(request, member);
+            Resume resume = createAndSaveResume(request, member);
 
-        MDC.put("spanId", "resume-details-repository");
-        resumeRepositoryImpl.saveResumeDetails(request, resume);
+            MDC.put("spanId", "resume-details-repository");
+            resumeRepositoryImpl.saveResumeDetails(request, resume);
 
-        MDC.put("spanId", "resume-save-service");
-        log.info("이력서 저장 완료 - ID: {}, 제목: {}, 타입: {}",
-                resume.getId(), request.title(), request.type());
+            MDC.put("spanId", "resume-save-service");
+            log.info("이력서 저장 완료 - ID: {}, 제목: {}, 타입: {}",
+                    resume.getId(), request.title(), request.type());
+
+            metricsService.incrementResumeCreatedCount();
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_SAVE_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_SAVE_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -64,20 +76,31 @@ public class ResumeService {
     public void updateResume(Long resumeId, ResumeUpdateRequest request, String memberEmail) {
         MDC.put("spanId", "resume-update-service");
 
-        Member member = findMemberByEmail(memberEmail);
-        Resume existingResume = findActiveResumeByIdAndMember(resumeId, member);
+        try {
+            Member member = findMemberByEmail(memberEmail);
+            Resume existingResume = findActiveResumeByIdAndMember(resumeId, member);
 
-        MDC.put("spanId", "resume-details-repository");
-        resumeRepositoryImpl.deleteAllResumeDetails(existingResume);
+            MDC.put("spanId", "resume-details-repository");
+            resumeRepositoryImpl.deleteAllResumeDetails(existingResume);
 
-        MDC.put("spanId", "resume-update-service");
-        updateResumeBasicInfo(existingResume, request);
+            MDC.put("spanId", "resume-update-service");
+            updateResumeBasicInfo(existingResume, request);
 
-        MDC.put("spanId", "resume-details-repository");
-        resumeRepositoryImpl.saveResumeDetails(request.toSaveRequest(), existingResume);
+            MDC.put("spanId", "resume-details-repository");
+            resumeRepositoryImpl.saveResumeDetails(request.toSaveRequest(), existingResume);
 
-        MDC.put("spanId", "resume-update-service");
-        log.info("이력서 수정 완료 - ID: {}, 제목: {}", resumeId, request.title());
+            MDC.put("spanId", "resume-update-service");
+            log.info("이력서 수정 완료 - ID: {}, 제목: {}", resumeId, request.title());
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_UPDATE_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (ResumeNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_UPDATE_RESUME_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_UPDATE_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -87,12 +110,23 @@ public class ResumeService {
     public void deleteResume(Long resumeId, String memberEmail) {
         MDC.put("spanId", "resume-delete-service");
 
-        Member member = findMemberByEmail(memberEmail);
-        Resume resume = findActiveResumeByIdAndMember(resumeId, member);
+        try {
+            Member member = findMemberByEmail(memberEmail);
+            Resume resume = findActiveResumeByIdAndMember(resumeId, member);
 
-        resume.updateStatus(ResumeStatus.DELETED);
+            resume.updateStatus(ResumeStatus.DELETED);
 
-        log.info("이력서 소프트 삭제 완료 - ID: {}, 제목: {}", resumeId, resume.getTitle());
+            log.info("이력서 소프트 삭제 완료 - ID: {}, 제목: {}", resumeId, resume.getTitle());
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_DELETE_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (ResumeNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_DELETE_RESUME_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_DELETE_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -101,15 +135,20 @@ public class ResumeService {
     public Page<ResumeThumbnailResponse> getResumeList(String memberEmail, Pageable pageable) {
         MDC.put("spanId", "resume-list-service");
 
-        MDC.put("spanId", "resume-repository");
-        Page<Resume> resumePage = resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
-                memberEmail, ResumeStatus.ACTIVE, pageable);
+        try {
+            MDC.put("spanId", "resume-repository");
+            Page<Resume> resumePage = resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
+                    memberEmail, ResumeStatus.ACTIVE, pageable);
 
-        MDC.put("spanId", "resume-list-service");
-        log.info("이력서 목록 조회 완료 - 총 개수: {}, 현재페이지: {}",
-                resumePage.getTotalElements(), resumePage.getNumber());
+            MDC.put("spanId", "resume-list-service");
+            log.info("이력서 목록 조회 완료 - 총 개수: {}, 현재페이지: {}",
+                    resumePage.getTotalElements(), resumePage.getNumber());
 
-        return resumePage.map(this::convertToThumbnailResponse);
+            return resumePage.map(this::convertToThumbnailResponse);
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_LIST_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -118,20 +157,31 @@ public class ResumeService {
     public ResumeDetailResponse getResumeDetail(Long resumeId, String memberEmail) {
         MDC.put("spanId", "resume-detail-service");
 
-        Member member = findMemberByEmail(memberEmail);
+        try {
+            Member member = findMemberByEmail(memberEmail);
 
-        MDC.put("spanId", "resume-details-repository");
-        ResumeDetailResponse result = resumeRepositoryImpl.findResumeDetailByIdAndMember(
-                resumeId, member, ResumeStatus.ACTIVE);
+            MDC.put("spanId", "resume-details-repository");
+            ResumeDetailResponse result = resumeRepositoryImpl.findResumeDetailByIdAndMember(
+                    resumeId, member, ResumeStatus.ACTIVE);
 
-        MDC.put("spanId", "resume-detail-service");
-        if (result == null) {
-            throw new ResumeNotFoundException("이력서를 찾을 수 없거나 접근 권한이 없습니다.");
+            MDC.put("spanId", "resume-detail-service");
+            if (result == null) {
+                metricsService.incrementErrorCount("RESUME_DETAIL_NOT_FOUND");
+                throw new ResumeNotFoundException("이력서를 찾을 수 없거나 접근 권한이 없습니다.");
+            }
+
+            log.info("이력서 상세 조회 완료 - ID: {}, 제목: {}", resumeId, result.title());
+
+            return result;
+        } catch (MemberNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_DETAIL_MEMBER_NOT_FOUND");
+            throw e;
+        } catch (ResumeNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_DETAIL_ERROR");
+            throw e;
         }
-
-        log.info("이력서 상세 조회 완료 - ID: {}, 제목: {}", resumeId, result.title());
-
-        return result;
     }
 
     /**
@@ -141,15 +191,23 @@ public class ResumeService {
     public void restoreResume(Long resumeId, String adminEmail) {
         MDC.put("spanId", "resume-restore-service");
 
-        MDC.put("spanId", "resume-repository");
-        Resume resume = resumeRepository.findByIdAndStatus(resumeId, ResumeStatus.DELETED)
-                .orElseThrow(() -> new ResumeNotFoundException("복구할 수 있는 이력서를 찾을 수 없습니다."));
+        try {
+            MDC.put("spanId", "resume-repository");
+            Resume resume = resumeRepository.findByIdAndStatus(resumeId, ResumeStatus.DELETED)
+                    .orElseThrow(() -> new ResumeNotFoundException("복구할 수 있는 이력서를 찾을 수 없습니다."));
 
-        MDC.put("spanId", "resume-restore-service");
-        resume.restore();
+            MDC.put("spanId", "resume-restore-service");
+            resume.restore();
 
-        log.info("관리자 권한으로 이력서 복구 완료 - ID: {}, 관리자: {}, 원 소유자: {}",
-                resumeId, adminEmail, resume.getMember().getEmail());
+            log.info("관리자 권한으로 이력서 복구 완료 - ID: {}, 관리자: {}, 원 소유자: {}",
+                    resumeId, adminEmail, resume.getMember().getEmail());
+        } catch (ResumeNotFoundException e) {
+            metricsService.incrementErrorCount("RESUME_RESTORE_NOT_FOUND");
+            throw e;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_RESTORE_ERROR");
+            throw e;
+        }
     }
 
     /**
@@ -167,13 +225,18 @@ public class ResumeService {
         log.info("관리자 상태별 이력서 목록 조회 요청 - 관리자: {}, 상태: {}, 이메일필터: {}, 제목필터: {}, 페이지: {}",
                 adminEmail, status, email, title, pageable.getPageNumber());
 
-        Page<ResumeStatusListResponse> result = resumeRepositoryImpl
-                .findResumesWithFilters(status, email, title, pageable);
+        try {
+            Page<ResumeStatusListResponse> result = resumeRepositoryImpl
+                    .findResumesWithFilters(status, email, title, pageable);
 
-        log.info("상태별 이력서 목록 조회 완료 - 상태: {}, 총 개수: {}, 현재 페이지 개수: {}",
-                status, result.getTotalElements(), result.getNumberOfElements());
+            log.info("상태별 이력서 목록 조회 완료 - 상태: {}, 총 개수: {}, 현재 페이지 개수: {}",
+                    status, result.getTotalElements(), result.getNumberOfElements());
 
-        return result;
+            return result;
+        } catch (Exception e) {
+            metricsService.incrementErrorCount("RESUME_ADMIN_LIST_ERROR");
+            throw e;
+        }
     }
 
     /**

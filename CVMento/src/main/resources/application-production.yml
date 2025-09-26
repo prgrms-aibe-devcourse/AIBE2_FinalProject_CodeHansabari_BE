@@ -59,6 +59,8 @@ app:
   cors:
     allowed-origins:
       - "https://cvmento.shop"
+  internal:
+    api-key: ${APP_INTERNAL_KEY}
 
 llm:
   api:
@@ -71,20 +73,6 @@ llm:
       key: ${LLM_RESUME_KEY}
       vision:
         key: ${LLM_RESUME_VISION_KEY}
-
-gemini:
-  api:
-    feature-extraction:
-      url: https://generativelanguage.googleapis.com/v1beta
-      key: ${GEMINI_API_KEY}
-
-# 임베딩 모델 설정
-embedding:
-  model:
-    url: "djl://ai.djl.huggingface.pytorch/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    threshold: 0.75
-  cache:
-    dir: "${user.home}/.djl-cache"
 
 logging:
   config: classpath:logback-spring.xml
@@ -139,3 +127,7 @@ management:
     tags:
       application: cvmento
       environment: production
+
+sub-backend:
+  url: https://api-sub.cvmento.shop/
+  api-key: ${SUB_API_KEY}
