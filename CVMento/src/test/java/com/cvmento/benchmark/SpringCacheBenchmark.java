@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(0)
 public class SpringCacheBenchmark {
 
@@ -49,6 +49,12 @@ public class SpringCacheBenchmark {
     private AuthService authService;
 
     private final String testEmail = "test@google.com";
+
+    // 동시 이용자 100명 시뮬레이션 (실제 존재하는 사용자들로만 구성)
+    private String[] activeUsers;  // 캐시된 사용자들 (100명)
+    private String[] nonCachedUsers;  // 캐시되지 않은 나머지 사용자들
+
+    private java.util.Random random = new java.util.Random();
 
     @Setup(Level.Trial)
     public void setupSpring() {
@@ -116,8 +122,35 @@ public class SpringCacheBenchmark {
             // 🔥 실제 로그인 시나리오: AuthService를 통한 캐시 저장
             Member cachedMember = staticAuthService.cacheUserOnLogin(testMember);
 
-            log.info("✅ 로그인 시뮬레이션 완료: {} → 캐시 저장됨", cachedMember.getEmail());
-            log.info("=== 이제 자소서 API 호출 시 캐시 히트 예상 ===");
+            log.info("✅ 테스트 사용자 로그인 완료: {} → 캐시 저장됨", cachedMember.getEmail());
+
+            // 실제 존재하는 사용자들을 캐시된 그룹과 비캐시 그룹으로 분류
+            log.info("🚀 실제 존재하는 사용자들 수집 및 분류 시작...");
+            java.util.List<String> cachedUsersList = new java.util.ArrayList<>();
+            java.util.List<String> nonCachedUsersList = new java.util.ArrayList<>();
+
+            for (int i = 1; i <= 5000; i++) {
+                String userEmail = "user" + i + "@example.com";
+                Member user = staticMemberRepository.findByEmail(userEmail)
+                        .orElse(null);
+                if (user != null) {
+                    if (cachedUsersList.size() < 100) {
+                        // 처음 100명은 캐시된 그룹에 추가
+                        staticAuthService.cacheUserOnLogin(user);
+                        cachedUsersList.add(userEmail);
+                    } else {
+                        // 나머지는 비캐시 그룹에 추가
+                        nonCachedUsersList.add(userEmail);
+                    }
+                }
+            }
+
+            // 배열 설정
+            this.activeUsers = cachedUsersList.toArray(new String[0]);
+            this.nonCachedUsers = nonCachedUsersList.toArray(new String[0]);
+
+            log.info("✅ 캐시된 사용자: {}명, 비캐시 사용자: {}명", activeUsers.length, nonCachedUsers.length);
+            log.info("=== 이제 API 호출 시 캐시 히트 예상 ===");
 
         } catch (Exception e) {
             log.error("❌ 로그인 시뮬레이션 실패", e);
@@ -126,105 +159,29 @@ public class SpringCacheBenchmark {
     }
 
     /**
-     * 자소서 - 캐시 적용 버전
-     * 첫 호출: DB 조회 + 캐시 저장
-     * 이후 호출: 캐시에서 바로 반환
+     * 핵심 비교 - 캐시 적용 (100명 중 선택)
      */
     @Benchmark
-    public Member 자소서_캐시적용_Member조회() {
-        return coverLetterService.findMemberByEmailForBenchmark(testEmail);
+    public Member 캐시적용_Member조회() {
+        String userEmail = activeUsers[random.nextInt(activeUsers.length)];
+        return coverLetterService.findMemberByEmailForBenchmark(userEmail);
     }
 
     /**
-     * 캐시 미적용 버전 - DB 직접 조회
-     * 매번 DB 쿼리 실행
+     * 핵심 비교 - 캐시 미적용 (비캐시 사용자들 중 선택)
      */
     @Benchmark
-    public Member 자소서_캐시미적용_Member조회() {
-        return coverLetterService.findMemberByEmailNoCache(testEmail);
-    }
-
-    // === 이력서 서비스 벤치마크 ===
-
-    /**
-     * 이력서 - 캐시 적용 버전
-     */
-    @Benchmark
-    public Member 이력서_캐시적용_Member조회() {
-        return resumeService.findMemberByEmailForBenchmark(testEmail);
-    }
-
-    /**
-     * 이력서 - 캐시 미적용 버전
-     */
-    @Benchmark
-    public Member 이력서_캐시미적용_Member조회() {
-        return resumeService.findMemberByEmailNoCache(testEmail);
-    }
-
-    // === 사용량토큰 서비스 벤치마크 ===
-
-    /**
-     * 사용량토큰 - 캐시 적용 버전
-     */
-    @Benchmark
-    public Member 사용량토큰_캐시적용_Member조회() {
-        return usageTokenService.findMemberByEmailForBenchmark(testEmail);
-    }
-
-    /**
-     * 사용량토큰 - 캐시 미적용 버전
-     */
-    @Benchmark
-    public Member 사용량토큰_캐시미적용_Member조회() {
-        return usageTokenService.findMemberByEmailNoCache(testEmail);
-    }
-
-    /**
-     * 캐시 적용 - 연속 API 호출 시나리오
-     * 실제 사용 패턴: 자소서 목록 → 저장 → 수정 → 목록 조회
-     */
-    @Benchmark
-    @OperationsPerInvocation(5)
-    public void 캐시적용_연속API호출() {
-        for (int i = 0; i < 5; i++) {
-            coverLetterService.findMemberByEmailForBenchmark(testEmail);
+    public Member 캐시미적용_Member조회() {
+        if (nonCachedUsers == null || nonCachedUsers.length == 0) {
+            // 폴백: 비캐시 사용자가 없으면 마지막 사용자 사용
+            String fallbackEmail = "user5000@example.com";
+            return coverLetterService.findMemberByEmailNoCache(fallbackEmail);
         }
+        String userEmail = nonCachedUsers[random.nextInt(nonCachedUsers.length)];
+        return coverLetterService.findMemberByEmailNoCache(userEmail);
     }
 
-    /**
-     * 캐시 미적용 - 연속 API 호출 시나리오
-     */
-    @Benchmark
-    @OperationsPerInvocation(5)
-    public void 캐시미적용_연속API호출() {
-        for (int i = 0; i < 5; i++) {
-            coverLetterService.findMemberByEmailNoCache(testEmail);
-        }
-    }
 
-    /**
-     * 캐시 적용 - 하루 사용 패턴
-     * 한 사용자가 하루에 자소서 기능을 사용하는 패턴
-     */
-    @Benchmark
-    @OperationsPerInvocation(10)
-    public void 캐시적용_일일사용패턴() {
-        for (int i = 0; i < 10; i++) {
-            coverLetterService.findMemberByEmailForBenchmark(testEmail);
-        }
-    }
-
-    /**
-     * 캐시 미적용 - 하루 사용 패턴
-     */
-    @Benchmark
-    @OperationsPerInvocation(10)
-    public void 캐시미적용_일일사용패턴() {
-        for (int i = 0; i < 10; i++) {
-            coverLetterService.findMemberByEmailNoCache(testEmail);
-        }
-    }
 
     // Cleanup
     static {
