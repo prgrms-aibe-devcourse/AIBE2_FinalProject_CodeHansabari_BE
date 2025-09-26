@@ -74,7 +74,7 @@ public class GoogleOAuthService {
         String state = UUID.randomUUID().toString();
         String redirectUri = StringUtils.hasText(customRedirectUri) ? customRedirectUri : defaultRedirectUri;
 
-        String loginUrl = UriComponentsBuilder.fromHttpUrl(GOOGLE_AUTH_URL)
+        String loginUrl = UriComponentsBuilder.fromUriString(GOOGLE_AUTH_URL)
                 .queryParam("client_id", googleClientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", "openid profile email")
@@ -82,7 +82,7 @@ public class GoogleOAuthService {
                 .queryParam("state", state)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .encode(StandardCharsets.UTF_8)
+                .build(true)
                 .toUriString();
 
         log.info("구글 OAuth URL 생성 완료");

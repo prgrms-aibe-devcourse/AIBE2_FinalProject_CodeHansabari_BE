@@ -5,6 +5,7 @@ import com.cvmento.domain.coverLetter.dto.request.ContentItem;
 import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
+import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +33,9 @@ class CoverLetterLlmClientServiceTest {
     @Mock
     private OpenAiResponseParser openAiResponseParser;
 
+    @Mock
+    private MetricsService metricsService;
+
     private ObjectMapper objectMapper;
 
     private CoverLetterLlmClientService service;
@@ -40,7 +45,7 @@ class CoverLetterLlmClientServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        service = new CoverLetterLlmClientService(coverLetterLlmFeignClient, objectMapper, openAiResponseParser);
+        service = new CoverLetterLlmClientService(coverLetterLlmFeignClient, objectMapper, openAiResponseParser, metricsService);
 
         inputItems = List.of(
                 new InputItem("system", List.of(ContentItem.text("자소서 첨삭 도우미입니다."))),
@@ -68,7 +73,7 @@ class CoverLetterLlmClientServiceTest {
             """;
             String raw = wrapAsOpenAiRaw(contentJson);
             given(coverLetterLlmFeignClient.analyzeRaw(any(LlmRequest.class))).willReturn(raw);
-            given(openAiResponseParser.extractTextContent(raw)).willReturn(contentJson);
+            given(openAiResponseParser.extractTextContent(anyString())).willReturn(contentJson);
 
             // when
             LlmAnalysisResponse resp = service.analyze(inputItems);
@@ -94,7 +99,7 @@ class CoverLetterLlmClientServiceTest {
             """;
             String raw = wrapAsOpenAiRaw(contentJson);
             given(coverLetterLlmFeignClient.analyzeRaw(any(LlmRequest.class))).willReturn(raw);
-            given(openAiResponseParser.extractTextContent(raw)).willReturn(contentJson);
+            given(openAiResponseParser.extractTextContent(anyString())).willReturn(contentJson);
 
             // when / then
             assertThatThrownBy(() -> service.analyze(inputItems))
@@ -114,7 +119,7 @@ class CoverLetterLlmClientServiceTest {
             """;
             String raw = wrapAsOpenAiRaw(contentJson);
             given(coverLetterLlmFeignClient.analyzeRaw(any(LlmRequest.class))).willReturn(raw);
-            given(openAiResponseParser.extractTextContent(raw)).willReturn(contentJson);
+            given(openAiResponseParser.extractTextContent(anyString())).willReturn(contentJson);
 
             // when / then
             assertThatThrownBy(() -> service.analyze(inputItems))

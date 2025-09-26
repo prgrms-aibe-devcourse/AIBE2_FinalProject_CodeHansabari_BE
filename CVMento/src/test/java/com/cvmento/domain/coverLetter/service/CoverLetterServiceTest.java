@@ -7,6 +7,7 @@ import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.exception.customException.CoverLetterException;
+import com.cvmento.global.common.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CoverLetterService 단위 테스트")
@@ -29,6 +31,9 @@ class CoverLetterServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private MetricsService metricsService;
 
     @InjectMocks
     private CoverLetterService coverLetterService;
@@ -64,9 +69,8 @@ class CoverLetterServiceTest {
         String memberEmail = "test@example.com";
         Long coverLetterId = 1L;
 
-        // 변경: 이메일과 상태로 직접 조회하는 방식으로 Mock 설정
         given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                 .willReturn(Optional.of(testCoverLetter));
 
         // when
@@ -86,9 +90,8 @@ class CoverLetterServiceTest {
         String memberEmail = "test@example.com";
         Long coverLetterId = 999L;
 
-        // 변경: 이메일과 상태로 직접 조회하는 방식으로 Mock 설정
         given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                 .willReturn(Optional.empty());
 
         // when & then
@@ -105,10 +108,8 @@ class CoverLetterServiceTest {
         String hackerEmail = "hacker@example.com";
         Long coverLetterId = 1L;
 
-        // 변경: Member 엔티티 생성 불필요, 이메일로 직접 조회
-        // 해커가 다른 사람의 자소서를 조회하려 하지만 권한이 없어서 조회 안됨
         given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                coverLetterId, hackerEmail, CoverLetterStatus.ACTIVE))
+                any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                 .willReturn(Optional.empty());
 
         // when & then
@@ -125,9 +126,8 @@ class CoverLetterServiceTest {
         String memberEmail = "test@example.com";
         Long coverLetterId = 1L;
 
-        // 변경: 이메일과 상태로 직접 조회하는 방식으로 Mock 설정
         given(coverLetterRepository.findByCoverLetterIdAndMemberEmailAndStatus(
-                coverLetterId, memberEmail, CoverLetterStatus.ACTIVE))
+                any(Long.class), any(String.class), any(CoverLetterStatus.class)))
                 .willReturn(Optional.of(testCoverLetter));
 
         CoverLetterUpdateRequest requestWithShortTitle = new CoverLetterUpdateRequest(

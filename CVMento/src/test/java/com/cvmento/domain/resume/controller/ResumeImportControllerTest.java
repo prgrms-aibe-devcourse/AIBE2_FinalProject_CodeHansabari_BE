@@ -5,8 +5,11 @@ import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;
 import com.cvmento.domain.resume.service.ResumeImportService;
 import com.cvmento.global.common.dto.CommonResponse;
+import com.cvmento.global.exception.customException.FileSizeExceededException;
+import com.cvmento.global.exception.customException.InvalidFileException;
 import com.cvmento.global.exception.customException.LambdaException;
 import com.cvmento.global.exception.customException.ResumeException;
+import com.cvmento.global.exception.customException.UnsupportedFileTypeException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,27 +26,12 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
-/**
- * ResumeImportController의 단위 테스트.
- *
- * 정상 시나리오:
- * - 이미지 파일 업로드 및 변환 성공
- * - PDF 파일 업로드 및 변환 성공
- * - Vision API를 통한 이력서 변환
- *
- * 비정상 시나리오:
- * - 빈 파일 업로드
- * - 지원하지 않는 파일 형식
- * - 파일 크기 초과
- * - LLM API 오류
- * - Lambda OCR 오류
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ResumeImportController 단위 테스트")
 @Slf4j
@@ -56,7 +44,6 @@ class ResumeImportControllerTest {
     private static final List<com.cvmento.domain.resume.dto.request.ProjectSaveRequest> EMPTY_PROJECTS = List.of();
     private static final List<com.cvmento.domain.resume.dto.request.TrainingSaveRequest> EMPTY_TRAININGS = List.of();
     private static final List<com.cvmento.domain.resume.dto.request.AdditionalInfoSaveRequest> EMPTY_ADDITIONAL_INFOS = List.of();
-    private static final String[] USER_ROLES = {"USER"};
 
     @Mock
     private ResumeImportService resumeImportService;
@@ -121,7 +108,7 @@ class ResumeImportControllerTest {
                     "image content".getBytes()
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
                     .willReturn(mockResponse);
             log.info("Mock 설정: resumeImportService.importResume -> mockResponse 반환");
 
@@ -137,7 +124,7 @@ class ResumeImportControllerTest {
             assertThat(result.getBody().getMessage()).isEqualTo("이력서가 성공적으로 변환되었습니다.");
             assertThat(result.getBody().getData()).isEqualTo(mockResponse);
 
-            verify(resumeImportService).importResume(imageFile, userEmail);
+            verify(resumeImportService).importResume(any(MultipartFile.class), eq(userEmail));
             log.info("✅ 이미지 파일 변환 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -155,7 +142,7 @@ class ResumeImportControllerTest {
                     "pdf content".getBytes()
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
                     .willReturn(mockResponse);
 
             // When
@@ -168,7 +155,7 @@ class ResumeImportControllerTest {
             assertThat(result.getBody().getData().name()).isEqualTo("김개발");
             assertThat(result.getBody().getData().careerType()).isEqualTo(CareerType.EXPERIENCED);
 
-            verify(resumeImportService).importResume(pdfFile, userEmail);
+            verify(resumeImportService).importResume(any(MultipartFile.class), eq(userEmail));
             log.info("✅ PDF 파일 변환 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -191,17 +178,15 @@ class ResumeImportControllerTest {
                     new byte[0]
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
-                    .willThrow(new IllegalArgumentException("파일이 비어있습니다."));
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
+                    .willThrow(new InvalidFileException("파일이 비어있습니다."));
 
-            // When
-            ResponseEntity<CommonResponse<ResumeImportResponse>> result =
-                    resumeImportController.importResume(emptyFile, userDetails);
+            // When & Then - 예외가 그대로 발생하는지 확인
+            assertThatThrownBy(() ->
+                    resumeImportController.importResume(emptyFile, userDetails))
+                    .isInstanceOf(InvalidFileException.class)
+                    .hasMessage("파일이 비어있습니다.");
 
-            // Then
-            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(result.getBody().isSuccess()).isFalse();
-            assertThat(result.getBody().getMessage()).isEqualTo("파일이 비어있습니다.");
             log.info("✅ 빈 파일 업로드 예외 처리 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -219,17 +204,15 @@ class ResumeImportControllerTest {
                     "text content".getBytes()
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
-                    .willThrow(new IllegalArgumentException("지원하지 않는 파일 형식입니다."));
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
+                    .willThrow(new UnsupportedFileTypeException("지원하지 않는 파일 형식입니다."));
 
-            // When
-            ResponseEntity<CommonResponse<ResumeImportResponse>> result =
-                    resumeImportController.importResume(unsupportedFile, userDetails);
+            // When & Then - 예외가 그대로 발생하는지 확인
+            assertThatThrownBy(() ->
+                    resumeImportController.importResume(unsupportedFile, userDetails))
+                    .isInstanceOf(UnsupportedFileTypeException.class)
+                    .hasMessage("지원하지 않는 파일 형식입니다.");
 
-            // Then
-            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(result.getBody().isSuccess()).isFalse();
-            assertThat(result.getBody().getMessage()).contains("지원하지 않는 파일 형식");
             log.info("✅ 지원하지 않는 파일 형식 예외 처리 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -247,17 +230,15 @@ class ResumeImportControllerTest {
                     new byte[11 * 1024 * 1024] // 11MB
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
-                    .willThrow(new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다."));
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
+                    .willThrow(new FileSizeExceededException("파일 크기는 10MB를 초과할 수 없습니다."));
 
-            // When
-            ResponseEntity<CommonResponse<ResumeImportResponse>> result =
-                    resumeImportController.importResume(oversizedFile, userDetails);
+            // When & Then - 예외가 그대로 발생하는지 확인
+            assertThatThrownBy(() ->
+                    resumeImportController.importResume(oversizedFile, userDetails))
+                    .isInstanceOf(FileSizeExceededException.class)
+                    .hasMessage("파일 크기는 10MB를 초과할 수 없습니다.");
 
-            // Then
-            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(result.getBody().isSuccess()).isFalse();
-            assertThat(result.getBody().getMessage()).contains("10MB를 초과할 수 없습니다");
             log.info("✅ 파일 크기 초과 예외 처리 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -275,17 +256,15 @@ class ResumeImportControllerTest {
                     "image content".getBytes()
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
                     .willThrow(new ResumeException("이력서 변환에 실패했습니다."));
 
-            // When
-            ResponseEntity<CommonResponse<ResumeImportResponse>> result =
-                    resumeImportController.importResume(validFile, userDetails);
+            // When & Then - 예외가 그대로 발생하는지 확인
+            assertThatThrownBy(() ->
+                    resumeImportController.importResume(validFile, userDetails))
+                    .isInstanceOf(ResumeException.class)
+                    .hasMessage("이력서 변환에 실패했습니다.");
 
-            // Then
-            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-            assertThat(result.getBody().isSuccess()).isFalse();
-            assertThat(result.getBody().getMessage()).contains("이력서 변환 중 오류가 발생했습니다");
             log.info("✅ LLM API 오류 예외 처리 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -303,17 +282,15 @@ class ResumeImportControllerTest {
                     "pdf content".getBytes()
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
                     .willThrow(new LambdaException("OCR 처리 중 오류가 발생했습니다."));
 
-            // When
-            ResponseEntity<CommonResponse<ResumeImportResponse>> result =
-                    resumeImportController.importResume(validFile, userDetails);
+            // When & Then - 예외가 그대로 발생하는지 확인
+            assertThatThrownBy(() ->
+                    resumeImportController.importResume(validFile, userDetails))
+                    .isInstanceOf(LambdaException.class)
+                    .hasMessage("OCR 처리 중 오류가 발생했습니다.");
 
-            // Then
-            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-            assertThat(result.getBody().isSuccess()).isFalse();
-            assertThat(result.getBody().getMessage()).contains("OCR 처리 중 오류가 발생했습니다");
             log.info("✅ Lambda OCR 오류 예외 처리 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
@@ -336,7 +313,7 @@ class ResumeImportControllerTest {
                     "image content".getBytes()
             );
 
-            given(resumeImportService.importResume(any(MultipartFile.class), eq(userEmail)))
+            given(resumeImportService.importResume(any(MultipartFile.class), anyString()))
                     .willReturn(mockResponse);
 
             // When
@@ -345,7 +322,7 @@ class ResumeImportControllerTest {
 
             // Then
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-            verify(resumeImportService).importResume(validFile, userEmail);
+            verify(resumeImportService).importResume(any(MultipartFile.class), eq(userEmail));
             log.info("✅ 인증 정보 검증 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }

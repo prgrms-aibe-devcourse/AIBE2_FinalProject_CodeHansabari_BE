@@ -91,12 +91,6 @@ resume:
   import:
     strategy: lambda
 
-gemini:
-  api:
-    feature-extraction:
-      url: https://generativelanguage.googleapis.com/v1beta
-      key: dummy-test-gemini-key
-
 # 임베딩 모델 설정
 embedding:
   model:
