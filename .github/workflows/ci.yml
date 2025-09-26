@@ -31,13 +31,27 @@ jobs:
 
       - name: Verify JAR(s)
         run: |
+          set -e
           ls -la CVMento/build/libs || true
-          JAR=$(find CVMento/build/libs -name "*.jar" -type f | head -n1 || true)
+
+          # 1) -plain.jar 제외
+          CANDIDATES=$(find CVMento/build/libs -maxdepth 1 -type f -name "*.jar" | grep -v -- "-plain" || true)
+
+          # 2) 실행형(MANIFEST에 Start-Class/Main-Class 존재)인 첫 번째 JAR 선택
+          JAR=""
+          for f in $CANDIDATES; do
+            if unzip -p "$f" META-INF/MANIFEST.MF | grep -qE '^(Start-Class:|Main-Class:)'; then
+              JAR="$f"
+              break
+            fi
+          done
+
           if [ -z "$JAR" ]; then
-            echo "⛔ No JAR found under CVMento/build/libs"
+            echo "⛔ No executable JAR found (missing Start-Class/Main-Class)."
             exit 1
           fi
-          echo "✅ Built JAR: $JAR"
+
+          echo "✅ Executable JAR: $JAR"
           echo "JAR_PATH=$JAR" >> $GITHUB_ENV
 
       - name: Create source bundle deployment package
@@ -67,6 +81,13 @@ jobs:
 
           # JAR 파일을 application.jar로 복사
           cp ${{ env.JAR_PATH }} deployment-package/application.jar
+          
+          # 최종 검증: 실행형 JAR인지 확인 (MANIFEST에 Start-Class/Main-Class)
+          if ! unzip -p deployment-package/application.jar META-INF/MANIFEST.MF | grep -qE '^(Start-Class:|Main-Class:)'; then
+            echo "⛔ application.jar is not executable (MANIFEST missing Start-Class/Main-Class)."
+            exit 1
+          fi
+          echo "✅ application.jar MANIFEST OK"
 
           # .ebextensions 디렉토리가 있는지 확인
           if [ -d "deployment-package/.ebextensions" ]; then
