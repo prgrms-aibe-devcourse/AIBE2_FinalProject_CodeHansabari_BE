@@ -45,7 +45,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: 3600000
+  access-token-expiration: 900000
   refresh-token-expiration: 1209600000
 
 cookie:
@@ -71,8 +71,6 @@ llm:
       key: ${LLM_INTERVIEW_KEY}
     resume:
       key: ${LLM_RESUME_KEY}
-      vision:
-        key: ${LLM_RESUME_VISION_KEY}
 
 logging:
   config: classpath:logback-spring.xml
