@@ -24,8 +24,13 @@ jobs:
         run: chmod +x gradlew
         working-directory: CVMento
 
+      - name: Clear Gradle cache
+        run: |
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
+
       - name: Build with Gradle
-        run: ./gradlew clean build -Dspring.profiles.active=production -x test
+        run: ./gradlew clean build -Dspring.profiles.active=production -x test --no-build-cache
         working-directory: CVMento
 
       - name: Verify JAR(s)
