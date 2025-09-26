@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -297,13 +298,32 @@ public class ResumeService {
         return resume;
     }
 
-    private Member findMemberByEmail(String email) {
+    // 캐시 적용 버전
+    @Cacheable(value = "memberCache", key = "#member.email")
+    public Member findMemberByEmail(String email) {
         MDC.put("spanId", "member-repository");
+        log.info("🔥 DB 조회 (이력서 캐시 적용): {}", email);
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new MemberNotFoundException("멤버를 찾을 수 없습니다."));
 
         MDC.put("spanId", "resume-save-service");
         return member;
+    }
+
+    // 캐시 미적용 버전 (벤치마크 비교용)
+    public Member findMemberByEmailNoCache(String email) {
+        MDC.put("spanId", "member-repository");
+        log.info("🔥 DB 조회 (이력서 캐시 미적용): {}", email);
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new MemberNotFoundException("멤버를 찾을 수 없습니다."));
+
+        MDC.put("spanId", "resume-save-service");
+        return member;
+    }
+
+    // 벤치마크 테스트용 public 메서드
+    public Member findMemberByEmailForBenchmark(String email) {
+        return findMemberByEmail(email);
     }
 
     /**

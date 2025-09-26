@@ -1,0 +1,316 @@
+[
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.SpringCacheBenchmark.coverLetter_WithCache",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 0,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Dfile.encoding=UTF-8",
+            "-Duser.country=KR",
+            "-Duser.language=ko",
+            "-Duser.variant"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 1,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 2,
+        "measurementTime" : "1 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 0.9419501086670914,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 0.8250680032733224,
+                "50.0" : 0.9419501086670914,
+                "90.0" : 1.0588322140608604,
+                "95.0" : 1.0588322140608604,
+                "99.0" : 1.0588322140608604,
+                "99.9" : 1.0588322140608604,
+                "99.99" : 1.0588322140608604,
+                "99.999" : 1.0588322140608604,
+                "99.9999" : 1.0588322140608604,
+                "100.0" : 1.0588322140608604
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    1.0588322140608604,
+                    0.8250680032733224
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.SpringCacheBenchmark.coverLetter_WithoutCache",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 0,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Dfile.encoding=UTF-8",
+            "-Duser.country=KR",
+            "-Duser.language=ko",
+            "-Duser.variant"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 1,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 2,
+        "measurementTime" : "1 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 0.7322121858931743,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 0.7025556406685237,
+                "50.0" : 0.7322121858931743,
+                "90.0" : 0.7618687311178248,
+                "95.0" : 0.7618687311178248,
+                "99.0" : 0.7618687311178248,
+                "99.9" : 0.7618687311178248,
+                "99.99" : 0.7618687311178248,
+                "99.999" : 0.7618687311178248,
+                "99.9999" : 0.7618687311178248,
+                "100.0" : 0.7618687311178248
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    0.7618687311178248,
+                    0.7025556406685237
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.SpringCacheBenchmark.resume_WithCache",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 0,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Dfile.encoding=UTF-8",
+            "-Duser.country=KR",
+            "-Duser.language=ko",
+            "-Duser.variant"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 1,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 2,
+        "measurementTime" : "1 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 0.6459635172268019,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 0.6348024730500951,
+                "50.0" : 0.6459635172268019,
+                "90.0" : 0.6571245614035087,
+                "95.0" : 0.6571245614035087,
+                "99.0" : 0.6571245614035087,
+                "99.9" : 0.6571245614035087,
+                "99.99" : 0.6571245614035087,
+                "99.999" : 0.6571245614035087,
+                "99.9999" : 0.6571245614035087,
+                "100.0" : 0.6571245614035087
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    0.6571245614035087,
+                    0.6348024730500951
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.SpringCacheBenchmark.resume_WithoutCache",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 0,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Dfile.encoding=UTF-8",
+            "-Duser.country=KR",
+            "-Duser.language=ko",
+            "-Duser.variant"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 1,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 2,
+        "measurementTime" : "1 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 0.5810087131137128,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 0.5620705456570156,
+                "50.0" : 0.5810087131137128,
+                "90.0" : 0.59994688057041,
+                "95.0" : 0.59994688057041,
+                "99.0" : 0.59994688057041,
+                "99.9" : 0.59994688057041,
+                "99.99" : 0.59994688057041,
+                "99.999" : 0.59994688057041,
+                "99.9999" : 0.59994688057041,
+                "100.0" : 0.59994688057041
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    0.59994688057041,
+                    0.5620705456570156
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.SpringCacheBenchmark.usageToken_WithCache",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 0,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Dfile.encoding=UTF-8",
+            "-Duser.country=KR",
+            "-Duser.language=ko",
+            "-Duser.variant"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 1,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 2,
+        "measurementTime" : "1 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 0.2570801757940505,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 0.25355264742785444,
+                "50.0" : 0.2570801757940505,
+                "90.0" : 0.26060770416024653,
+                "95.0" : 0.26060770416024653,
+                "99.0" : 0.26060770416024653,
+                "99.9" : 0.26060770416024653,
+                "99.99" : 0.26060770416024653,
+                "99.999" : 0.26060770416024653,
+                "99.9999" : 0.26060770416024653,
+                "100.0" : 0.26060770416024653
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    0.26060770416024653,
+                    0.25355264742785444
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.37",
+        "benchmark" : "com.cvmento.benchmark.SpringCacheBenchmark.usageToken_WithoutCache",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 0,
+        "jvm" : "C:\\Users\\swmoo\\.jdks\\corretto-17.0.11\\bin\\java.exe",
+        "jvmArgs" : [
+            "-Dfile.encoding=UTF-8",
+            "-Duser.country=KR",
+            "-Duser.language=ko",
+            "-Duser.variant"
+        ],
+        "jdkVersion" : "17.0.11",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "17.0.11+9-LTS",
+        "warmupIterations" : 1,
+        "warmupTime" : "1 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 2,
+        "measurementTime" : "1 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 0.249947259473001,
+            "scoreError" : "NaN",
+            "scoreConfidence" : [
+                "NaN",
+                "NaN"
+            ],
+            "scorePercentiles" : {
+                "0.0" : 0.24808820210939417,
+                "50.0" : 0.249947259473001,
+                "90.0" : 0.2518063168366078,
+                "95.0" : 0.2518063168366078,
+                "99.0" : 0.2518063168366078,
+                "99.9" : 0.2518063168366078,
+                "99.99" : 0.2518063168366078,
+                "99.999" : 0.2518063168366078,
+                "99.9999" : 0.2518063168366078,
+                "100.0" : 0.2518063168366078
+            },
+            "scoreUnit" : "ms/op",
+            "rawData" : [
+                [
+                    0.24808820210939417,
+                    0.2518063168366078
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    }
+]
+
+

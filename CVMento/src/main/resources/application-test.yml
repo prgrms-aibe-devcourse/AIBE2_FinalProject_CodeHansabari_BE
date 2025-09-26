@@ -47,6 +47,8 @@ app:
   cors:
     allowed-origins:
       - "http://localhost:3000"
+  internal:
+    api-key: test-sub-api-key-123
 
 llm:
   api:
@@ -84,3 +86,7 @@ management:
   endpoint:
     health:
       show-details: always
+
+sub-backend:
+  url: http://localhost:8081/
+  api-key: test-sub-api-key-123

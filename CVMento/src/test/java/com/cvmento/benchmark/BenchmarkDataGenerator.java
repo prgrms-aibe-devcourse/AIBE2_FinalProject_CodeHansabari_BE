@@ -23,9 +23,8 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * 빠른 벤치마크용 테스트 데이터 생성기
- * 100명 회원, test 사용자 10개 자소서, 일반 사용자 3-5개 자소서
- * @Profile("test") 애너테이션으로 테스트 환경에서만 실행
+ * 현실적인 벤치마크용 테스트 데이터 생성기
+ * 5000명 회원, test 사용자 10개 자소서, 일반 사용자 3-5개 자소서
  */
 @Slf4j
 @Component
@@ -110,17 +109,17 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
     }
 
     /**
-     * 소규모 멤버 데이터 생성 (100명 총)
+     * 대규모 멤버 데이터 생성 (5000명 총)
      */
     @Transactional
     public void createBulkMembers() {
-        log.info("소규모 멤버 데이터 생성 시작...");
+        log.info("대규모 멤버 데이터 생성 시작... (5000명)");
 
         List<Member> members = new ArrayList<>();
-        int batchSize = 50;
+        int batchSize = 100;
 
-        // ACTIVE USER들 (75명: id 2~76)
-        for (int i = 2; i <= 76; i++) {
+        // ACTIVE USER들 (4500명: id 2~4501)
+        for (int i = 2; i <= 4501; i++) {
             Member member = new Member("google-user-" + i, "user" + i + "@example.com",
                     "사용자" + i, "https://example.com/profile" + i + ".jpg");
             member.activate();
@@ -132,33 +131,33 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
             }
         }
 
-        // INACTIVE USER들 (15명: id 77~91)
-        for (int i = 77; i <= 91; i++) {
+        // INACTIVE USER들 (400명: id 4502~4901)
+        for (int i = 4502; i <= 4901; i++) {
             Member member = new Member("google-user-" + i, "user" + i + "@example.com",
                     "비활성사용자" + i, "https://example.com/profile" + i + ".jpg");
             member.deactivate();
             members.add(member);
         }
 
-        // SUSPENDED USER들 (4명: id 92~95)
-        for (int i = 92; i <= 95; i++) {
+        // SUSPENDED USER들 (80명: id 4902~4981)
+        for (int i = 4902; i <= 4981; i++) {
             Member member = new Member("google-user-" + i, "suspended" + i + "@example.com",
                     "정지된사용자" + i, "https://example.com/profile" + i + ".jpg");
             member.deactivate();
             members.add(member);
         }
 
-        // ACTIVE ADMIN들 (4명: id 96~99)
-        for (int i = 96; i <= 99; i++) {
+        // ACTIVE ADMIN들 (18명: id 4982~4999)
+        for (int i = 4982; i <= 4999; i++) {
             Member member = new Member("google-admin-" + i, "admin" + i + "@company.com",
                     "관리자" + i, "https://example.com/admin" + i + ".jpg");
             member.changeRole(Role.ADMIN);
             members.add(member);
         }
 
-        // ACTIVE ROOT (1명: id 100)
-        Member rootMember = new Member("google-root-100", "root100@company.com",
-                "루트관리자100", "https://example.com/root100.jpg");
+        // ACTIVE ROOT (1명: id 5000)
+        Member rootMember = new Member("google-root-5000", "root5000@company.com",
+                "루트관리자5000", "https://example.com/root5000.jpg");
         rootMember.changeRole(Role.ROOT);
         members.add(rootMember);
 
@@ -171,18 +170,18 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
     }
 
     /**
-     * 소규모 자소서 데이터 생성 (약 400개: 일반 사용자당 3-5개)
+     * 대규모 자소서 데이터 생성 (약 15000개: 일반 사용자당 3-5개)
      */
     @Transactional
     public void createBulkCoverLetters() {
-        log.info("소규모 자소서 데이터 생성 시작...");
+        log.info("대규모 자소서 데이터 생성 시작...");
 
         List<CoverLetter> coverLetters = new ArrayList<>();
-        int batchSize = 100;
+        int batchSize = 200;
         int totalCreated = 0;
 
-        // 일반 사용자들(id 2~100)에게 각각 3-5개의 자소서 생성
-        for (long memberId = 2; memberId <= 100; memberId++) {
+        // 일반 사용자들(id 2~5000)에게 각각 3-5개의 자소서 생성
+        for (long memberId = 2; memberId <= 5000; memberId++) {
             Member member = memberRepository.findById(memberId).orElse(null);
             if (member == null) continue;
 
@@ -235,17 +234,17 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
     }
 
     /**
-     * 소규모 이력서 데이터 생성 (50개: 회원의 50%)
+     * 대규모 이력서 데이터 생성 (2500개: 회원의 50%)
      */
     @Transactional
     public void createBulkResumes() {
-        log.info("소규모 이력서 데이터 생성 시작...");
+        log.info("대규모 이력서 데이터 생성 시작...");
 
         List<Resume> resumes = new ArrayList<>();
-        int batchSize = 25;
+        int batchSize = 100;
 
-        // 첫 50명의 사용자에게 이력서 생성 (50% 비율)
-        for (int i = 1; i <= 50; i++) {
+        // 첫 2500명의 사용자에게 이력서 생성 (50% 비율)
+        for (int i = 1; i <= 2500; i++) {
             Member member = memberRepository.findById((long) i).orElse(null);
             if (member == null) {
                 member = memberRepository.findById(1L).orElseThrow(); // fallback to test user

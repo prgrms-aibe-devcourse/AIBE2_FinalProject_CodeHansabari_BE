@@ -82,9 +82,11 @@ public class Member extends BaseTimeEntity {
     }
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Resume> resumes = new ArrayList<>();
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<CoverLetter> coverLetters = new ArrayList<>();
     
 }
