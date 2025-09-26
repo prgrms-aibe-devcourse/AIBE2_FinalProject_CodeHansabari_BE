@@ -36,13 +36,8 @@ public class UsageController implements UsageControllerInterface {
         MDC.put("spanId", "token-usage-controller");
 
         String email = userDetails.getUsername();
-
-        log.info("토큰 사용량 조회 요청");
-
+        
         TokenUsageInfo tokenUsage = usageTokenService.getTokenUsage(email);
-
-        log.info("토큰 사용량 조회 완료 - 남은토큰: {}/{}",
-                tokenUsage.remainingTokens(), tokenUsage.maxTokens());
 
         return ResponseEntity.ok(CommonResponse.success("토큰 사용량 조회 성공", tokenUsage));
     }

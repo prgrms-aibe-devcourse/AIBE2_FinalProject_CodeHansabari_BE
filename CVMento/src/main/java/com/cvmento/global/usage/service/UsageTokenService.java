@@ -96,9 +96,6 @@ public class UsageTokenService {
             currentTokens = UsageType.MAX_TOKENS;
         }
 
-        log.info("토큰 사용량 조회 완료 - 사용자: {}, 남은토큰: {}/{}",
-                member.getMemberId(), currentTokens, UsageType.MAX_TOKENS);
-
         // 토큰 정보 반환
         return new TokenUsageInfo(
                 currentTokens,
