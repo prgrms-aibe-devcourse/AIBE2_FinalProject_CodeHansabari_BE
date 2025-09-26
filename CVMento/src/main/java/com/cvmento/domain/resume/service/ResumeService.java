@@ -11,7 +11,7 @@ import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.domain.resume.repository.ResumeRepositoryImpl;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;

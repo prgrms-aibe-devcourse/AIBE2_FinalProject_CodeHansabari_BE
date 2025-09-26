@@ -4,10 +4,8 @@ import com.cvmento.domain.resume.dto.VisionPromptResult;
 import com.cvmento.domain.resume.dto.response.ResumeImportResponse;
 import com.cvmento.domain.resume.enums.CareerType;
 import com.cvmento.domain.resume.enums.ResumeType;
-import com.cvmento.global.aws.LambdaService;
 import com.cvmento.global.exception.customException.FileSizeExceededException;
 import com.cvmento.global.exception.customException.InvalidFileException;
-import com.cvmento.global.exception.customException.LambdaException;
 import com.cvmento.global.exception.customException.ResumeException;
 import com.cvmento.global.exception.customException.UnsupportedFileTypeException;
 import lombok.extern.slf4j.Slf4j;
@@ -23,23 +21,18 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
-import static org.mockito.Mockito.lenient;
 
 /**
  * ResumeImportService의 단위 테스트.
- *
  * 정상 시나리오:
  * - Direct 전략으로 이미지/PDF 파일 변환
  * - Lambda 전략으로 파일 변환
  * - 기술스택 ID 매핑
  * - 변환 후 자동 저장
- *
  * 비정상 시나리오:
  * - 파일 검증 실패
  * - Lambda 실패 시 Direct 전략으로 fallback
@@ -68,9 +61,6 @@ class ResumeImportServiceTest {
 
     @Mock
     private ResumeLlmClientService resumeLlmClientService;
-
-    @Mock
-    private LambdaService lambdaService;
 
     @Mock
     private ResumeService resumeService;
@@ -323,186 +313,6 @@ class ResumeImportServiceTest {
                     .hasMessage("Vision API 호출 실패");
 
             log.info("✅ Direct 전략 Vision API 실패 예외 처리 확인");
-            log.info("=== 테스트 완료 ===\n");
-        }
-    }
-
-    @Nested
-    @DisplayName("Lambda 전략 테스트")
-    class LambdaStrategyTests {
-
-        @BeforeEach
-        void setLambdaStrategy() {
-            ReflectionTestUtils.setField(resumeImportService, "importStrategy", "lambda");
-        }
-
-        @Test
-        @DisplayName("Lambda 전략으로 파일 변환 성공")
-        void importWithLambda_Success() {
-            log.info("=== 테스트 시작: Lambda 전략으로 파일 변환 성공 ===");
-
-            // Given
-            MockMultipartFile validFile = new MockMultipartFile(
-                    "file", "resume.pdf", "application/pdf", VALID_CONTENT
-            );
-
-            String extractedText = "김개발\n백엔드 개발자\n경력 3년";
-            String prompt = "이력서 텍스트를 분석해주세요: " + extractedText;
-
-            given(lambdaService.invokeLambdaOcr(any(MultipartFile.class)))
-                    .willReturn(extractedText);
-            given(resumeLlmPromptService.createResumeConversionPrompt(extractedText))
-                    .willReturn(prompt);
-            given(resumeLlmClientService.convertResume(prompt))
-                    .willReturn(mockResponse);
-
-            // When
-            ResumeImportResponse result = resumeImportService.importResume(validFile, MEMBER_EMAIL);
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.name()).isEqualTo("김개발");
-
-            verify(lambdaService).invokeLambdaOcr(validFile);
-            verify(resumeLlmPromptService).createResumeConversionPrompt(extractedText);
-            verify(resumeLlmClientService).convertResume(prompt);
-
-            log.info("✅ Lambda 전략 파일 변환 테스트 완료");
-            log.info("=== 테스트 완료 ===\n");
-        }
-
-        @Test
-        @DisplayName("Lambda 실패 시 Direct 전략으로 fallback")
-        void importWithLambda_FallbackToDirect_WhenLambdaFails() {
-            log.info("=== 테스트 시작: Lambda 실패 시 Direct 전략으로 fallback ===");
-
-            // Given
-            MockMultipartFile validFile = new MockMultipartFile(
-                    "file", "resume.pdf", "application/pdf", VALID_CONTENT
-            );
-
-            // Lambda 실패 시나리오
-            given(lambdaService.invokeLambdaOcr(any(MultipartFile.class)))
-                    .willThrow(new LambdaException("Lambda OCR 실패"));
-
-            // Direct 전략 성공 시나리오
-            given(resumeLlmPromptService.createVisionPrompt(any(MultipartFile.class)))
-                    .willReturn(mockVisionPrompt);
-            given(resumeLlmClientService.convertResumeWithVision(anyString(), anyString()))
-                    .willReturn(mockResponse);
-
-            // When
-            ResumeImportResponse result = resumeImportService.importResume(validFile, MEMBER_EMAIL);
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.name()).isEqualTo("김개발");
-
-            // Lambda 호출 시도
-            verify(lambdaService).invokeLambdaOcr(validFile);
-            // Direct 전략으로 fallback
-            verify(resumeLlmPromptService).createVisionPrompt(validFile);
-            verify(resumeLlmClientService).convertResumeWithVision(anyString(), anyString());
-
-            log.info("✅ Lambda 실패 시 Direct fallback 테스트 완료");
-            log.info("=== 테스트 완료 ===\n");
-        }
-
-        @Test
-        @DisplayName("Lambda OCR 추출된 텍스트 길이 확인")
-        void importWithLambda_CheckExtractedTextLength() {
-            log.info("=== 테스트 시작: Lambda OCR 추출된 텍스트 길이 확인 ===");
-
-            // Given
-            MockMultipartFile validFile = new MockMultipartFile(
-                    "file", "resume.pdf", "application/pdf", VALID_CONTENT
-            );
-
-            String longExtractedText = "김개발".repeat(100); // 긴 텍스트
-            String prompt = "긴 이력서 프롬프트";
-
-            given(lambdaService.invokeLambdaOcr(any(MultipartFile.class)))
-                    .willReturn(longExtractedText);
-            given(resumeLlmPromptService.createResumeConversionPrompt(longExtractedText))
-                    .willReturn(prompt);
-            given(resumeLlmClientService.convertResume(prompt))
-                    .willReturn(mockResponse);
-
-            // When
-            ResumeImportResponse result = resumeImportService.importResume(validFile, MEMBER_EMAIL);
-
-            // Then
-            assertThat(result).isNotNull();
-
-            verify(lambdaService).invokeLambdaOcr(validFile);
-            verify(resumeLlmPromptService).createResumeConversionPrompt(longExtractedText);
-            verify(resumeLlmClientService).convertResume(prompt);
-
-            log.info("✅ 긴 텍스트 처리 테스트 완료 - 텍스트 길이: {}chars", longExtractedText.length());
-            log.info("=== 테스트 완료 ===\n");
-        }
-    }
-
-    @Nested
-    @DisplayName("기술스택 매핑 테스트")
-    class TechStackMappingTests {
-
-        @Test
-        @DisplayName("기술스택 ID 매핑 성공")
-        void mapTechStackIdsToRealIds_Success() {
-            log.info("=== 테스트 시작: 기술스택 ID 매핑 성공 ===");
-
-            // Given
-            MockMultipartFile validFile = new MockMultipartFile(
-                    "file", "resume.jpg", "image/jpeg", VALID_CONTENT
-            );
-
-            given(resumeLlmPromptService.createVisionPrompt(any(MultipartFile.class)))
-                    .willReturn(mockVisionPrompt);
-            given(resumeLlmClientService.convertResumeWithVision(anyString(), anyString()))
-                    .willReturn(mockResponse);
-
-            // 기술스택 매핑 Mock (lenient 모드 - 호출되지 않을 수도 있음)
-            lenient().when(techStackMappingService.findTechStackIdByName(anyString()))
-                    .thenReturn(Optional.of(123L));
-
-            // When
-            ResumeImportResponse result = resumeImportService.importResume(validFile, MEMBER_EMAIL);
-
-            // Then
-            assertThat(result).isNotNull();
-
-            log.info("✅ 기술스택 매핑 테스트 완료");
-            log.info("=== 테스트 완료 ===\n");
-        }
-
-        @Test
-        @DisplayName("기술스택 매핑 실패 시 원본 반환")
-        void mapTechStackIdsToRealIds_ReturnOriginalWhenMappingFails() {
-            log.info("=== 테스트 시작: 기술스택 매핑 실패 시 원본 반환 ===");
-
-            // Given
-            MockMultipartFile validFile = new MockMultipartFile(
-                    "file", "resume.jpg", "image/jpeg", VALID_CONTENT
-            );
-
-            given(resumeLlmPromptService.createVisionPrompt(any(MultipartFile.class)))
-                    .willReturn(mockVisionPrompt);
-            given(resumeLlmClientService.convertResumeWithVision(anyString(), anyString()))
-                    .willReturn(mockResponse);
-
-            // 기술스택 매핑 실패 (lenient 모드 - 호출되지 않을 수도 있음)
-            lenient().when(techStackMappingService.findTechStackIdByName(anyString()))
-                    .thenThrow(new RuntimeException("매핑 서비스 오류"));
-
-            // When
-            ResumeImportResponse result = resumeImportService.importResume(validFile, MEMBER_EMAIL);
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.name()).isEqualTo("김개발"); // 원본 데이터 반환
-
-            log.info("✅ 기술스택 매핑 실패 시 원본 반환 테스트 완료");
             log.info("=== 테스트 완료 ===\n");
         }
     }

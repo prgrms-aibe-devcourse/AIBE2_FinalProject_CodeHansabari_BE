@@ -15,7 +15,7 @@ import com.cvmento.domain.member.dto.MemberInfo;
 import com.cvmento.domain.member.dto.MemberDetailInfo;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.enums.Role;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.exception.customException.GoogleApiException;
 import com.cvmento.global.exception.customException.InvalidAuthorizationCodeException;
@@ -268,7 +268,6 @@ public class AuthController implements AuthControllerInterface {
         Member testMember = authService.createOrUpdateTestUser(email, name, Role.USER);
         authService.generateTokensAndSetCookies(testMember, response);
 
-        // record에 of()가 있다면 그대로 사용, 없애셨다면 new TestLoginResponse(...) 로 교체
         TestLoginResponse loginResponse = TestLoginResponse.of(
                 "테스트 로그인이 완료되었습니다.",
                 MemberInfo.from(testMember),

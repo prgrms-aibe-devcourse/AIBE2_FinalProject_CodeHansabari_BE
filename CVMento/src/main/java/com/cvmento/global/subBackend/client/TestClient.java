@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * 테스트 및 통신 확인용 Sub Backend 클라이언트
- * Sub Backend와의 연결 상태 확인 및 기본 통신 테스트를 담당
+ * Sub Backend 와의 연결 상태 확인 및 기본 통신 테스트를 담당
  */
 @FeignClient(
         name = "sub-backend-test",

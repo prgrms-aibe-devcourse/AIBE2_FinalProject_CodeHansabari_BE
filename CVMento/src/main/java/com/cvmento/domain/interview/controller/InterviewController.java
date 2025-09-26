@@ -80,7 +80,7 @@ public class InterviewController implements InterviewControllerInterface {
 
         String memberEmail = userDetails.getUsername();
 
-        log.info("커스텀 답변 생성 요청 - 자소서ID: {}, 질문길이: {}",
+        log.info("커스텀 답변 생성 요청 - 자소서 ID: {}, 질문길이: {}",
                 coverLetterId, request.question() != null ? request.question().length() : 0);
 
         CustomAnswerResponse response = interviewService.createCustomAnswer(

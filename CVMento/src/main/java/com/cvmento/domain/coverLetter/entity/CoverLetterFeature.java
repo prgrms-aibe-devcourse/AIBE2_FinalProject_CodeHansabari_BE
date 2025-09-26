@@ -30,30 +30,11 @@ public class CoverLetterFeature extends BaseTimeEntity {
 
     protected CoverLetterFeature() {}
 
-    public CoverLetterFeature(FeaturesCategory featuresCategory, String description) {
-        this.featuresCategory = featuresCategory;
-        this.description = description;
-        this.duplicateCount = 1; // 기본값
-        this.representativeCoverLetterId = 1L; // 기본값
-    }
-
     public CoverLetterFeature(FeaturesCategory featuresCategory, String description, 
                              Integer duplicateCount, Long representativeCoverLetterId) {
         this.featuresCategory = featuresCategory;
         this.description = description;
         this.duplicateCount = duplicateCount;
-        this.representativeCoverLetterId = representativeCoverLetterId;
-    }
-
-    public void updateDescription(String description) {
-        this.description = description;
-    }
-
-    public void updateDuplicateCount(Integer duplicateCount) {
-        this.duplicateCount = duplicateCount;
-    }
-
-    public void updateRepresentativeCoverLetterId(Long representativeCoverLetterId) {
         this.representativeCoverLetterId = representativeCoverLetterId;
     }
 }

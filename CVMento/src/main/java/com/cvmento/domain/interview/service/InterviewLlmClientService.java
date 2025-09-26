@@ -148,7 +148,7 @@ public class InterviewLlmClientService {
         }
 
         // 2. 거절 키워드 체크
-        if (containsRejectionKeywords("", response.answer(), response.tip())) {
+        if (containsRejectionKeywords(response.answer(), response.tip())) {
             log.debug("커스텀 답변에서 거절 키워드 감지");
             return true;
         }
@@ -159,7 +159,7 @@ public class InterviewLlmClientService {
     /**
      * 거절 키워드가 포함되어 있는지 확인
      */
-    private boolean containsRejectionKeywords(String question, String answer, String tip) {
+    private boolean containsRejectionKeywords(String answer, String tip) {
         String[] rejectionKeywords = {
                 "면접 준비 서비스만",
                 "면접과 관련되지 않은",
@@ -171,7 +171,7 @@ public class InterviewLlmClientService {
         };
 
         // 각 필드에서 거절 키워드 체크
-        String[] fieldsToCheck = {question, answer, tip};
+        String[] fieldsToCheck = {"", answer, tip};
 
         for (String field : fieldsToCheck) {
             if (field != null) {

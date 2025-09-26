@@ -1,4 +1,4 @@
-package com.cvmento.global.common;
+package com.cvmento.global.common.services;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;

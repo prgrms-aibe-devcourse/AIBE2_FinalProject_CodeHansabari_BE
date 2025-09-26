@@ -40,7 +40,7 @@ public record AdditionalInfoSaveRequest(
         @Schema(description = "자격증 번호", example = "2023-001234")
         String certificateNumber,
 
-        @Schema(description = "어학 등급", example = "TOEIC 900점")
+        @Schema(description = "어학 등급", example = "토익 900점")
         String languageLevel
 ) {
 }

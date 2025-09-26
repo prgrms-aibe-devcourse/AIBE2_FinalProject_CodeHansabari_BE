@@ -4,7 +4,7 @@ import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.client.CoverLetterLlmFeignClient;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
@@ -143,11 +143,7 @@ public class CoverLetterLlmClientService {
         }
 
         // 2. 피드백이 완전히 비어있음
-        if (response.feedback() == null || response.feedback().trim().isEmpty()) {
-            return true;
-        }
-
-        return false;
+        return response.feedback() == null || response.feedback().trim().isEmpty();
     }
 
     /**

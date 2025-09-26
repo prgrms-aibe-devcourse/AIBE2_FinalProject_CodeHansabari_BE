@@ -5,6 +5,7 @@ import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
 import com.cvmento.global.common.dto.CommonResponse;
 import com.cvmento.global.subBackend.client.CrawlClient;
 import com.cvmento.global.subBackend.client.JobClient;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -141,7 +142,7 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
     @Override
     public ResponseEntity<CommonResponse<Map<String, Object>>> updateCrawlCoverLetter(
             @PathVariable Long id,
-            @RequestBody UpdateCrawlCoverLetterRequest request,
+            @RequestBody @Valid UpdateCrawlCoverLetterRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-update-controller");
 

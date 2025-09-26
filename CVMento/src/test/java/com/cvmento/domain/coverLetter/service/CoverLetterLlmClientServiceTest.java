@@ -5,7 +5,7 @@ import com.cvmento.domain.coverLetter.dto.request.ContentItem;
 import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.fasterxml.jackson.databind.ObjectMapper;

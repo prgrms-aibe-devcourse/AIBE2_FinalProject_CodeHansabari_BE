@@ -7,7 +7,7 @@ import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.exception.customException.CoverLetterException;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

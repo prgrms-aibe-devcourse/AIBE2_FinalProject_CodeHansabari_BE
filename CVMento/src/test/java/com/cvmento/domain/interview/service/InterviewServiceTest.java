@@ -14,7 +14,7 @@ import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
 import com.cvmento.global.exception.customException.InterviewLimitExceededException;

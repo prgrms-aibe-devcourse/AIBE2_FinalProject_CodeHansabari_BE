@@ -67,7 +67,6 @@ public class Resume extends BaseTimeEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    // 연관관계 매핑
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ResumeTechStack> resumeTechStacks;
 
@@ -89,7 +88,6 @@ public class Resume extends BaseTimeEntity {
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AdditionalInfo> additionalInfos;
 
-    // 생성자 - 필수 필드만
     private Resume(String title, ResumeType type, String name, String email,
                    Integer birthYear, String phone, CareerType careerType,
                    String fieldName, Member member) {
@@ -105,7 +103,6 @@ public class Resume extends BaseTimeEntity {
         this.status = ResumeStatus.ACTIVE; // 기본값: 활성
     }
 
-    // 정적 팩토리 메서드
     public static Resume createResume(String title, ResumeType type, String name,
                                       String email, Integer birthYear,
                                       String phone, CareerType careerType,
@@ -113,7 +110,6 @@ public class Resume extends BaseTimeEntity {
         return new Resume(title, type, name, email, birthYear, phone, careerType, fieldName, member);
     }
 
-    // 비즈니스 메서드
     public void updateTitle(String title) {
         this.title = title;
     }
