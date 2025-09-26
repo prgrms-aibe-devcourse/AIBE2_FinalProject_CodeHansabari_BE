@@ -112,5 +112,5 @@ management:
       environment: production
 
 sub-backend:
-  url: https://api-sub.cvmento.shop
+  url: https://subapi.cvmento.shop
   api-key: ${SUB_API_KEY}
