@@ -43,9 +43,6 @@ public class ResumeImportController implements ResumeImportControllerInterface {
 
         ResumeImportResponse response = resumeImportService.importResume(file, memberEmail);
 
-        log.info("이력서 변환 완료 - 사용자: {}, 변환결과: {}",
-                memberEmail, response.name());
-
         return ResponseEntity.ok(
                 CommonResponse.success("이력서가 성공적으로 변환되었습니다.", response)
         );

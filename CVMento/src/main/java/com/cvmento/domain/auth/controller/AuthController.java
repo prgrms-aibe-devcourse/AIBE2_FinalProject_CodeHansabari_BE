@@ -105,8 +105,6 @@ public class AuthController implements AuthControllerInterface {
         MDC.put("spanId", "google-token-controller");
 
         try {
-            log.info("구글 토큰 로그인 시도");
-
             LoginResponse loginResponse = googleOAuthService.processGoogleTokenLogin(request, httpResponse);
 
             log.info("구글 토큰 로그인 성공 - memberId: {}", loginResponse.member().memberId());

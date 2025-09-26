@@ -56,9 +56,7 @@ public class CoverLetterAiController implements CoverLetterAiControllerInterface
         try {
             CoverLetterAiResponse response = coverLetterAiService.improveCoverLetter(request);
 
-            log.info("AI 첨삭 완료 - 피드백항목수: {}, 개선내용길이: {}",
-                    response.feedback().strengths().size() + response.feedback().improvements().size(),
-                    response.improvedContent() != null ? response.improvedContent().length() : 0);
+            log.info("AI 첨삭 완료");
 
             return ResponseEntity.ok(CommonResponse.success("자소서 AI 개선이 완료되었습니다.", response));
 

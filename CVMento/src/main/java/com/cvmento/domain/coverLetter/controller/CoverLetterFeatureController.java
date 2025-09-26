@@ -126,8 +126,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                     "status", "STARTED",
                     "message", "중복제거 작업이 백그라운드에서 시작되었습니다."
             );
-
-            log.info("중복제거 작업 시작 응답 - 사용자: {}, jobId: {}", userEmail, jobId);
             return ResponseEntity.ok(CommonResponse.success("특징 중복제거 작업이 시작되었습니다.", responseData));
 
         } catch (Exception e) {
@@ -174,7 +172,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                     "task", "FEATURE_PROCESS_ALL"
             );
             Map<String, Object> response = jobClient.startJob(jobRequest);
-            log.info("Sub 백엔드 전체 특징 처리 요청 성공 - 사용자: {}", userEmail);
 
             return ResponseEntity.ok(CommonResponse.success("전체 특징 처리 작업이 시작되었습니다.", response));
         } catch (Exception e) {
@@ -205,9 +202,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                     pageable.getPageSize(),
                     "createdAt,desc"
             );
-
-            log.info("모든 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
-                    response.getTotalElements(), response.getTotalPages());
 
             return ResponseEntity.ok(CommonResponse.success(response));
         } catch (Exception e) {
@@ -241,9 +235,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                     "duplicateCount,desc"
             );
 
-            log.info("카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
-                    category, response.getTotalElements(), response.getTotalPages());
-
             return ResponseEntity.ok(CommonResponse.success(response));
         } catch (Exception e) {
             log.error("Sub 백엔드 카테고리별 특징 조회 실패 - 사용자: {}, 카테고리: {}, 에러: {}", userEmail, category, e.getMessage());
@@ -267,8 +258,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
 
         try {
             ResponseEntity<Map<String, Object>> response = featureClient.getFeatureStatistics();
-
-            log.info("특징 통계 조회 완료 - 사용자: {}", userEmail);
 
             return ResponseEntity.ok(CommonResponse.success(response.getBody()));
         } catch (Exception e) {
@@ -297,9 +286,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                     pageable.getPageSize(),
                     "createdAt,desc"
             );
-
-            log.info("Raw 특징 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
-                    response.getTotalElements(), response.getTotalPages());
 
             return ResponseEntity.ok(CommonResponse.success(response));
         } catch (Exception e) {
@@ -330,9 +316,6 @@ public class CoverLetterFeatureController implements CoverLetterFeatureControlle
                     pageable.getPageSize(),
                     "createdAt,desc"
             );
-
-            log.info("Raw 카테고리별 특징 페이징 조회 완료 - 카테고리: {}, 총 개수: {}, 총 페이지: {}",
-                    category, response.getTotalElements(), response.getTotalPages());
 
             return ResponseEntity.ok(CommonResponse.success(response));
         } catch (Exception e) {

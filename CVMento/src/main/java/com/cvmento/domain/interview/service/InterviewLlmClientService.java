@@ -74,14 +74,9 @@ public class InterviewLlmClientService {
             MDC.put("spanId", "openai-interview-api");
             String rawResponse = getRawResponse(request);
 
-            MDC.put("spanId", "interview-response-parsing");
-            log.info("Interview Q&A 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
             InterviewLlmResponse response = parseQnaResponse(rawResponse);
 
             MDC.put("spanId", "interview-llm-client");
-            log.info("Interview Q&A 응답 파싱 완료 - Q&A 개수: {}",
-                    response.qnaList() != null ? response.qnaList().size() : 0);
 
             return response;
 
@@ -99,14 +94,9 @@ public class InterviewLlmClientService {
             MDC.put("spanId", "openai-interview-api");
             String rawResponse = getRawResponse(request);
 
-            MDC.put("spanId", "custom-answer-parsing");
-            log.info("Custom Answer 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
             CustomAnswerResponse response = parseCustomAnswerResponse(rawResponse);
 
             MDC.put("spanId", "interview-llm-client");
-            log.info("Custom Answer 파싱 완료 - 답변길이: {}",
-                    response.answer() != null ? response.answer().length() : 0);
 
             // 커스텀 답변은 사용자 입력 기반이므로 검증 필요
             validateCustomAnswerResponse(response);

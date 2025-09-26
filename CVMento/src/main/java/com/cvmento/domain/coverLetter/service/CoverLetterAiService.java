@@ -72,10 +72,6 @@ public class CoverLetterAiService {
             // 5. 최종 응답 생성
             CoverLetterAiResponse result = buildResponse(feedback, llmResponse.improvedContent());
 
-            log.info("자소서 AI 첨삭 완료 - 강점: {}개, 개선사항: {}개, 개선내용길이: {}",
-                    feedback.strengths().size(), feedback.improvements().size(),
-                    result.improvedContent().length());
-
             metricsService.stopLlmApiCallTimer(sample);
             return result;
 

@@ -65,8 +65,6 @@ public class ResumeMetadataService {
                 .map(category -> new EnumOptionResponse(category.name(), category.getDescription()))
                 .toList();
 
-        log.info("메타데이터 조회 완료 - 기술스택: {}개, Enum 카테고리: 6개", techStackResponses.size());
-
         return new ResumeMetadataResponse(
                 techStackResponses,
                 resumeTypes,

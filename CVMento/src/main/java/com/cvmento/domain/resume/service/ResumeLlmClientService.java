@@ -54,21 +54,12 @@ public class ResumeLlmClientService {
     }
 
     private ResumeImportResponse callLlmApi(ResumeLlmRequest request) {
-        log.info("Resume LLM API 요청 시작 - 모델: {}", request.model());
+        log.info("Resume LLM API 요청 시작");
 
         MDC.put("spanId", "openai-resume-api");
         String rawResponse = getRawResponse(request);
 
-        MDC.put("spanId", "resume-response-parsing");
-        log.info("Resume LLM 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
-        ResumeImportResponse response = parseOpenAiResponse(rawResponse);
-
-        MDC.put("spanId", "resume-llm-client");
-        log.info("Resume 응답 파싱 완료 - 이름: {}, 제목: {}",
-                response.name(), response.title());
-
-        return response;
+        return parseOpenAiResponse(rawResponse);
     }
 
     private String getRawResponse(ResumeLlmRequest request) {
@@ -103,17 +94,13 @@ public class ResumeLlmClientService {
 
     private String extractVisionContent(String rawResponse) {
         try {
-            log.info("Vision API 원본 응답: {}", rawResponse);
-
             // /chat/completions 응답에서 content 추출
             var responseNode = objectMapper.readTree(rawResponse);
 
             if (responseNode.has("choices") && responseNode.get("choices").isArray()) {
                 var firstChoice = responseNode.get("choices").get(0);
                 if (firstChoice.has("message") && firstChoice.get("message").has("content")) {
-                    String content = firstChoice.get("message").get("content").asText();
-                    log.info("Vision API에서 추출한 content: {}", content);
-                    return content;
+                    return firstChoice.get("message").get("content").asText();
                 }
             }
 
@@ -128,7 +115,6 @@ public class ResumeLlmClientService {
 
     private ResumeImportResponse parseActualContent(String text) {
         log.info("Resume 응답 파싱 시작 - 텍스트길이: {}", text.length());
-        log.info("원본 응답 텍스트: {}", text);
 
         // 마크다운 코드 블록 제거
         String cleanText = text.trim()
@@ -137,8 +123,6 @@ public class ResumeLlmClientService {
                 .replaceAll("\\s*```", "")
                 .trim();
 
-        log.info("정제된 텍스트: {}", cleanText);
-
         // JSON 찾기 시도 - { 로 시작하는 부분 찾기
         int jsonStart = cleanText.indexOf("{");
         if (jsonStart != -1) {
@@ -146,13 +130,9 @@ public class ResumeLlmClientService {
             int jsonEnd = cleanText.lastIndexOf("}");
             if (jsonEnd != -1 && jsonEnd > jsonStart) {
                 String jsonText = cleanText.substring(jsonStart, jsonEnd + 1);
-                log.info("추출된 JSON: {}", jsonText);
 
                 try {
-                    ResumeImportResponse response = objectMapper.readValue(jsonText, ResumeImportResponse.class);
-                    log.info("Resume JSON 파싱 성공 - 이름: {}, 경력타입: {}",
-                            response.name(), response.careerType());
-                    return response;
+                    return objectMapper.readValue(jsonText, ResumeImportResponse.class);
                 } catch (Exception jsonEx) {
                     log.error("JSON 파싱 오류: {}", jsonEx.getMessage());
                     log.error("파싱 시도한 JSON: {}", jsonText);
@@ -186,14 +166,7 @@ public class ResumeLlmClientService {
         MDC.put("spanId", "openai-resume-api");
         String rawResponse = getVisionRawResponse(request);
 
-        MDC.put("spanId", "resume-response-parsing");
-        log.info("Resume Vision 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
         ResumeImportResponse response = parseVisionApiResponse(rawResponse);
-
-        MDC.put("spanId", "resume-llm-client");
-        log.info("Resume Vision 응답 파싱 완료 - 이름: {}, 제목: {}",
-                response.name(), response.title());
 
         return response;
     }
@@ -205,7 +178,6 @@ public class ResumeLlmClientService {
             // Base64는 너무 길어서 앞부분만 로그
             String shortenedJson = requestJson.length() > 1000 ?
                     requestJson.substring(0, 1000) + "..." : requestJson;
-            log.info("Vision API 요청 JSON: {}", shortenedJson);
         } catch (Exception jsonEx) {
             log.warn("요청 JSON 로깅 실패: {}", jsonEx.getMessage());
         }

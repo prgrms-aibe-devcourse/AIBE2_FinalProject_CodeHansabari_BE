@@ -114,10 +114,6 @@ public class MemberService {
         MDC.put("spanId", "member-repository");
         Page<Member> memberPage = memberRepository.findAll(spec, sortedPageable);
 
-        MDC.put("spanId", "member-list-service");
-        log.info("회원 목록 조회 완료: 총 {}건, 페이지 {}/{}",
-                memberPage.getTotalElements(), memberPage.getNumber() + 1, memberPage.getTotalPages());
-
         return memberPage.map(MemberListResponse::from);
     }
 
@@ -134,10 +130,6 @@ public class MemberService {
 
         MDC.put("spanId", "resume-repository");
         long resumeCount = memberRepository.countResumesByMember(member);
-
-        MDC.put("spanId", "member-detail-service");
-        log.info("회원 상세 조회 완료: memberId={}, email={}, 자소서={}개, 이력서={}개",
-                memberId, member.getEmail(), (int)coverLetterCount, (int)resumeCount);
 
         return MemberDetailResponse.from(member, (int)coverLetterCount, (int)resumeCount);
     }
@@ -173,10 +165,6 @@ public class MemberService {
 
         MDC.put("spanId", "member-repository");
         memberRepository.save(targetMember);
-
-        MDC.put("spanId", "member-status-update-service");
-        log.info("회원 상태 변경 완료: memberId={}, {}→{}, 관리자={}, 사유={}",
-                memberId, oldStatus, request.status(), admin.getEmail(), request.reason());
     }
 
     /**
@@ -215,8 +203,6 @@ public class MemberService {
         memberRepository.save(targetMember);
 
         MDC.put("spanId", "member-role-update-service");
-        log.info("회원 역할 변경 완료: memberId={}, {}→{}, 관리자={}, 사유={}",
-                memberId, oldRole, request.role(), admin.getEmail(), request.reason());
     }
 
     /**

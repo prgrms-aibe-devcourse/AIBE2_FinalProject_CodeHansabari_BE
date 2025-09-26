@@ -120,9 +120,6 @@ public class UsageTokenService {
         MDC.put("spanId", "redis-token-write");
         // 최대 토큰으로 설정
         redisTemplate.opsForValue().set(tokenKey, UsageType.MAX_TOKENS);
-
-        MDC.put("spanId", "token-initialization-service");
-        log.info("사용자 토큰 초기화 완료 - 사용자 ID: {}, 토큰: {}개", memberId, UsageType.MAX_TOKENS);
     }
 
     /**

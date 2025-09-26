@@ -69,7 +69,6 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
                     "task", "CRAWLING"
             );
             Map<String, Object> response = jobClient.startJob(jobRequest);
-            log.info("Sub 백엔드 크롤링 요청 성공 - 사용자: {}", userEmail);
             
             return ResponseEntity.ok(CommonResponse.success("크롤링 작업이 시작되었습니다.", response));
         } catch (Exception e) {
@@ -100,9 +99,6 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
                     pageable.getPageSize(), 
                     "createdAt,desc"
             );
-
-            log.info("크롤링 데이터 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
-                    response.getTotalElements(), response.getTotalPages());
             
             return ResponseEntity.ok(CommonResponse.success(response));
         } catch (Exception e) {

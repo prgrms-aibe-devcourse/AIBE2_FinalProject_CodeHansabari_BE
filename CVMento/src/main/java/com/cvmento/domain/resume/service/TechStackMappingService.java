@@ -47,7 +47,7 @@ public class TechStackMappingService {
      * 기술스택 이름으로 TechStack 엔티티 조회
      */
     public Optional<TechStack> findTechStackByName(String techStackName) {
-        MDC.put("spanId", "techstack-mapping-service");
+        MDC.put("spanId", "techStack-mapping-service");
         
         if (techStackName == null || techStackName.trim().isEmpty()) {
             log.warn("빈 기술스택 이름으로 조회 시도");
@@ -69,7 +69,7 @@ public class TechStackMappingService {
      * 캐시 초기화 - 모든 기술스택을 메모리에 로드
      */
     private void initializeCache() {
-        MDC.put("spanId", "techstack-cache-init");
+        MDC.put("spanId", "techStack-cache-init");
         
         try {
             List<TechStack> allTechStacks = techStackRepository.findAll();
@@ -78,8 +78,6 @@ public class TechStackMappingService {
             for (TechStack techStack : allTechStacks) {
                 techStackNameToIdCache.put(techStack.getName(), techStack.getId());
             }
-            
-            log.info("기술스택 캐시 초기화 완료 - 총 {}개", allTechStacks.size());
             
         } catch (Exception e) {
             log.error("기술스택 캐시 초기화 실패: {}", e.getMessage(), e);
@@ -91,7 +89,7 @@ public class TechStackMappingService {
      * 캐시 갱신 (관리자용)
      */
     public void refreshCache() {
-        MDC.put("spanId", "techstack-cache-refresh");
+        MDC.put("spanId", "techStack-cache-refresh");
         
         log.info("기술스택 캐시 수동 갱신 시작");
         techStackNameToIdCache = null;
@@ -102,15 +100,12 @@ public class TechStackMappingService {
      * 사용 가능한 기술스택 이름 목록 조회
      */
     public List<String> getAllTechStackNames() {
-        MDC.put("spanId", "techstack-names-query");
-        
-        List<String> names = techStackRepository.findAll()
+        MDC.put("spanId", "techStack-names-query");
+
+        return techStackRepository.findAll()
                 .stream()
                 .map(TechStack::getName)
                 .sorted()
                 .toList();
-        
-        log.info("전체 기술스택 이름 조회 완료 - {}개", names.size());
-        return names;
     }
 }
