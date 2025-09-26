@@ -45,7 +45,7 @@ public class CoverLetterController implements CoverLetterControllerInterface {
         String memberEmail = userDetails.getUsername();
         coverLetterService.saveCoverLetter(request, memberEmail);
         log.info("자소서 저장 요청 - 타입: {}, 제목: {}, 지원분야: {}, 경력: {}년",
-                request.isAiImproved() ? "AI첨삭" : "원본", request.title(), request.jobField(), request.experienceYears());
+                request.isAiImproved() ? "AI 첨삭" : "원본", request.title(), request.jobField(), request.experienceYears());
 
         String message = request.isAiImproved() ?
                 "AI 첨삭된 자소서가 저장되었습니다." :

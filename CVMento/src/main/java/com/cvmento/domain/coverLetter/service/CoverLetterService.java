@@ -10,7 +10,7 @@ import com.cvmento.domain.coverLetter.enums.CoverLetterStatus;
 import com.cvmento.domain.coverLetter.repository.CoverLetterRepository;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +53,7 @@ public class CoverLetterService {
             Member member = findMemberByEmail(memberEmail);
 
             // 접두사 단일화
-            String prefix = request.isAiImproved() ? "[AI첨삭] " : "[원본] ";
+            String prefix = request.isAiImproved() ? "[AI 첨삭] " : "[원본] ";
             String finalTitle = withSinglePrefix(request.title(), prefix);
 
             CoverLetter coverLetter = new CoverLetter(
@@ -66,7 +66,7 @@ public class CoverLetterService {
 
             CoverLetter saved = coverLetterRepository.save(coverLetter);
 
-            String logType = request.isAiImproved() ? "AI첨삭" : "원본";
+            String logType = request.isAiImproved() ? "AI 첨삭" : "원본";
             log.info("{} 자소서 저장 완료 - coverLetterId: {}, memberId: {}, 지원분야: {}",
                     logType, saved.getCoverLetterId(), member.getMemberId(), request.jobField());
 
@@ -201,7 +201,7 @@ public class CoverLetterService {
         try {
             CoverLetter coverLetter = findDeletedCoverLetterById(coverLetterId);
             coverLetter.restore();
-            log.info("관리자 자소서 복구 완료 - coverLetterId: {}, 관리자: {}, 원소유자ID: {}",
+            log.info("관리자 자소서 복구 완료 - coverLetterId: {}, 관리자: {}, 원소유자 ID: {}",
                     coverLetterId, adminEmail, coverLetter.getMember().getMemberId());
         } catch (CoverLetterException e) {
             metricsService.incrementErrorCount("COVER_LETTER_RESTORE_NOT_FOUND");

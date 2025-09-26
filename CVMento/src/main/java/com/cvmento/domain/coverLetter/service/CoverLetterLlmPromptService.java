@@ -41,8 +41,7 @@ public class CoverLetterLlmPromptService {
                 new InputItem("user", List.of(ContentItem.text(userMessage)))
         );
 
-        log.info("입력 배열 생성 완료 - 시스템: {}chars, 유저: {}chars",
-                systemMessage.length(), userMessage.length());
+        log.info("입력 배열 생성 완료");
 
         return inputItems;
     }

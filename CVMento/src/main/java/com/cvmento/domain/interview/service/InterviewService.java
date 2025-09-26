@@ -8,7 +8,7 @@ import com.cvmento.domain.interview.dto.response.*;
 import com.cvmento.domain.interview.entity.CoverLetterQna;
 import com.cvmento.domain.interview.enums.QuestionSourceType;
 import com.cvmento.domain.interview.repository.CoverLetterQnaRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterException;
 import com.cvmento.global.exception.customException.InterviewException;
@@ -46,7 +46,7 @@ public class InterviewService {
             List<CoverLetterQna> existingQnaList = coverLetterQnaRepository.findByCoverLetterOrderByCreatedAtAsc(coverLetter);
 
             MDC.put("spanId", "interview-list-service");
-            log.info("면접 Q&A 조회 - 자소서ID: {}, 기존 개수: {}", coverLetterId, existingQnaList.size());
+            log.info("면접 Q&A 조회 - 자소서 ID: {}, 기존 개수: {}", coverLetterId, existingQnaList.size());
 
             return buildQnaListResponse(existingQnaList);
         } catch (CoverLetterException e) {
@@ -72,13 +72,13 @@ public class InterviewService {
 
             MDC.put("spanId", "interview-generation-service");
             if (existingCount >= 15) {
-                log.warn("면접 질문 생성 제한 초과 - 자소서ID: {}, 기존개수: {}", coverLetterId, existingCount);
+                log.warn("면접 질문 생성 제한 초과 - 자소서 ID: {}, 기존개수: {}", coverLetterId, existingCount);
                 metricsService.incrementErrorCount("INTERVIEW_QUESTION_LIMIT_EXCEEDED");
                 throw new InterviewLimitExceededException("더 이상 질문을 생성할 수 없습니다. (최대 15개)");
             }
 
             String type = existingCount == 0 ? "초기" : "추가";
-            log.info("면접 Q&A {} 생성 시작 - 자소서ID: {}, 기존개수: {}", type, coverLetterId, existingCount);
+            log.info("면접 Q&A {} 생성 시작 - 자소서 ID: {}, 기존개수: {}", type, coverLetterId, existingCount);
 
             List<InputItem> inputItems = buildInputItemsByCount(coverLetter, existingCount);
             InterviewQnaListResponse response = generateQuestionsWithInputItems(coverLetter, inputItems, type);
@@ -105,7 +105,7 @@ public class InterviewService {
         try {
             CoverLetter coverLetter = findActiveCoverLetterByIdAndMember(coverLetterId, memberEmail);
 
-            log.info("커스텀 답변 생성 시작 - 자소서ID: {}, 질문길이: {}",
+            log.info("커스텀 답변 생성 시작 - 자소서 ID: {}, 질문길이: {}",
                     coverLetterId, customQuestion.length());
 
             MDC.put("spanId", "prompt-building-service");
@@ -117,17 +117,17 @@ public class InterviewService {
 
                 saveCustomQuestionAndAnswer(customQuestion, response, coverLetter);
 
-                log.info("커스텀 답변 생성 완료 - 자소서ID: {}, 답변길이: {}",
+                log.info("커스텀 답변 생성 완료 - 자소서 ID: {}, 답변길이: {}",
                         coverLetterId, response.answer().length());
 
                 return response;
 
             } catch (AiInvalidRequestException e) {
-                log.warn("부적절한 커스텀 질문 요청 - 자소서ID: {}, 오류: {}", coverLetterId, e.getMessage());
+                log.warn("부적절한 커스텀 질문 요청 - 자소서 ID: {}, 오류: {}", coverLetterId, e.getMessage());
                 metricsService.incrementErrorCount("CUSTOM_ANSWER_INVALID_REQUEST");
                 throw e;
             } catch (Exception e) {
-                log.error("커스텀 답변 생성 실패 - 자소서ID: {}, 오류: {}", coverLetterId, e.getMessage(), e);
+                log.error("커스텀 답변 생성 실패 - 자소서 ID: {}, 오류: {}", coverLetterId, e.getMessage(), e);
                 metricsService.incrementErrorCount("CUSTOM_ANSWER_GENERATION_FAILED");
                 throw new InterviewException("커스텀 질문 답변 생성에 실패했습니다.", e);
             }
@@ -160,15 +160,15 @@ public class InterviewService {
     private InterviewQnaListResponse generateQuestionsWithInputItems(CoverLetter coverLetter, List<InputItem> inputItems, String type) {
         try {
             InterviewLlmResponse llmResponse = llmClientService.generateQnaList(inputItems);
-            List<CoverLetterQna> newQnas = saveQnaListToDatabaseAndReturn(llmResponse.qnaList(), coverLetter);
+            List<CoverLetterQna> newQNAs = saveQnaListToDatabaseAndReturn(llmResponse.qnaList(), coverLetter);
 
-            log.info("{} Q&A 생성 완료 - 자소서ID: {}, 생성개수: {}",
+            log.info("{} Q&A 생성 완료 - 자소서 ID: {}, 생성개수: {}",
                     type, coverLetter.getCoverLetterId(), llmResponse.qnaList().size());
 
-            return buildNewQnaListResponse(newQnas);
+            return buildNewQNAsListResponse(newQNAs);
 
         } catch (Exception e) {
-            log.error("{} Q&A 생성 실패 - 자소서ID: {}, 오류: {}",
+            log.error("{} Q&A 생성 실패 - 자소서 ID: {}, 오류: {}",
                     type, coverLetter.getCoverLetterId(), e.getMessage(), e);
             metricsService.incrementErrorCount("INTERVIEW_LLM_GENERATION_FAILED");
             throw new InterviewException("질문/답변 생성에 실패했습니다.", e);
@@ -180,19 +180,19 @@ public class InterviewService {
         MDC.put("spanId", "interview-repository");
 
         try {
-            List<CoverLetterQna> savedQnas = new ArrayList<>();
+            List<CoverLetterQna> savedQNAs = new ArrayList<>();
 
             for (InterviewQnaDto qnaData : qnaDataList) {
                 CoverLetterQna qna = new CoverLetterQna(qnaData.question(), coverLetter, QuestionSourceType.GENERATED);
                 qna.updateAnswerAndTip(qnaData.answer(), qnaData.tip());
                 CoverLetterQna savedQna = coverLetterQnaRepository.save(qna);
-                savedQnas.add(savedQna);
+                savedQNAs.add(savedQna);
             }
 
             MDC.put("spanId", "interview-generation-service");
-            log.info("Q&A DB 저장 완료 - 저장개수: {}", savedQnas.size());
+            log.info("Q&A DB 저장 완료 - 저장개수: {}", savedQNAs.size());
 
-            return savedQnas;
+            return savedQNAs;
         } catch (Exception e) {
             metricsService.incrementErrorCount("INTERVIEW_QNA_SAVE_ERROR");
             throw e;
@@ -213,12 +213,12 @@ public class InterviewService {
     }
 
     /** 새로 생성된 QnA 리스트 → 응답 DTO */
-    private InterviewQnaListResponse buildNewQnaListResponse(List<CoverLetterQna> newQnas) {
-        List<InterviewQnaResponse> qnaResponses = newQnas.stream()
+    private InterviewQnaListResponse buildNewQNAsListResponse(List<CoverLetterQna> newQNAs) {
+        List<InterviewQnaResponse> qnaResponses = newQNAs.stream()
                 .map(InterviewQnaResponse::from)
                 .toList();
 
-        return new InterviewQnaListResponse(qnaResponses, newQnas.size(), newQnas.size());
+        return new InterviewQnaListResponse(qnaResponses, newQNAs.size(), newQNAs.size());
     }
 
     /** 활성 상태 자소서 조회 */

@@ -44,7 +44,7 @@ public class SubBackendJobController implements SubBackendJobControllerInterface
 					filter
 			);
 
-			log.info("Sub-Backend로부터 Job 목록 조회 완료 - 총 {}개", jobsPage.getTotalElements());
+			log.info("Sub-Backend 로부터 Job 목록 조회 완료 - 총 {}개", jobsPage.getTotalElements());
 			return ResponseEntity.ok(CommonResponse.success(jobsPage));
 
 		} catch (Exception e) {

@@ -45,7 +45,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: 3600000
+  access-token-expiration: 900000
   refresh-token-expiration: 1209600000
 
 cookie:
@@ -71,8 +71,6 @@ llm:
       key: ${LLM_INTERVIEW_KEY}
     resume:
       key: ${LLM_RESUME_KEY}
-      vision:
-        key: ${LLM_RESUME_VISION_KEY}
 
 logging:
   config: classpath:logback-spring.xml
@@ -85,13 +83,6 @@ logging:
 
 server:
   port: 5000
-
-cloud:
-  aws:
-    region:
-      static: ap-northeast-2
-    lambda:
-      function-name: aibe2-team2-resume-ocr-function
 
 resume:
   import:
@@ -107,14 +98,6 @@ management:
     health:
       show-details: when-authorized
   metrics:
-    export:
-      prometheus:
-        enabled: true
-    web:
-      server:
-        request:
-          autotime:
-            enabled: true
     distribution:
       percentiles-histogram:
         http:

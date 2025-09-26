@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface CoverLetterQnaRepository extends JpaRepository<CoverLetterQna, Long>{
-    List<CoverLetterQna> findByCoverLetter(CoverLetter coverLetter);
     List<CoverLetterQna> findByCoverLetterOrderByCreatedAtAsc(CoverLetter coverLetter);
 
     long countByCoverLetterAndSourceType(CoverLetter coverLetter, QuestionSourceType sourceType);

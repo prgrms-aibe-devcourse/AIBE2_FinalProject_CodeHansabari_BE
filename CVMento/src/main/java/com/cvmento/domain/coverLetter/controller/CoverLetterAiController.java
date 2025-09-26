@@ -5,7 +5,6 @@ import com.cvmento.domain.coverLetter.dto.request.CoverLetterAiRequest;
 import com.cvmento.domain.coverLetter.dto.response.CoverLetterAiResponse;
 import com.cvmento.domain.coverLetter.service.CoverLetterAiService;
 import com.cvmento.global.common.dto.CommonResponse;
-import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.cvmento.global.usage.annotation.RequireTokens;
 import com.cvmento.global.usage.enums.UsageType;
 import jakarta.validation.Valid;
@@ -48,8 +47,6 @@ public class CoverLetterAiController implements CoverLetterAiControllerInterface
     ) {
         MDC.put("spanId", "coverletter-ai-controller");
 
-        String userEmail = userDetails.getUsername();
-
         log.info("AI 첨삭 요청 - 지원분야: {}, 경력: {}, 컨텐츠길이: {}, 커스텀프롬프트: {}",
                 request.jobField(),
                 request.getTotalExperience(),
@@ -57,11 +54,9 @@ public class CoverLetterAiController implements CoverLetterAiControllerInterface
                 request.customPrompt() != null ? "있음" : "없음");
 
         try {
-            CoverLetterAiResponse response = coverLetterAiService.improveCoverLetter(request, userEmail);
+            CoverLetterAiResponse response = coverLetterAiService.improveCoverLetter(request);
 
-            log.info("AI 첨삭 완료 - 피드백항목수: {}, 개선내용길이: {}",
-                    response.feedback().strengths().size() + response.feedback().improvements().size(),
-                    response.improvedContent() != null ? response.improvedContent().length() : 0);
+            log.info("AI 첨삭 완료");
 
             return ResponseEntity.ok(CommonResponse.success("자소서 AI 개선이 완료되었습니다.", response));
 

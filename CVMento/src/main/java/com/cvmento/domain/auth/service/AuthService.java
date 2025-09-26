@@ -5,8 +5,8 @@ import com.cvmento.domain.auth.dto.TokenDto;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
 import com.cvmento.global.common.util.CookieUtil;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
-import com.cvmento.global.common.MetricsService;
 import com.cvmento.global.security.JwtUtil;
 import com.cvmento.global.security.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,17 +36,17 @@ public class AuthService {
     private final MetricsService metricsService;
 
     /**
-     * UserDetails에서 Member 엔티티를 추출합니다.
+     * UserDetails 에서 Member 엔티티를 추출합니다.
      *
      * @param userDetails 인증된 사용자 정보
-     * @return DB에서 조회한 Member 엔티티
+     * @return DB 에서 조회한 Member 엔티티
      * @throws IllegalArgumentException 사용자를 찾을 수 없는 경우
      */
     public Member getMemberFromUserDetails(UserDetails userDetails) {
         MDC.put("spanId", "auth-service");
 
         if (userDetails == null) {
-            throw new IllegalArgumentException("UserDetails가 null입니다.");
+            throw new IllegalArgumentException("UserDetails가 null 입니다.");
         }
 
         MDC.put("spanId", "member-repository");
@@ -84,10 +84,9 @@ public class AuthService {
      *
      * @param request  클라이언트 요청
      * @param response 클라이언트 응답
-     * @return 갱신된 토큰 DTO
      */
     @Transactional
-    public TokenDto refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
+    public void refreshAccessToken(HttpServletRequest request, HttpServletResponse response) {
         MDC.put("spanId", "token-refresh-service");
 
         Optional<String> refreshTokenOpt = cookieUtil.getRefreshTokenFromCookies(request);
@@ -127,6 +126,7 @@ public class AuthService {
 
             // 🔄 토큰 갱신 시 사용자 캐시도 함께 갱신
             String userId = jwtUtil.extractUserId(refreshToken);
+            log.info("토큰 갱신 성공 - userId: {}", userId);
             String userEmail = jwtUtil.extractEmail(refreshToken);
 
             MDC.put("spanId", "member-repository");
@@ -136,9 +136,6 @@ public class AuthService {
             MDC.put("spanId", "token-refresh-service");
             // 캐시 갱신 (최신 Member 정보로 업데이트)
             cacheUserOnTokenRefresh(member);
-
-            log.info("토큰 갱신 성공 - userId: {}, email: {}", userId, userEmail);
-            return tokenDto;
 
         } catch (IllegalArgumentException e) {
             cookieUtil.deleteAllAuthCookies(response);
@@ -239,7 +236,7 @@ public class AuthService {
     /**
      * 토큰을 생성하고 쿠키에 설정합니다.
      */
-    public TokenDto generateTokensAndSetCookies(Member member, HttpServletResponse response) {
+    public void generateTokensAndSetCookies(Member member, HttpServletResponse response) {
         MDC.put("spanId", "token-generation-service");
 
         TokenDto tokenDto = tokenService.generateTokens(member.getMemberId().toString(), member.getEmail());
@@ -254,7 +251,5 @@ public class AuthService {
 
         metricsService.incrementLoginCount();
         log.debug("토큰 생성 완료 - memberId: {}", member.getMemberId());
-
-        return tokenDto;
     }
 }

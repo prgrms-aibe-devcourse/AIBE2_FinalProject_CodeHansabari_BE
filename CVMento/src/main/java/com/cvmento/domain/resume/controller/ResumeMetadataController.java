@@ -32,9 +32,6 @@ public class ResumeMetadataController implements ResumeMetadataControllerInterfa
 
         ResumeMetadataResponse metadata = resumeMetadataService.getResumeMetadata();
 
-        log.info("메타데이터 조회 완료 - 기술스택: {}개, Enum 카테고리: 6개",
-                metadata.techStacks().size());
-
         return ResponseEntity.ok(CommonResponse.success("이력서 메타데이터를 성공적으로 조회했습니다.", metadata));
     }
 }

@@ -74,14 +74,9 @@ public class InterviewLlmClientService {
             MDC.put("spanId", "openai-interview-api");
             String rawResponse = getRawResponse(request);
 
-            MDC.put("spanId", "interview-response-parsing");
-            log.info("Interview Q&A 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
             InterviewLlmResponse response = parseQnaResponse(rawResponse);
 
             MDC.put("spanId", "interview-llm-client");
-            log.info("Interview Q&A 응답 파싱 완료 - Q&A 개수: {}",
-                    response.qnaList() != null ? response.qnaList().size() : 0);
 
             return response;
 
@@ -99,14 +94,9 @@ public class InterviewLlmClientService {
             MDC.put("spanId", "openai-interview-api");
             String rawResponse = getRawResponse(request);
 
-            MDC.put("spanId", "custom-answer-parsing");
-            log.info("Custom Answer 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
             CustomAnswerResponse response = parseCustomAnswerResponse(rawResponse);
 
             MDC.put("spanId", "interview-llm-client");
-            log.info("Custom Answer 파싱 완료 - 답변길이: {}",
-                    response.answer() != null ? response.answer().length() : 0);
 
             // 커스텀 답변은 사용자 입력 기반이므로 검증 필요
             validateCustomAnswerResponse(response);
@@ -148,7 +138,7 @@ public class InterviewLlmClientService {
         }
 
         // 2. 거절 키워드 체크
-        if (containsRejectionKeywords("", response.answer(), response.tip())) {
+        if (containsRejectionKeywords(response.answer(), response.tip())) {
             log.debug("커스텀 답변에서 거절 키워드 감지");
             return true;
         }
@@ -159,7 +149,7 @@ public class InterviewLlmClientService {
     /**
      * 거절 키워드가 포함되어 있는지 확인
      */
-    private boolean containsRejectionKeywords(String question, String answer, String tip) {
+    private boolean containsRejectionKeywords(String answer, String tip) {
         String[] rejectionKeywords = {
                 "면접 준비 서비스만",
                 "면접과 관련되지 않은",
@@ -171,7 +161,7 @@ public class InterviewLlmClientService {
         };
 
         // 각 필드에서 거절 키워드 체크
-        String[] fieldsToCheck = {question, answer, tip};
+        String[] fieldsToCheck = {"", answer, tip};
 
         for (String field : fieldsToCheck) {
             if (field != null) {

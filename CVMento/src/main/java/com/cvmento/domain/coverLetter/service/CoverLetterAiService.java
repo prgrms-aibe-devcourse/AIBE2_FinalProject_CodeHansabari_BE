@@ -9,7 +9,7 @@ import com.cvmento.domain.coverLetter.dto.response.FeedbackItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.entity.CoverLetterFeature;
 import com.cvmento.domain.coverLetter.repository.CoverLetterFeatureRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,7 +39,7 @@ public class CoverLetterAiService {
     /**
      * 자소서 AI 개선 메인 메서드 (경력 정보 포함)
      */
-    public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request, String userEmail) {
+    public CoverLetterAiResponse improveCoverLetter(CoverLetterAiRequest request) {
         MDC.put("spanId", "coverletter-ai-service");
 
         Timer.Sample sample = metricsService.startLlmApiCallTimer();
@@ -72,10 +72,6 @@ public class CoverLetterAiService {
             // 5. 최종 응답 생성
             CoverLetterAiResponse result = buildResponse(feedback, llmResponse.improvedContent());
 
-            log.info("자소서 AI 첨삭 완료 - 강점: {}개, 개선사항: {}개, 개선내용길이: {}",
-                    feedback.strengths().size(), feedback.improvements().size(),
-                    result.improvedContent().length());
-
             metricsService.stopLlmApiCallTimer(sample);
             return result;
 
@@ -92,7 +88,7 @@ public class CoverLetterAiService {
         }
     }
 
-    /** DB에서 우수 자소서 특징 데이터를 조회 */
+    /** DB 에서 우수 자소서 특징 데이터를 조회 */
     private List<CoverLetterFeatureDto> loadCoverLetterFeatures() {
         MDC.put("spanId", "feature-repository");
 
@@ -114,7 +110,7 @@ public class CoverLetterAiService {
         }
     }
 
-    /** LLM API에서 반환된 피드백 JSON을 파싱 */
+    /** LLM API 에서 반환된 피드백 JSON을 파싱 */
     private CoverLetterFeedback parseFeedback(String feedbackJson) {
         MDC.put("spanId", "feedback-parsing-service");
 

@@ -95,9 +95,6 @@ public class UsageTokenService {
             currentTokens = UsageType.MAX_TOKENS;
         }
 
-        log.info("토큰 사용량 조회 완료 - 사용자: {}, 남은토큰: {}/{}",
-                member.getMemberId(), currentTokens, UsageType.MAX_TOKENS);
-
         // 토큰 정보 반환
         return new TokenUsageInfo(
                 currentTokens,
@@ -119,9 +116,6 @@ public class UsageTokenService {
         MDC.put("spanId", "redis-token-write");
         // 최대 토큰으로 설정
         redisTemplate.opsForValue().set(tokenKey, UsageType.MAX_TOKENS);
-
-        MDC.put("spanId", "token-initialization-service");
-        log.info("사용자 토큰 초기화 완료 - 사용자 ID: {}, 토큰: {}개", memberId, UsageType.MAX_TOKENS);
     }
 
     /**

@@ -27,13 +27,11 @@ import static org.mockito.BDDMockito.*;
 
 /**
  * ResumeLlmClientService의 단위 테스트.
- *
  * 정상 시나리오:
  * - LLM API 호출 및 응답 파싱
  * - Vision API 호출 및 응답 파싱
  * - JSON 응답 정상 처리
  * - 기본값 fallback 처리
- *
  * 비정상 시나리오:
  * - 빈 프롬프트 검증
  * - API 호출 실패
@@ -275,111 +273,6 @@ class ResumeLlmClientServiceTest {
     }
 
     @Nested
-    @DisplayName("Vision API 호출 테스트")
-    class VisionApiCallTests {
-
-        @Test
-        @DisplayName("Vision API 정상 호출 및 응답 파싱")
-        void convertResumeWithVision_WithValidInputs_Success() {
-            log.info("=== 테스트 시작: Vision API 정상 호출 및 응답 파싱 ===");
-
-            // Given
-            try {
-                ObjectMapper realMapper = new ObjectMapper();
-                com.fasterxml.jackson.databind.node.ObjectNode visionNode = realMapper.createObjectNode();
-                com.fasterxml.jackson.databind.node.ArrayNode choicesArray = realMapper.createArrayNode();
-                com.fasterxml.jackson.databind.node.ObjectNode choiceNode = realMapper.createObjectNode();
-                com.fasterxml.jackson.databind.node.ObjectNode messageNode = realMapper.createObjectNode();
-
-                messageNode.put("content", VALID_JSON_RESPONSE);
-                choiceNode.set("message", messageNode);
-                choicesArray.add(choiceNode);
-                visionNode.set("choices", choicesArray);
-
-                String visionResponse = realMapper.writeValueAsString(visionNode);
-
-                given(resumeLlmFeignClient.analyzeVision(any(ResumeVisionRequest.class)))
-                        .willReturn(visionResponse);
-
-                // Vision API 응답 JSON을 실제 ObjectMapper로 파싱하도록 Mock
-                com.fasterxml.jackson.databind.JsonNode actualVisionNode = realMapper.readTree(visionResponse);
-                given(objectMapper.readTree(anyString()))
-                        .willReturn(actualVisionNode);
-
-                // 추출된 content를 ResumeImportResponse로 파싱
-                given(objectMapper.readValue(anyString(), eq(ResumeImportResponse.class)))
-                        .willReturn(mockResponse);
-            } catch (Exception e) {
-                // Mock 설정이므로 실제로는 발생하지 않음
-            }
-
-            // When
-            ResumeImportResponse result = resumeLlmClientService.convertResumeWithVision(
-                    VALID_PROMPT, VALID_BASE64_IMAGE
-            );
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.name()).isEqualTo("김개발");
-            assertThat(result.title()).isEqualTo("백엔드 개발자");
-
-            verify(resumeLlmFeignClient).analyzeVision(any(ResumeVisionRequest.class));
-
-            log.info("✅ Vision API 정상 호출 및 파싱 테스트 완료");
-            log.info("=== 테스트 완료 ===\n");
-        }
-
-        @Test
-        @DisplayName("Vision API 호출 실패 시 예외 발생")
-        void convertResumeWithVision_WithApiFailure_ThrowsException() {
-            log.info("=== 테스트 시작: Vision API 호출 실패 시 예외 발생 ===");
-
-            // Given
-            given(resumeLlmFeignClient.analyzeVision(any(ResumeVisionRequest.class)))
-                    .willThrow(new RuntimeException("Vision API 호출 실패"));
-
-            // When & Then
-            assertThatThrownBy(() -> resumeLlmClientService.convertResumeWithVision(
-                    VALID_PROMPT, VALID_BASE64_IMAGE))
-                    .isInstanceOf(ResumeException.class)
-                    .hasMessage("Vision API 호출에 실패했습니다.");
-
-            log.info("✅ Vision API 호출 실패 예외 처리 확인");
-            log.info("=== 테스트 완료 ===\n");
-        }
-
-        @Test
-        @DisplayName("Vision API 응답에서 content 추출 실패 시 fallback")
-        void convertResumeWithVision_WithContentExtractionFailure_Fallback() {
-            log.info("=== 테스트 시작: Vision API 응답에서 content 추출 실패 시 fallback ===");
-
-            // Given
-            String malformedResponse = "{ \"invalid\": \"response\" }";
-            given(resumeLlmFeignClient.analyzeVision(any(ResumeVisionRequest.class)))
-                    .willReturn(malformedResponse);
-            try {
-                given(objectMapper.readTree(anyString()))
-                        .willReturn(createEmptyJsonNode());
-            } catch (Exception e) {
-                // Mock 설정이므로 실제로는 발생하지 않음
-            }
-
-            // When
-            ResumeImportResponse result = resumeLlmClientService.convertResumeWithVision(
-                    VALID_PROMPT, VALID_BASE64_IMAGE
-            );
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.name()).isEqualTo("홍길동"); // 기본값
-            assertThat(result.title()).isEqualTo("변환된 이력서 (자동생성)");
-
-            log.info("✅ Vision content 추출 실패 시 fallback 처리 확인");
-            log.info("=== 테스트 완료 ===\n");
-        }
-    }
-
-    @Nested
     @DisplayName("JSON 응답 파싱 테스트")
     class JsonParsingTests {
 
@@ -539,25 +432,6 @@ class ResumeLlmClientServiceTest {
 
             log.info("✅ 긴 텍스트 200자 제한 확인");
             log.info("=== 테스트 완료 ===\n");
-        }
-    }
-
-    // 테스트 헬퍼 메서드들
-    private com.fasterxml.jackson.databind.JsonNode createMockJsonNode(String content) {
-        try {
-            return new ObjectMapper().readTree("""
-                    {
-                      "choices": [
-                        {
-                          "message": {
-                            "content": "%s"
-                          }
-                        }
-                      ]
-                    }
-                    """.formatted(content));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 

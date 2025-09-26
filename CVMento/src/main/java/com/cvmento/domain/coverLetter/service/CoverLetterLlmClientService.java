@@ -4,7 +4,7 @@ import com.cvmento.domain.coverLetter.dto.request.LlmRequest;
 import com.cvmento.domain.coverLetter.dto.request.InputItem;
 import com.cvmento.domain.coverLetter.dto.response.LlmAnalysisResponse;
 import com.cvmento.domain.coverLetter.client.CoverLetterLlmFeignClient;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.common.util.OpenAiResponseParser;
 import com.cvmento.global.exception.customException.AiInvalidRequestException;
 import com.cvmento.global.exception.customException.CoverLetterAiException;
@@ -73,15 +73,10 @@ public class CoverLetterLlmClientService {
             MDC.put("spanId", "openai-llm-api");
             String rawResponse = getRawResponse(request);
 
-            MDC.put("spanId", "llm-response-parsing");
-            log.info("LLM 원본 응답 수신 완료 - 응답길이: {}", rawResponse.length());
-
             LlmAnalysisResponse response = parseResponse(rawResponse);
 
             MDC.put("spanId", "llm-client-service");
-            log.info("LLM 응답 파싱 완료 - 피드백길이: {}, 개선내용길이: {}",
-                    response.feedback() != null ? response.feedback().length() : 0,
-                    response.improvedContent() != null ? response.improvedContent().length() : 0);
+            log.info("LLM 응답 파싱 완료");
 
             validateResponse(response);
 
@@ -143,11 +138,7 @@ public class CoverLetterLlmClientService {
         }
 
         // 2. 피드백이 완전히 비어있음
-        if (response.feedback() == null || response.feedback().trim().isEmpty()) {
-            return true;
-        }
-
-        return false;
+        return response.feedback() == null || response.feedback().trim().isEmpty();
     }
 
     /**
@@ -254,8 +245,7 @@ public class CoverLetterLlmClientService {
                     improvedContent = contentJson.get("improvedContent").asText();
                 }
 
-                log.info("JSON 파싱 성공 - feedback: {}chars, improved: {}chars",
-                        feedback.length(), improvedContent.length());
+                log.info("JSON 파싱 성공");
 
                 return new LlmAnalysisResponse(feedback, improvedContent);
             } else {
