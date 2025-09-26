@@ -9,8 +9,6 @@ import com.cvmento.domain.resume.dto.request.ResumeTechStackSaveRequest;
 import com.cvmento.domain.resume.dto.request.TrainingSaveRequest;
 import com.cvmento.domain.resume.dto.request.TrainingTechStackSaveRequest;
 import com.cvmento.domain.resume.dto.response.ResumeImportResponse;
-import com.cvmento.domain.resume.service.ResumeService;
-import com.cvmento.global.aws.LambdaService;
 import com.cvmento.global.exception.customException.FileSizeExceededException;
 import com.cvmento.global.exception.customException.InvalidFileException;
 import com.cvmento.global.exception.customException.UnsupportedFileTypeException;
@@ -44,7 +42,6 @@ public class ResumeImportService {
 
     private final ResumeLlmPromptService resumeLlmPromptService;
     private final ResumeLlmClientService resumeLlmClientService;
-    private final LambdaService lambdaService;
     private final ResumeService resumeService;
     private final TechStackMappingService techStackMappingService;
 
@@ -59,12 +56,7 @@ public class ResumeImportService {
         log.info("이력서 변환 시작 - 전략: {}, 파일명: {}, 크기: {}bytes",
                 importStrategy, file.getOriginalFilename(), file.getSize());
 
-        ResumeImportResponse response;
-        if ("lambda".equals(importStrategy)) {
-            response = importWithLambda(file);
-        } else {
-            response = importWithDirect(file);
-        }
+        ResumeImportResponse response = importWithDirect(file);
 
         // 변환 성공 시 자동 저장
         try {
@@ -154,39 +146,6 @@ public class ResumeImportService {
         return response;
     }
 
-    private ResumeImportResponse importWithLambda(MultipartFile file) {
-        MDC.put("spanId", "resume-import-lambda");
-
-        log.info("Lambda 전략으로 이력서 변환 시작");
-
-        try {
-            // 1. Lambda OCR로 텍스트 추출
-            MDC.put("spanId", "lambda-ocr-service");
-            String extractedText = lambdaService.invokeLambdaOcr(file);
-
-            MDC.put("spanId", "resume-import-lambda");
-            log.info("Lambda OCR 완료 - 추출된 텍스트 길이: {}chars", extractedText.length());
-
-            // 2. 추출된 텍스트로 프롬프트 생성
-            MDC.put("spanId", "resume-prompt-service");
-            String prompt = resumeLlmPromptService.createResumeConversionPrompt(extractedText);
-
-            // 3. LLM 호출
-            MDC.put("spanId", "resume-llm-client");
-            ResumeImportResponse response = resumeLlmClientService.convertResume(prompt);
-
-            MDC.put("spanId", "resume-import-lambda");
-            log.info("Lambda 전략 변환 완료 - 이름: {}, 제목: {}",
-                    response.name(), response.title());
-
-            return response;
-
-        } catch (Exception e) {
-            log.error("Lambda 전략 변환 실패, Direct 전략으로 대체: {}", e.getMessage());
-            // Lambda 실패 시 Direct 전략으로 fallback
-            return importWithDirect(file);
-        }
-    }
 
     private void saveConvertedResume(ResumeImportResponse response, String memberEmail) {
         MDC.put("spanId", "resume-save-after-import");
@@ -205,7 +164,7 @@ public class ResumeImportService {
      * 기술스택 이름을 실제 ID로 매핑
      */
     private ResumeImportResponse mapTechStackIdsToRealIds(ResumeImportResponse response) {
-        MDC.put("spanId", "resume-techstack-mapping");
+        MDC.put("spanId", "resume-techStack-mapping");
 
         try {
             log.info("기술스택 ID 매핑 시작 - 메인: {}개", response.techStacks().size());

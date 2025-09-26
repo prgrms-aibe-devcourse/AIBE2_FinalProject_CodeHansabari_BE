@@ -45,7 +45,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: 3600000
+  access-token-expiration: 900000
   refresh-token-expiration: 1209600000
 
 cookie:
@@ -59,6 +59,8 @@ app:
   cors:
     allowed-origins:
       - "https://cvmento.shop"
+  internal:
+    api-key: ${APP_INTERNAL_KEY}
 
 llm:
   api:
@@ -69,22 +71,6 @@ llm:
       key: ${LLM_INTERVIEW_KEY}
     resume:
       key: ${LLM_RESUME_KEY}
-      vision:
-        key: ${LLM_RESUME_VISION_KEY}
-
-gemini:
-  api:
-    feature-extraction:
-      url: https://generativelanguage.googleapis.com/v1beta
-      key: ${GEMINI_API_KEY}
-
-# 임베딩 모델 설정
-embedding:
-  model:
-    url: "djl://ai.djl.huggingface.pytorch/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    threshold: 0.75
-  cache:
-    dir: "${user.home}/.djl-cache"
 
 logging:
   config: classpath:logback-spring.xml
@@ -97,13 +83,6 @@ logging:
 
 server:
   port: 5000
-
-cloud:
-  aws:
-    region:
-      static: ap-northeast-2
-    lambda:
-      function-name: aibe2-team2-resume-ocr-function
 
 resume:
   import:
@@ -119,14 +98,6 @@ management:
     health:
       show-details: when-authorized
   metrics:
-    export:
-      prometheus:
-        enabled: true
-    web:
-      server:
-        request:
-          autotime:
-            enabled: true
     distribution:
       percentiles-histogram:
         http:
@@ -139,3 +110,7 @@ management:
     tags:
       application: cvmento
       environment: production
+
+sub-backend:
+  url: https://api-sub.cvmento.shop/
+  api-key: ${SUB_API_KEY}

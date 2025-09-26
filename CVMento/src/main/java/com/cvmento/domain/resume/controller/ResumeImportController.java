@@ -9,7 +9,6 @@ import com.cvmento.global.usage.annotation.RequireTokens;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,9 +42,6 @@ public class ResumeImportController implements ResumeImportControllerInterface {
                 memberEmail, file.getOriginalFilename(), file.getSize());
 
         ResumeImportResponse response = resumeImportService.importResume(file, memberEmail);
-
-        log.info("이력서 변환 완료 - 사용자: {}, 변환결과: {}",
-                memberEmail, response.name());
 
         return ResponseEntity.ok(
                 CommonResponse.success("이력서가 성공적으로 변환되었습니다.", response)

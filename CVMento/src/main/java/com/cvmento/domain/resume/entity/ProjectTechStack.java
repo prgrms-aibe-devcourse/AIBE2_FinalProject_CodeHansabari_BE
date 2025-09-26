@@ -25,21 +25,14 @@ public class ProjectTechStack extends BaseTimeEntity {
     @Column(length = 50)
     private String usageType;
 
-    // 생성자
     private ProjectTechStack(Project project, TechStack techStack, String usageType) {
         this.project = project;
         this.techStack = techStack;
         this.usageType = usageType;
     }
 
-    // 정적 팩토리 메서드
     public static ProjectTechStack createProjectTechStack(Project project, TechStack techStack,
                                                           String usageType) {
         return new ProjectTechStack(project, techStack, usageType);
-    }
-
-    // 비즈니스 메서드
-    public void updateUsageType(String usageType) {
-        this.usageType = usageType;
     }
 }

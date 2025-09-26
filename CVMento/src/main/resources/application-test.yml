@@ -19,9 +19,6 @@ spring:
       port: 6381
       password: team2
       timeout: 2000ms
-  cloud:
-    openfeign:
-      enabled: false
   security:
     oauth2:
       client:
@@ -63,6 +60,12 @@ llm:
       vision:
         key: dummy-test-key-vision
 
+gemini:
+  api:
+    feature-extraction:
+      url: https://generativelanguage.googleapis.com/v1beta
+      key: dummy-test-gemini-key
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId},%X{spanId},%X{userEmail},%X{responseTime},%X{statusCode}] %logger{36} - %msg%n"
@@ -74,30 +77,9 @@ logging:
 server:
   port: 8080
 
-cloud:
-  aws:
-    region:
-      static: ap-northeast-2
-    lambda:
-      function-name: test-dummy-function
-
 resume:
   import:
     strategy: lambda
-
-gemini:
-  api:
-    feature-extraction:
-      url: https://generativelanguage.googleapis.com/v1beta
-      key: dummy-test-gemini-key
-
-# 임베딩 모델 설정
-embedding:
-  model:
-    url: "djl://ai.djl.huggingface.pytorch/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    threshold: 0.75
-  cache:
-    dir: "${user.home}/.djl-cache"
 
 management:
   endpoints:

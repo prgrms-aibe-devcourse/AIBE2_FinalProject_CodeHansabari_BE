@@ -26,21 +26,15 @@ public class ResumeTechStack extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private ProficiencyLevel proficiencyLevel;
 
-    // 생성자
     private ResumeTechStack(Resume resume, TechStack techStack, ProficiencyLevel proficiencyLevel) {
         this.resume = resume;
         this.techStack = techStack;
         this.proficiencyLevel = proficiencyLevel;
     }
 
-    // 정적 팩토리 메서드
     public static ResumeTechStack createResumeTechStack(Resume resume, TechStack techStack,
                                                         ProficiencyLevel proficiencyLevel) {
         return new ResumeTechStack(resume, techStack, proficiencyLevel);
     }
 
-    // 비즈니스 메서드
-    public void updateProficiencyLevel(ProficiencyLevel proficiencyLevel) {
-        this.proficiencyLevel = proficiencyLevel;
-    }
 }

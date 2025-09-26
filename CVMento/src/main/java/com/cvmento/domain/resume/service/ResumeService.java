@@ -11,7 +11,7 @@ import com.cvmento.domain.resume.repository.ResumeRepository;
 import com.cvmento.domain.resume.repository.ResumeRepositoryImpl;
 import com.cvmento.domain.member.entity.Member;
 import com.cvmento.domain.member.repository.MemberRepository;
-import com.cvmento.global.common.MetricsService;
+import com.cvmento.global.common.services.MetricsService;
 import com.cvmento.global.exception.customException.MemberNotFoundException;
 import com.cvmento.global.exception.customException.ResumeNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -139,10 +139,6 @@ public class ResumeService {
             Page<Resume> resumePage = resumeRepository.findByMemberEmailAndStatusOrderByUpdatedAtDesc(
                     memberEmail, ResumeStatus.ACTIVE, pageable);
 
-            MDC.put("spanId", "resume-list-service");
-            log.info("이력서 목록 조회 완료 - 총 개수: {}, 현재페이지: {}",
-                    resumePage.getTotalElements(), resumePage.getNumber());
-
             return resumePage.map(this::convertToThumbnailResponse);
         } catch (Exception e) {
             metricsService.incrementErrorCount("RESUME_LIST_ERROR");
@@ -168,8 +164,6 @@ public class ResumeService {
                 metricsService.incrementErrorCount("RESUME_DETAIL_NOT_FOUND");
                 throw new ResumeNotFoundException("이력서를 찾을 수 없거나 접근 권한이 없습니다.");
             }
-
-            log.info("이력서 상세 조회 완료 - ID: {}, 제목: {}", resumeId, result.title());
 
             return result;
         } catch (MemberNotFoundException e) {

@@ -24,21 +24,14 @@ public class CustomLink extends BaseTimeEntity {
     @Column(nullable = false, length = 200)
     private String url;
 
-    // 생성자
     private CustomLink(Resume resume, String name, String url) {
         this.resume = resume;
         this.name = name;
         this.url = url;
     }
 
-    // 정적 팩토리 메서드
+    /** 생성 메서드 */
     public static CustomLink createCustomLink(Resume resume, String name, String url) {
         return new CustomLink(resume, name, url);
-    }
-
-    // 비즈니스 메서드
-    public void updateLink(String name, String url) {
-        this.name = name;
-        this.url = url;
     }
 }

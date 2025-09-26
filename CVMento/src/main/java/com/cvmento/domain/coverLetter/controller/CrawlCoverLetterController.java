@@ -2,17 +2,14 @@ package com.cvmento.domain.coverLetter.controller;
 
 import com.cvmento.domain.coverLetter.controller.interfaces.CrawlCoverLetterControllerInterface;
 import com.cvmento.domain.coverLetter.dto.request.UpdateCrawlCoverLetterRequest;
-import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterData;
-import com.cvmento.domain.coverLetter.dto.response.CrawlCoverLetterResponse;
-import com.cvmento.domain.coverLetter.service.CrawlCoverLetterService;
-import com.cvmento.domain.coverLetter.service.CrawlCoverLetterQueryService;
 import com.cvmento.global.common.dto.CommonResponse;
-import com.cvmento.global.exception.customException.CrawlCoverLetterException;
+import com.cvmento.global.subBackend.client.CrawlClient;
+import com.cvmento.global.subBackend.client.JobClient;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -20,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 크롤링 데이터 관리자 API
@@ -30,11 +29,11 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class CrawlCoverLetterController implements CrawlCoverLetterControllerInterface {
 
-    private final CrawlCoverLetterService crawlCoverLetterService;
-    private final CrawlCoverLetterQueryService crawlCoverLetterQueryService;
+    private final JobClient jobClient;
+    private final CrawlClient crawlClient;
 
     /**
-     * 합격 자소서 크롤링 실행
+     * 합격 자소서 크롤링 실행 (Sub 백엔드로 위임)
      */
     @PostMapping("/")
     @Override
@@ -44,23 +43,47 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("자소서 크롤링 실행 요청 - 사용자: {}", userEmail);
 
-        CrawlCoverLetterResponse response = crawlCoverLetterService.crawlAndSaveCoverLetters();
-
-        if (response.success()) {
-            log.info("크롤링 실행 성공 - 수집개수: {}", response.crawledCount());
-            return ResponseEntity.ok(CommonResponse.success(response));
-        } else {
-            log.error("크롤링 실행 실패 - 메시지: {}", response.message());
-            throw new CrawlCoverLetterException(response.message());
+        try {
+            // 1. 먼저 활성 Job이 있는지 확인
+            ResponseEntity<Map<String, Object>> activeJobResponse = jobClient.getLatestActiveJobStatus();
+            Map<String, Object> activeJobStatus = activeJobResponse.getBody();
+            
+            if (activeJobStatus != null && (Boolean) activeJobStatus.getOrDefault("hasActiveJob", false)) {
+                String activeJobType = (String) activeJobStatus.get("jobType");
+                String activeStatus = (String) activeJobStatus.get("status");
+                String activeJobCreatedBy = (String) activeJobStatus.getOrDefault("createdBy", "SYSTEM");
+                
+                log.warn("크롤링 요청 거부 - 활성 Job 존재: {} ({}), 생성자: {}, 요청자: {}", 
+                        activeJobType, activeStatus, activeJobCreatedBy, userEmail);
+                        
+                return ResponseEntity.badRequest().body(CommonResponse.error(
+                        "JOB_ALREADY_ACTIVE", 
+                        String.format("현재 %s 작업이 진행 중입니다. 작업 완료 후 다시 시도해주세요. (진행중인 작업 생성자: %s)", 
+                                getJobTypeKorean(activeJobType), activeJobCreatedBy)
+                ));
+            }
+            
+            // 2. 활성 Job이 없으면 크롤링 시작
+            Map<String, Object> jobRequest = Map.of(
+                    "jobId", java.util.UUID.randomUUID().toString(),
+                    "task", "CRAWLING"
+            );
+            Map<String, Object> response = jobClient.startJob(jobRequest);
+            
+            return ResponseEntity.ok(CommonResponse.success("크롤링 작업이 시작되었습니다.", response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 크롤링 요청 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("CRAWL_REQUEST_ERROR", "크롤링 요청 실패"));
         }
     }
 
     /**
-     * 크롤링 데이터 페이징 조회
+     * 크롤링 데이터 페이징 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/")
     @Override
-    public ResponseEntity<CommonResponse<Page<CrawlCoverLetterData>>> getCrawlCoverLettersWithPagination(
+    public ResponseEntity<CommonResponse<Page<Map<String, Object>>>> getCrawlCoverLettersWithPagination(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-pagination-controller");
@@ -70,20 +93,27 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         log.info("크롤링 데이터 페이징 조회 요청 - 사용자: {}, 페이지: {}, 크기: {}",
                 userEmail, pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<CrawlCoverLetterData> response = crawlCoverLetterQueryService.getCrawlCoverLettersWithPagination(pageable);
-
-        log.info("크롤링 데이터 페이징 조회 완료 - 총 개수: {}, 총 페이지: {}",
-                response.getTotalElements(), response.getTotalPages());
-        
-        return ResponseEntity.ok(CommonResponse.success(response));
+        try {
+            Page<Map<String, Object>> response = crawlClient.getCrawlData(
+                    pageable.getPageNumber(), 
+                    pageable.getPageSize(), 
+                    "createdAt,desc"
+            );
+            
+            return ResponseEntity.ok(CommonResponse.success(response));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 크롤링 데이터 조회 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("CRAWL_DATA_FETCH_ERROR", "크롤링 데이터 조회 실패"));
+        }
     }
 
     /**
-     * 크롤링 데이터 단건 조회
+     * 크롤링 데이터 단건 조회 (Sub 백엔드로 위임)
      */
     @GetMapping("/{id}")
     @Override
-    public ResponseEntity<CommonResponse<CrawlCoverLetterData>> getCrawlCoverLetterById(
+    public ResponseEntity<CommonResponse<Map<String, Object>>> getCrawlCoverLetterById(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-detail-controller");
@@ -91,18 +121,24 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("크롤링 데이터 개별 조회 요청 - ID: {}, 사용자: {}", id, userEmail);
 
-        CrawlCoverLetterData coverLetter = crawlCoverLetterQueryService.getCrawlCoverLetterById(id);
-        return ResponseEntity.ok(CommonResponse.success(coverLetter));
+        try {
+            Map<String, Object> coverLetter = crawlClient.getCrawlDataById(id);
+            return ResponseEntity.ok(CommonResponse.success(coverLetter));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 크롤링 데이터 개별 조회 실패 - ID: {}, 사용자: {}, 에러: {}", id, userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("CRAWL_DATA_FETCH_ERROR", "크롤링 데이터 조회 실패"));
+        }
     }
 
     /**
-     * 크롤링 데이터 수정
+     * 크롤링 데이터 수정 (Sub 백엔드로 위임)
      */
     @PutMapping("/{id}")
     @Override
-    public ResponseEntity<CommonResponse<CrawlCoverLetterData>> updateCrawlCoverLetter(
+    public ResponseEntity<CommonResponse<Map<String, Object>>> updateCrawlCoverLetter(
             @PathVariable Long id,
-            @RequestBody UpdateCrawlCoverLetterRequest request,
+            @RequestBody @Valid UpdateCrawlCoverLetterRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         MDC.put("spanId", "crawl-update-controller");
 
@@ -110,12 +146,19 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         log.info("크롤링 데이터 수정 요청 - ID: {}, 사용자: {}, 텍스트길이: {}",
                 id, userEmail, request.text() != null ? request.text().length() : 0);
 
-        CrawlCoverLetterData updatedCoverLetter = crawlCoverLetterService.updateCrawlCoverLetter(id, request, userEmail);
-        return ResponseEntity.ok(CommonResponse.success(updatedCoverLetter));
+        try {
+            Map<String, Object> requestBody = Map.of("text", request.text());
+            Map<String, Object> updatedCoverLetter = crawlClient.updateCrawlData(id, requestBody);
+            return ResponseEntity.ok(CommonResponse.success(updatedCoverLetter));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 크롤링 데이터 수정 실패 - ID: {}, 사용자: {}, 에러: {}", id, userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("CRAWL_DATA_UPDATE_ERROR", "크롤링 데이터 수정 실패"));
+        }
     }
 
     /**
-     * 크롤링 데이터 단건 삭제
+     * 크롤링 데이터 단건 삭제 (Sub 백엔드로 위임)
      */
     @DeleteMapping("/{id}")
     @Override
@@ -127,12 +170,18 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("크롤링 데이터 개별 삭제 요청 - ID: {}, 사용자: {}", id, userEmail);
 
-        crawlCoverLetterService.deleteCrawlCoverLetter(id);
-        return ResponseEntity.ok(CommonResponse.success("크롤링 데이터가 삭제되었습니다."));
+        try {
+            crawlClient.deleteCrawlData(id);
+            return ResponseEntity.ok(CommonResponse.success("크롤링 데이터가 삭제되었습니다."));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 크롤링 데이터 삭제 실패 - ID: {}, 사용자: {}, 에러: {}", id, userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("CRAWL_DATA_DELETE_ERROR", "크롤링 데이터 삭제 실패"));
+        }
     }
 
     /**
-     * 크롤링 데이터 전체 삭제
+     * 크롤링 데이터 전체 삭제 (Sub 백엔드로 위임)
      */
     @DeleteMapping("/")
     @Override
@@ -142,7 +191,25 @@ public class CrawlCoverLetterController implements CrawlCoverLetterControllerInt
         String userEmail = userDetails.getUsername();
         log.info("크롤링 데이터 전체 삭제 요청 - 사용자: {}", userEmail);
 
-        crawlCoverLetterService.deleteAllCrawlCoverLetters();
-        return ResponseEntity.ok(CommonResponse.success("모든 크롤링 데이터가 삭제되었습니다."));
+        try {
+            crawlClient.deleteAllCrawlData();
+            return ResponseEntity.ok(CommonResponse.success("모든 크롤링 데이터가 삭제되었습니다."));
+        } catch (Exception e) {
+            log.error("Sub 백엔드 크롤링 데이터 전체 삭제 실패 - 사용자: {}, 에러: {}", userEmail, e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body(CommonResponse.error("CRAWL_DATA_DELETE_ALL_ERROR", "크롤링 데이터 전체 삭제 실패"));
+        }
+    }
+
+    /**
+     * Job 타입을 한국어로 변환하는 유틸리티 메서드
+     */
+    private String getJobTypeKorean(String jobType) {
+        return switch (jobType) {
+            case "CRAWLING" -> "크롤링";
+            case "FEATURE_EXTRACTION" -> "특징 추출";
+            case "DEDUPLICATION" -> "중복 제거";
+            default -> jobType;
+        };
     }
 }
