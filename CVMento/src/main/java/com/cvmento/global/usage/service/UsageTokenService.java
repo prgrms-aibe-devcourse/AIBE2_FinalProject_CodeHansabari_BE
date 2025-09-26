@@ -210,6 +210,7 @@ public class UsageTokenService {
     /**
      * 벤치마크 테스트용 public 메서드
      */
+    @Cacheable(value = "memberCache", key = "#email")
     public Member findMemberByEmailForBenchmark(String email) {
         return findMemberByEmailCached(email);
     }

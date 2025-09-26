@@ -254,7 +254,7 @@ public class CoverLetterService {
     }
 
     // 캐시 적용 버전
-    @Cacheable(value = "memberCache", key = "#member.email")
+    @Cacheable(value = "memberCache", key = "#email")
     public Member findMemberByEmail(String email) {
         log.info("🔥 DB 조회 (캐시 적용): {}", email);
         return memberRepository.findByEmail(email)
@@ -269,6 +269,7 @@ public class CoverLetterService {
     }
 
     // 벤치마크 테스트용 public 메서드
+    @Cacheable(value = "memberCache", key = "#email")
     public Member findMemberByEmailForBenchmark(String email) {
         return findMemberByEmail(email);
     }

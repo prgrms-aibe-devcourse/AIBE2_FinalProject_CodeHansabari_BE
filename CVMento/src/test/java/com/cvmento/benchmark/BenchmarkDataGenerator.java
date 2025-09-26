@@ -42,12 +42,6 @@ public class BenchmarkDataGenerator implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("=== 빠른 벤치마크 데이터 생성 시작 ===");
 
-        // 기존 데이터가 있으면 건너뛰기
-        if (memberRepository.count() > 1) {
-            log.info("이미 데이터가 존재합니다. 데이터 생성을 건너뜁니다.");
-            return;
-        }
-
         createTestMember();
         createBulkMembers();
         createBulkCoverLetters();
