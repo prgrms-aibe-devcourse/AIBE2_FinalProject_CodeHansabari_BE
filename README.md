@@ -9,31 +9,27 @@
 ## 📱 서비스 화면
 
 ### 메인 페이지
-![CVMento 메인](./docs/images/mainpage.png)
+![CVMento 메인](https://github.com/user-attachments/assets/main-page.png)
 *AI 기반 자동 분석부터 맞춤형 예상질문까지 원스톱 취업 준비 서비스*
 
 ### 자기소개서 첨삭
-![자기소개서 첨삭](./docs/images/cover-letter.png)
+![자기소개서 첨삭](https://github.com/user-attachments/assets/cover-letter.png)
 *AI가 제공하는 상세한 피드백과 커스텀 프롬프트 기능*
 
 ### AI 모의면접
-![AI 모의면접](./docs/images/mock-interview.png)
+![AI 모의면접](https://github.com/user-attachments/assets/mock-interview.png)
 *자기소개서 기반 예상 질문 생성 및 대화형 면접 체험*
 
 ### 이력서 편집
-![이력서 편집](./docs/images/resume-edit.png)
+![이력서 편집](https://github.com/user-attachments/assets/resume-edit.png)
 *PDF/이미지 업로드 후 바로 편집 가능한 이력서 관리*
 
 ### 관리자 대시보드
-![관리자 대시보드](./docs/images/admin-dashboard.png)
+![관리자 대시보드](https://github.com/user-attachments/assets/admin-dashboard.png)
 *사용자 관리 및 크롤링 데이터 관리*
 
-### 크롤링 대시보드
-![크롤링 대시보드](./docs/images/crawling.png)
-* 잘쓴 자소서 크롤링부터 특징 추출까지의 데이터*
-
 ### 실시간 모니터링
-![Grafana 모니터링](./docs/images/grafana-monitoring.png)
+![Grafana 모니터링](https://github.com/user-attachments/assets/grafana-monitoring.png)
 *Grafana Cloud를 통한 실시간 성능 모니터링*
 
 ---
@@ -142,7 +138,7 @@ SUB_API_KEY=your_sub_backend_api_key
 
 ### 🚀 실행 방법
 
-#### 로컬 개발환경 (Docker 사용)
+#### 로컬 개발환경 설정
 ```bash
 # 1. 저장소 클론
 git clone https://github.com/prgrms-aibe-devcourse/AIBE2_FinalProject_CodeHansabari_BE.git
@@ -152,7 +148,7 @@ cd AIBE2_FinalProject_CodeHansabari_BE
 cp .env.example .env
 # .env 파일에 필요한 환경변수 설정
 
-# 3. Docker 컨테이너 실행 (MySQL, Redis, Grafana Agent)
+# 3. Docker로 MySQL, Redis, Grafana Agent 실행
 docker-compose up -d
 
 # 4. 애플리케이션 빌드 및 실행
@@ -161,11 +157,7 @@ cd CVMento
 ./gradlew bootRun
 ```
 
-#### 직접 실행
-```bash
-# MySQL, Redis가 이미 설치되어 있는 경우
-./gradlew bootRun --args='--spring.profiles.active=production'
-```
+> **참고**: Docker Compose는 로컬 개발을 위한 MySQL, Redis, Grafana Agent만 실행합니다. 애플리케이션은 별도로 실행해야 합니다.
 
 ---
 
