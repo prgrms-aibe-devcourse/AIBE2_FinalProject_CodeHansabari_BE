@@ -9,27 +9,31 @@
 ## 📱 서비스 화면
 
 ### 메인 페이지
-![CVMento 메인](https://github.com/user-attachments/assets/main-page.png)
+![CVMento 메인](./docs/images/mainpage.png)
 *AI 기반 자동 분석부터 맞춤형 예상질문까지 원스톱 취업 준비 서비스*
 
 ### 자기소개서 첨삭
-![자기소개서 첨삭](https://github.com/user-attachments/assets/cover-letter.png)
+![자기소개서 첨삭](./docs/images/cover-letter.png)
 *AI가 제공하는 상세한 피드백과 커스텀 프롬프트 기능*
 
 ### AI 모의면접
-![AI 모의면접](https://github.com/user-attachments/assets/mock-interview.png)
+![AI 모의면접](./docs/images/mock-interview.png)
 *자기소개서 기반 예상 질문 생성 및 대화형 면접 체험*
 
 ### 이력서 편집
-![이력서 편집](https://github.com/user-attachments/assets/resume-edit.png)
+![이력서 편집](./docs/images/resume-edit.png)
 *PDF/이미지 업로드 후 바로 편집 가능한 이력서 관리*
 
 ### 관리자 대시보드
-![관리자 대시보드](https://github.com/user-attachments/assets/admin-dashboard.png)
+![관리자 대시보드](./docs/images/admin-dashboard.png)
 *사용자 관리 및 크롤링 데이터 관리*
 
+### 크롤링 대시보드
+![크롤링 대시보드](./docs/images/crawling.png)
+*잘 쓴 자소서 크롤링부터 특징 추출까지의 데이터*
+
 ### 실시간 모니터링
-![Grafana 모니터링](https://github.com/user-attachments/assets/grafana-monitoring.png)
+![Grafana 모니터링](./docs/images/grafana-monitoring.png)
 *Grafana Cloud를 통한 실시간 성능 모니터링*
 
 ---
