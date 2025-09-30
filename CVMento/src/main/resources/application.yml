@@ -18,7 +18,7 @@ spring:
         config:
           llm-client:
             connect-timeout: 60000
-            read-timeout: 60000
+            read-timeout: 180000
           sub-backend-job: # JobClient용
             connect-timeout: 5000
             read-timeout: 180000
