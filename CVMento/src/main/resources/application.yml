@@ -2,7 +2,7 @@ spring:
   application:
     name: backend
   profiles:
-    active: production  # 기본 프로파일
+    active: local  # 기본 프로파일
   jackson:
     time-zone: Asia/Seoul
 
@@ -16,9 +16,15 @@ spring:
     openfeign:
       client:
         config:
-          llm-client:
-            connect-timeout: 60000
-            read-timeout: 180000
+          cover-letter-llm-client:  # CoverLetter 전용 설정
+            connect-timeout: 10000
+            read-timeout: 300000
+          interview-llm-client:     # Interview 전용 설정
+            connect-timeout: 10000
+            read-timeout: 300000
+          resume-llm-client:        # Resume 전용 설정
+            connect-timeout: 10000
+            read-timeout: 300000
           sub-backend-job: # JobClient용
             connect-timeout: 5000
             read-timeout: 180000
