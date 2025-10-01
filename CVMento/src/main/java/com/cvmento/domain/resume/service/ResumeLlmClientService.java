@@ -50,7 +50,7 @@ public class ResumeLlmClientService {
     }
 
     private ResumeLlmRequest createLlmRequest(String prompt) {
-        return ResumeLlmRequest.create("gpt-5-nano", prompt);
+        return ResumeLlmRequest.create("gpt-5", prompt);
     }
 
     private ResumeImportResponse callLlmApi(ResumeLlmRequest request) {
@@ -157,7 +157,7 @@ public class ResumeLlmClientService {
     }
 
     private ResumeVisionRequest createVisionRequest(String textPrompt, String base64Image) {
-        return ResumeVisionRequest.create("gpt-5-nano", textPrompt, base64Image);
+        return ResumeVisionRequest.create("gpt-5", textPrompt, base64Image);
     }
 
     private ResumeImportResponse callVisionApi(ResumeVisionRequest request) {
